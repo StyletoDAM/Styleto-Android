@@ -6,11 +6,11 @@ import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import tn.esprit.labasniandroid.screens.LabasniForgotPasswordScreen
-import tn.esprit.labasniandroid.screens.LabasniIntroScreen
-import tn.esprit.labasniandroid.screens.LabasniLoginScreen
-import tn.esprit.labasniandroid.screens.LabasniSignupScreen
-import tn.esprit.labasniandroid.screens.home.LabasniMainScreen
+import tn.esprit.labasniandroid.ui.screen.auth.forgotpassword.ForgotPasswordView
+import tn.esprit.labasniandroid.ui.screen.intro.IntroView
+import tn.esprit.labasniandroid.ui.screen.auth.login.LoginView
+import tn.esprit.labasniandroid.ui.screen.auth.signup.SignupView
+import tn.esprit.labasniandroid.ui.screen.home.MainScreen
 
 sealed class LabasniDestination(val route: String) {
     data object Intro : LabasniDestination("intro")
@@ -29,7 +29,7 @@ fun LabasniApp() {
         startDestination = LabasniDestination.Intro.route
     ) {
         composable(LabasniDestination.Intro.route) {
-            LabasniIntroScreen(
+            IntroView(
                 onLogin = {
                     navController.navigateSingleTop(LabasniDestination.Login.route)
                 },
@@ -40,7 +40,7 @@ fun LabasniApp() {
         }
 
         composable(LabasniDestination.Login.route) {
-            LabasniLoginScreen(
+            LoginView(
                 onBack = { navController.popBackStack() },
                 onForgotPassword = {
                     navController.navigateSingleTop(LabasniDestination.Forgot.route)
@@ -57,7 +57,7 @@ fun LabasniApp() {
         }
 
         composable(LabasniDestination.Signup.route) {
-            LabasniSignupScreen(
+            SignupView(
                 onBack = { navController.popBackStack() },
                 onAccountCreated = {
                     navController.navigateSingleTop(LabasniDestination.Home.route) {
@@ -68,7 +68,7 @@ fun LabasniApp() {
         }
 
         composable(LabasniDestination.Forgot.route) {
-            LabasniForgotPasswordScreen(
+            ForgotPasswordView(
                 onBack = { navController.popBackStack() },
                 onNavigateToLogin = {
                     navController.navigateSingleTop(LabasniDestination.Login.route) {
@@ -79,7 +79,7 @@ fun LabasniApp() {
         }
 
         composable(LabasniDestination.Home.route) {
-            LabasniMainScreen(
+            MainScreen(
                 onLogout = {
                     navController.navigate(LabasniDestination.Login.route) {
                         popUpTo(LabasniDestination.Intro.route) { inclusive = true }

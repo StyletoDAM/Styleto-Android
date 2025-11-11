@@ -1,52 +1,105 @@
 package tn.esprit.labasniandroid.api
 
+import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
-import retrofit2.http.POST
 import retrofit2.http.Header
-import tn.esprit.labasniandroid.models.SigninResponse
-import tn.esprit.labasniandroid.models.SignupResponse
-import tn.esprit.labasniandroid.models.User
-import tn.esprit.labasniandroid.models.VerifyEmailResponse
-import tn.esprit.labasniandroid.models.ForgotPasswordResponse
-import tn.esprit.labasniandroid.models.VerifyOtpResponse
-import tn.esprit.labasniandroid.models.ResetPasswordResponse
-import tn.esprit.labasniandroid.models.dto.SigninRequest
-import tn.esprit.labasniandroid.models.dto.SignupRequest
-import tn.esprit.labasniandroid.models.dto.GoogleAuthRequest
-import tn.esprit.labasniandroid.models.dto.AppleAuthRequest
-import tn.esprit.labasniandroid.models.dto.VerifyEmailRequest
-import tn.esprit.labasniandroid.models.dto.ForgotPasswordRequest
-import tn.esprit.labasniandroid.models.dto.VerifyOtpRequest
-import tn.esprit.labasniandroid.models.dto.ResetPasswordRequest
+import retrofit2.http.PATCH
+import retrofit2.http.POST
+import tn.esprit.labasniandroid.models.Responses
+import tn.esprit.labasniandroid.models.entities.User
+
+// DTOs intégrés directement dans l'API (même structure que dans AuthRepository)
+data class SigninRequest(
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String
+)
+
+data class SignupRequest(
+    @SerializedName("fullName") val fullName: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("password") val password: String,
+    @SerializedName("gender") val gender: User.Gender,
+    @SerializedName("phoneNumber") val phoneNumber: String? = null,
+    @SerializedName("preferences") val preferences: List<String>? = null
+)
+
+data class GoogleAuthRequest(
+    @SerializedName("googleId") val googleId: String,
+    @SerializedName("fullName") val fullName: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("profilePicture") val profilePicture: String? = null,
+    @SerializedName("gender") val gender: String? = null
+)
+
+data class AppleAuthRequest(
+    @SerializedName("appleId") val appleId: String,
+    @SerializedName("fullName") val fullName: String,
+    @SerializedName("email") val email: String,
+    @SerializedName("profilePicture") val profilePicture: String? = null,
+    @SerializedName("gender") val gender: String? = null
+)
+
+data class ForgotPasswordRequest(
+    @SerializedName("email") val email: String
+)
+
+data class VerifyEmailRequest(
+    @SerializedName("tempToken") val tempToken: String,
+    @SerializedName("code") val code: String
+)
+
+data class VerifyOtpRequest(
+    @SerializedName("email") val email: String,
+    @SerializedName("code") val code: String
+)
+
+data class ResetPasswordRequest(
+    @SerializedName("resetToken") val resetToken: String,
+    @SerializedName("newPassword") val newPassword: String
+)
+
+data class UpdateProfileRequest(
+    @SerializedName("fullName") val fullName: String? = null,
+    @SerializedName("email") val email: String? = null,
+    @SerializedName("gender") val gender: String? = null,
+    @SerializedName("phoneNumber") val phoneNumber: String? = null,
+    @SerializedName("preferences") val preferences: List<String>? = null,
+    @SerializedName("password") val password: String? = null
+)
 
 interface AuthApi {
     @POST("/auth/signup")
-    suspend fun signup(@Body request: SignupRequest): Response<SignupResponse>
+    suspend fun signup(@Body request: SignupRequest): Response<Responses.SignupResponse>
 
     @POST("/auth/signin")
-    suspend fun signin(@Body request: SigninRequest): Response<SigninResponse>
+    suspend fun signin(@Body request: SigninRequest): Response<Responses.SigninResponse>
 
     @POST("/auth/google")
-    suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<SigninResponse>
+    suspend fun googleAuth(@Body request: GoogleAuthRequest): Response<Responses.SigninResponse>
 
     @POST("/auth/apple")
-    suspend fun appleAuth(@Body request: AppleAuthRequest): Response<SigninResponse>
+    suspend fun appleAuth(@Body request: AppleAuthRequest): Response<Responses.SigninResponse>
 
     @GET("/auth/profile")
     suspend fun getProfile(@Header("Authorization") token: String): Response<User>
 
+    @PATCH("/auth/profile")
+    suspend fun updateProfile(
+        @Header("Authorization") token: String,
+        @Body request: UpdateProfileRequest
+    ): Response<User>
+
     @POST("/auth/verify-email")
-    suspend fun verifyEmail(@Body request: VerifyEmailRequest): Response<VerifyEmailResponse>
+    suspend fun verifyEmail(@Body request: VerifyEmailRequest): Response<Responses.VerifyEmailResponse>
 
     @POST("/auth/forgot-password")
-    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<ForgotPasswordResponse>
+    suspend fun forgotPassword(@Body request: ForgotPasswordRequest): Response<Responses.ForgotPasswordResponse>
 
     @POST("/auth/verify-otp")
-    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<VerifyOtpResponse>
+    suspend fun verifyOtp(@Body request: VerifyOtpRequest): Response<Responses.VerifyOtpResponse>
 
     @POST("/auth/reset-password")
-    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<ResetPasswordResponse>
+    suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<Responses.ResetPasswordResponse>
 }
-

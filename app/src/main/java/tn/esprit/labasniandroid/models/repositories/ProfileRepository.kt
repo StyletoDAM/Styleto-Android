@@ -1,0 +1,98 @@
+package tn.esprit.labasniandroid.models.repositories
+
+import android.util.Log
+import tn.esprit.labasniandroid.api.RetrofitClient
+import tn.esprit.labasniandroid.api.UpdateProfileRequest
+import tn.esprit.labasniandroid.models.NetworkError
+import tn.esprit.labasniandroid.models.entities.User
+
+class ProfileRepository {
+    private val authApi = RetrofitClient.authApi
+
+    suspend fun getProfile(token: String): Result<User> {
+        return try {
+            val response = authApi.getProfile("Bearer $token")
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = when (response.code()) {
+                    401 -> "Token invalide ou expiré."
+                    404 -> "Profil non trouvé."
+                    else -> errorBody ?: "Une erreur est survenue."
+                }
+                Result.failure(NetworkError.ServerMessage(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(NetworkError.Transport(e))
+        }
+    }
+
+    suspend fun updateProfile(
+        token: String,
+        fullName: String? = null,
+        email: String? = null,
+        gender: String? = null,
+        phoneNumber: String? = null,
+        preferences: List<String>? = null,
+        password: String? = null
+    ): Result<User> {
+        return try {
+            // Construire la requête - ne pas inclure les champs null
+            val request = UpdateProfileRequest(
+                fullName = fullName?.takeIf { it.isNotBlank() },
+                email = email?.takeIf { it.isNotBlank() },
+                gender = gender?.takeIf { it.isNotBlank() },
+                phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
+                preferences = preferences?.takeIf { it.isNotEmpty() },
+                password = password?.takeIf { it.isNotBlank() }
+            )
+            // Log pour débogage détaillé
+            Log.d("ProfileRepository", "=== UPDATE PROFILE REQUEST ===")
+            Log.d("ProfileRepository", "fullName: $fullName (filtered: ${request.fullName})")
+            Log.d("ProfileRepository", "email: $email (filtered: ${request.email})")
+            Log.d("ProfileRepository", "gender: $gender (filtered: ${request.gender})")
+            Log.d("ProfileRepository", "phoneNumber: $phoneNumber (filtered: ${request.phoneNumber})")
+            Log.d("ProfileRepository", "preferences: $preferences (filtered: ${request.preferences})")
+            Log.d("ProfileRepository", "Request object: $request")
+            
+            val response = authApi.updateProfile("Bearer $token", request)
+            
+            Log.d("ProfileRepository", "Response code: ${response.code()}")
+            Log.d("ProfileRepository", "Response isSuccessful: ${response.isSuccessful}")
+            Log.d("ProfileRepository", "Response headers: ${response.headers()}")
+
+            if (response.isSuccessful) {
+                val updatedUser = response.body()
+                if (updatedUser != null) {
+                    Log.d("ProfileRepository", "✅ Profile updated successfully!")
+                    Log.d("ProfileRepository", "New fullName: ${updatedUser.fullName}")
+                    Log.d("ProfileRepository", "New email: ${updatedUser.email}")
+                    Log.d("ProfileRepository", "New gender: ${updatedUser.gender}")
+                    Result.success(updatedUser)
+                } else {
+                    Log.e("ProfileRepository", "❌ Response body is null!")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("ProfileRepository", "Error body: $errorBody")
+                    Result.failure(NetworkError.ServerMessage("Réponse vide du serveur."))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e("ProfileRepository", "❌ Update failed!")
+                Log.e("ProfileRepository", "Status code: ${response.code()}")
+                Log.e("ProfileRepository", "Error body: $errorBody")
+                val errorMessage = when (response.code()) {
+                    401 -> "Token invalide ou expiré."
+                    409 -> "Email déjà utilisé."
+                    400 -> "Données invalides: $errorBody"
+                    else -> errorBody ?: "Une erreur est survenue lors de la mise à jour (code: ${response.code()})."
+                }
+                Result.failure(NetworkError.ServerMessage(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(NetworkError.Transport(e))
+        }
+    }
+}
+
