@@ -41,11 +41,11 @@ tn.esprit.labasniandroid.app-navigation-common-2.8.4-39 /Users/macbook/.gradle/c
 tn.esprit.labasniandroid.app-activity-compose-1.11.0-40 /Users/macbook/.gradle/caches/8.13/transforms/e86997cf7d069d553510b8e09275d496/transformed/activity-compose-1.11.0/res
 tn.esprit.labasniandroid.app-annotation-experimental-1.4.1-41 /Users/macbook/.gradle/caches/8.13/transforms/f96d2692f94ea901f086ada6d7e078e5/transformed/annotation-experimental-1.4.1/res
 tn.esprit.labasniandroid.app-navigation-compose-2.8.4-42 /Users/macbook/.gradle/caches/8.13/transforms/ff2b1291907ca8dc2d2cd70ec73ce7ab/transformed/navigation-compose-2.8.4/res
-tn.esprit.labasniandroid.app-pngs-43 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/generated/res/pngs/debug
-tn.esprit.labasniandroid.app-resValues-44 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/generated/res/resValues/debug
-tn.esprit.labasniandroid.app-updated_navigation_xml-45 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/generated/updated_navigation_xml/debug
-tn.esprit.labasniandroid.app-packageDebugResources-46 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
-tn.esprit.labasniandroid.app-packageDebugResources-47 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
-tn.esprit.labasniandroid.app-debug-48 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/build/intermediates/merged_res/debug/mergeDebugResources
-tn.esprit.labasniandroid.app-debug-49 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/debug/res
-tn.esprit.labasniandroid.app-main-50 /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/res
+tn.esprit.labasniandroid.app-pngs-43 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/generated/res/pngs/debug
+tn.esprit.labasniandroid.app-resValues-44 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/generated/res/resValues/debug
+tn.esprit.labasniandroid.app-updated_navigation_xml-45 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/generated/updated_navigation_xml/debug
+tn.esprit.labasniandroid.app-packageDebugResources-46 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/intermediates/incremental/debug/packageDebugResources/merged.dir
+tn.esprit.labasniandroid.app-packageDebugResources-47 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/intermediates/incremental/debug/packageDebugResources/stripped.dir
+tn.esprit.labasniandroid.app-debug-48 /Users/macbook/Documents/GitHub/Labasni-Android/app/build/intermediates/merged_res/debug/mergeDebugResources
+tn.esprit.labasniandroid.app-debug-49 /Users/macbook/Documents/GitHub/Labasni-Android/app/src/debug/res
+tn.esprit.labasniandroid.app-main-50 /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/res

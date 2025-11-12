@@ -48,5 +48,10 @@ object Responses {
         @SerializedName("user")
         val user: User
     )
+
+    data class MessageResponse(
+        @SerializedName("message")
+        val message: String
+    )
 }
 

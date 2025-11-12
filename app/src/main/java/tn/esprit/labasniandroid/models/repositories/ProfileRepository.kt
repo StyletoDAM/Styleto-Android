@@ -4,6 +4,7 @@ import android.util.Log
 import tn.esprit.labasniandroid.api.RetrofitClient
 import tn.esprit.labasniandroid.api.UpdateProfileRequest
 import tn.esprit.labasniandroid.models.NetworkError
+import tn.esprit.labasniandroid.models.Responses
 import tn.esprit.labasniandroid.models.entities.User
 
 class ProfileRepository {
@@ -87,6 +88,25 @@ class ProfileRepository {
                     409 -> "Email déjà utilisé."
                     400 -> "Données invalides: $errorBody"
                     else -> errorBody ?: "Une erreur est survenue lors de la mise à jour (code: ${response.code()})."
+                }
+                Result.failure(NetworkError.ServerMessage(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(NetworkError.Transport(e))
+        }
+    }
+
+    suspend fun deleteAccount(token: String): Result<Responses.MessageResponse> {
+        return try {
+            val response = authApi.deleteProfile("Bearer $token")
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = when (response.code()) {
+                    401 -> "Token invalide ou expiré."
+                    else -> errorBody ?: "Une erreur est survenue lors de la suppression."
                 }
                 Result.failure(NetworkError.ServerMessage(errorMessage))
             }

@@ -33,6 +33,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -41,6 +42,7 @@ import androidx.compose.material.icons.rounded.Help
 import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.LocalMall
+import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mood
 import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Palette
@@ -53,6 +55,7 @@ import androidx.compose.material.icons.automirrored.rounded.ExitToApp
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -78,6 +81,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -748,8 +752,14 @@ private data class SettingsOption(
     val hasToggle: Boolean = false,
     val initialValue: Boolean = false,
     val hasChevron: Boolean = true,
-    val isThemePicker: Boolean = false
+    val isThemePicker: Boolean = false,
+    val action: SettingsOptionAction? = null
 )
+
+private enum class SettingsOptionAction {
+    CHANGE_PASSWORD,
+    DELETE_ACCOUNT
+}
 
 @Composable
 fun SettingsTab(
@@ -766,6 +776,7 @@ fun SettingsTab(
     val isLoading by profileViewModel.isLoading.collectAsState()
     val errorMessage by profileViewModel.errorMessage.collectAsState()
     val successMessage by profileViewModel.successMessage.collectAsState()
+    val accountDeleted by profileViewModel.accountDeleted.collectAsState()
 
     val activeUser = viewModelUser ?: user
 
@@ -791,14 +802,32 @@ fun SettingsTab(
     LaunchedEffect(successMessage) {
         successMessage?.let { message ->
             Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+
+            if (accountDeleted) {
+                TokenManager.clearToken(context)
+                profileViewModel.acknowledgeAccountDeleted()
+                onLogout()
+            } else {
+                viewModelUser?.let(onUserUpdated)
+            }
+
             profileViewModel.clearMessages()
-            viewModelUser?.let(onUserUpdated)
+        }
+    }
+
+    LaunchedEffect(accountDeleted) {
+        if (accountDeleted) {
+            TokenManager.clearToken(context)
+            onLogout()
+            profileViewModel.acknowledgeAccountDeleted()
         }
     }
 
     val expandedSections = remember { mutableStateListOf<String>() }
     var showThemeDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
+    var showPasswordDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     val sections = remember {
         listOf(
@@ -818,6 +847,22 @@ fun SettingsTab(
                     SettingsOption("Thème", hasChevron = true, isThemePicker = true),
                     SettingsOption("Style préféré", hasChevron = true),
                     SettingsOption("Animations", hasToggle = true)
+                )
+            ),
+            SettingsSection(
+                title = "Sécurité",
+                icon = Icons.Rounded.Lock,
+                options = listOf(
+                    SettingsOption(
+                        label = "Modifier le mot de passe",
+                        hasChevron = true,
+                        action = SettingsOptionAction.CHANGE_PASSWORD
+                    ),
+                    SettingsOption(
+                        label = "Supprimer le compte",
+                        hasChevron = false,
+                        action = SettingsOptionAction.DELETE_ACCOUNT
+                    )
                 )
             ),
             SettingsSection(
@@ -869,6 +914,40 @@ fun SettingsTab(
             }
         }
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(96.dp)
+                    .clip(CircleShape)
+                    .background(PinkPrimary.copy(alpha = 0.15f)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = initials(activeUser?.fullName ?: "User"),
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = PinkPrimary,
+                        fontSize = 28.sp
+                    )
+                )
+            }
+            TextButton(onClick = { /* TODO: Change photo */ }) {
+                Text(
+                    text = "Changer la photo",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = PinkPrimary
+                    )
+                )
+            }
+        }
+
         EditProfileCard(
             user = activeUser,
             isLoading = isLoading,
@@ -876,7 +955,7 @@ fun SettingsTab(
                 profileViewModel.clearMessages()
                 profileViewModel.setInitialUser(activeUser)
             },
-            onSave = { fullName, phoneNumber, selectedGender, newPassword ->
+            onSave = { fullName, phoneNumber, selectedGender ->
                 val token = TokenManager.getToken(context)
                 if (token == null) {
                     Toast.makeText(
@@ -891,8 +970,7 @@ fun SettingsTab(
                     token = token,
                     fullName = fullName,
                     phoneNumber = phoneNumber.takeIf { it.isNotBlank() },
-                    gender = selectedGender,
-                    password = newPassword
+                    gender = selectedGender
                 )
             }
         )
@@ -906,9 +984,34 @@ fun SettingsTab(
                 onToggleExpand = {
                     if (isExpanded) expandedSections.remove(section.title) else expandedSections.add(section.title)
                 },
-                onThemeClick = { showThemeDialog = true }
+                onThemeClick = { showThemeDialog = true },
+                onOptionAction = { action ->
+                    when (action) {
+                        SettingsOptionAction.CHANGE_PASSWORD -> showPasswordDialog = true
+                        SettingsOptionAction.DELETE_ACCOUNT -> showDeleteDialog = true
+                    }
+                }
             )
         }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        LabasniPillButton(
+            text = "Se déconnecter",
+            onClick = { showLogoutDialog = true },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Text(
+            text = "Vous serez redirigé vers l'écran de connexion.",
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = TealAccent.copy(alpha = 0.7f)
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 6.dp),
+            textAlign = TextAlign.Center
+        )
     }
 
     if (showThemeDialog) {
@@ -955,6 +1058,106 @@ fun SettingsTab(
             }
         )
     }
+
+    if (showPasswordDialog) {
+        ChangePasswordDialog(
+            isProcessing = isLoading,
+            onConfirm = { newPassword ->
+                val token = TokenManager.getToken(context)
+                if (token == null) {
+                    Toast.makeText(
+                        context,
+                        "Session expirée. Veuillez vous reconnecter.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return@ChangePasswordDialog
+                }
+
+                profileViewModel.updateProfile(
+                    token = token,
+                    password = newPassword
+                )
+                showPasswordDialog = false
+            },
+            onDismiss = { showPasswordDialog = false }
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                if (!isLoading) {
+                    showDeleteDialog = false
+                }
+            },
+            title = {
+                Text(
+                    text = "Supprimer le compte",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = PinkPrimary
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "Cette action est définitive. Voulez-vous vraiment supprimer votre compte Labasni ?",
+                    color = TealAccent
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val token = TokenManager.getToken(context)
+                        if (token == null) {
+                            Toast.makeText(
+                                context,
+                                "Session expirée. Veuillez vous reconnecter.",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            return@TextButton
+                        }
+                        profileViewModel.deleteAccount(token)
+                        showDeleteDialog = false
+                    },
+                    enabled = !isLoading
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                            color = PinkPrimary
+                        )
+                    } else {
+                        Text(
+                            text = "Supprimer",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                color = PinkPrimary
+                            )
+                        )
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        if (!isLoading) {
+                            showDeleteDialog = false
+                        }
+                    }
+                ) {
+                    Text(
+                        text = "Annuler",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = TealAccent
+                        )
+                    )
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -963,13 +1166,12 @@ private fun EditProfileCard(
     user: User?,
     isLoading: Boolean,
     onCancel: () -> Unit,
-    onSave: (fullName: String, phone: String, gender: String, password: String?) -> Unit
+    onSave: (fullName: String, phone: String, gender: String) -> Unit
 ) {
     val context = LocalContext.current
     var expanded by rememberSaveable { mutableStateOf(true) }
     var fullName by rememberSaveable(user?.fullName) { mutableStateOf(user?.fullName.orEmpty()) }
     var phone by rememberSaveable(user?.phoneNumber) { mutableStateOf(user?.phoneNumber.orEmpty()) }
-    var password by rememberSaveable { mutableStateOf("") }
     var gender by rememberSaveable(user?.gender?.name) {
         mutableStateOf(user?.gender?.name ?: "FEMALE")
     }
@@ -978,7 +1180,6 @@ private fun EditProfileCard(
         fullName = user?.fullName.orEmpty()
         phone = user?.phoneNumber.orEmpty()
         gender = user?.gender?.name ?: "FEMALE"
-        password = ""
     }
 
     Card(
@@ -1034,46 +1235,7 @@ private fun EditProfileCard(
                     modifier = Modifier.padding(horizontal = 20.dp),
                     verticalArrangement = Arrangement.spacedBy(24.dp)
                 ) {
-                    // Avatar section (comme iOS)
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.padding(top = 20.dp)
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(CircleShape)
-                                .background(PinkPrimary.copy(alpha = 0.15f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = initials(user?.fullName ?: "User"),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = PinkPrimary
-                                )
-                            )
-                        }
-                        TextButton(onClick = { /* TODO: Change photo */ }) {
-                            Text(
-                                text = "Change photo",
-                                style = MaterialTheme.typography.bodyMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = PinkPrimary
-                                )
-                            )
-                        }
-                    }
-
-                    androidx.compose.material3.Divider(
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        color = TealAccent.copy(alpha = 0.2f)
-                    )
-
-                    // Editable fields (comme iOS)
                     Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                        // Full Name
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Full Name",
@@ -1084,13 +1246,12 @@ private fun EditProfileCard(
                                 )
                             )
                             CustomTextField(
-                        value = fullName,
-                        onValueChange = { fullName = it },
+                                value = fullName,
+                                onValueChange = { fullName = it },
                                 placeholder = "Full Name"
                             )
                         }
 
-                        // Email (non modifiable)
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Email",
@@ -1108,7 +1269,6 @@ private fun EditProfileCard(
                             )
                         }
 
-                        // Phone
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Phone",
@@ -1119,14 +1279,13 @@ private fun EditProfileCard(
                                 )
                             )
                             CustomTextField(
-                        value = phone,
-                        onValueChange = { phone = it },
+                                value = phone,
+                                onValueChange = { phone = it },
                                 placeholder = "Phone",
-                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Phone
+                                keyboardType = KeyboardType.Phone
                             )
                         }
 
-                        // Gender
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 text = "Gender",
@@ -1135,64 +1294,25 @@ private fun EditProfileCard(
                                     color = TealAccent.copy(alpha = 0.7f),
                                     fontSize = 14.sp
                                 )
-                    )
-                    Row(
+                            )
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        GenderChip(
+                            ) {
+                                GenderChip(
                                     title = "Female",
-                            selected = gender == "FEMALE",
-                            onClick = { gender = "FEMALE" }
-                        )
-                        GenderChip(
+                                    selected = gender == "FEMALE",
+                                    onClick = { gender = "FEMALE" }
+                                )
+                                GenderChip(
                                     title = "Male",
-                            selected = gender == "MALE",
-                            onClick = { gender = "MALE" }
-                        )
-                    }
-                        }
-
-                        // Password
-                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                            if (password.isNotEmpty()) {
-                                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Text(
-                                        text = "New Password",
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = FontWeight.Medium,
-                                            color = TealAccent.copy(alpha = 0.7f),
-                                            fontSize = 14.sp
-                                        )
-                                    )
-                                    CustomTextField(
-                        value = password,
-                        onValueChange = { password = it },
-                                        placeholder = "New Password",
-                                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Password,
-                                        isPassword = true
-                                    )
-                                }
-                            }
-                            TextButton(onClick = { password = if (password.isEmpty()) " " else "" }) {
-                                Text(
-                                    text = if (password.isEmpty()) "Update password" else "Cancel password update",
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = PinkPrimary,
-                                        fontSize = 15.sp
-                                    )
+                                    selected = gender == "MALE",
+                                    onClick = { gender = "MALE" }
                                 )
                             }
                         }
                     }
 
-                    androidx.compose.material3.Divider(
-                        modifier = Modifier.padding(horizontal = 20.dp),
-                        color = TealAccent.copy(alpha = 0.2f)
-                    )
-
-                    // Action buttons (comme iOS)
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -1204,7 +1324,6 @@ private fun EditProfileCard(
                                 fullName = user?.fullName.orEmpty()
                                 phone = user?.phoneNumber.orEmpty()
                                 gender = user?.gender?.name ?: "FEMALE"
-                                password = ""
                                 onCancel()
                             },
                             modifier = Modifier.weight(1f),
@@ -1225,7 +1344,6 @@ private fun EditProfileCard(
                             onClick = {
                                 val trimmedName = fullName.trim()
                                 val trimmedPhone = phone.trim()
-                                val sanitizedPassword = password.trim().takeIf { it.isNotBlank() }
 
                                 if (trimmedName.isEmpty()) {
                                     Toast.makeText(
@@ -1239,8 +1357,7 @@ private fun EditProfileCard(
                                 onSave(
                                     trimmedName,
                                     trimmedPhone,
-                                    gender.lowercase(),
-                                    sanitizedPassword
+                                    gender.lowercase()
                                 )
                             },
                             modifier = Modifier.weight(1f),
@@ -1250,9 +1367,9 @@ private fun EditProfileCard(
                             ),
                             shape = RoundedCornerShape(14.dp),
                             enabled = fullName.isNotEmpty() && !isLoading
-                    ) {
+                        ) {
                             Text(
-                                text = if (isLoading) "Saving..." else "Save changes",
+                                text = "Save",
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     fontWeight = FontWeight.SemiBold
                                 ),
@@ -1290,7 +1407,8 @@ private fun SettingsSectionCard(
     isExpanded: Boolean,
     themeMode: ThemeMode,
     onToggleExpand: () -> Unit,
-    onThemeClick: () -> Unit
+    onThemeClick: () -> Unit,
+    onOptionAction: (SettingsOptionAction) -> Unit
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -1347,8 +1465,9 @@ private fun SettingsSectionCard(
                     SettingsOptionRow(
                         option = option,
                         themeMode = themeMode,
-                        onThemeClick = onThemeClick
-                        )
+                        onThemeClick = onThemeClick,
+                        onOptionAction = onOptionAction
+                    )
                         if (index < section.options.size - 1) {
                             androidx.compose.material3.Divider(
                                 modifier = Modifier.padding(start = 80.dp),
@@ -1366,7 +1485,8 @@ private fun SettingsSectionCard(
 private fun SettingsOptionRow(
     option: SettingsOption,
     themeMode: ThemeMode,
-    onThemeClick: () -> Unit
+    onThemeClick: () -> Unit,
+    onOptionAction: (SettingsOptionAction) -> Unit
 ) {
     var isChecked by rememberSaveable(option.label) { mutableStateOf(option.initialValue) }
 
@@ -1374,8 +1494,9 @@ private fun SettingsOptionRow(
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                if (option.isThemePicker) {
-                    onThemeClick()
+                when {
+                    option.isThemePicker -> onThemeClick()
+                    option.action != null -> onOptionAction(option.action)
                 }
             }
             .padding(horizontal = 20.dp, vertical = 16.dp),
@@ -1384,29 +1505,31 @@ private fun SettingsOptionRow(
     ) {
         // Icon (comme iOS)
         Icon(
-            imageVector = when (option.label) {
-                "Notifications" -> Icons.Rounded.Notifications
-                "Langue", "Language" -> Icons.Rounded.Language
-                "Taille du texte", "Font Size" -> Icons.Rounded.TextFields
-                "Thème", "Theme" -> Icons.Rounded.DarkMode
-                "Style préféré", "Color Theme" -> Icons.Rounded.Palette
-                "Animations", "Animation Style" -> Icons.Rounded.AutoAwesome
-                "Contact", "Contact Us" -> Icons.Rounded.Email
-                "FAQ" -> Icons.Rounded.Help
-                "Version" -> Icons.Rounded.Info
+            imageVector = when {
+                option.action == SettingsOptionAction.DELETE_ACCOUNT -> Icons.Rounded.DeleteForever
+                option.action == SettingsOptionAction.CHANGE_PASSWORD -> Icons.Rounded.Lock
+                option.label == "Notifications" -> Icons.Rounded.Notifications
+                option.label == "Langue" || option.label == "Language" -> Icons.Rounded.Language
+                option.label == "Taille du texte" || option.label == "Font Size" -> Icons.Rounded.TextFields
+                option.label == "Thème" || option.label == "Theme" -> Icons.Rounded.DarkMode
+                option.label == "Style préféré" || option.label == "Color Theme" -> Icons.Rounded.Palette
+                option.label == "Animations" || option.label == "Animation Style" -> Icons.Rounded.AutoAwesome
+                option.label == "Contact" || option.label == "Contact Us" -> Icons.Rounded.Email
+                option.label == "FAQ" -> Icons.Rounded.Help
+                option.label == "Version" -> Icons.Rounded.Info
                 else -> Icons.Rounded.Settings
             },
             contentDescription = null,
-            tint = TealAccent.copy(alpha = 0.7f),
+            tint = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) PinkPrimary else TealAccent.copy(alpha = 0.7f),
             modifier = Modifier.size(18.dp)
         )
         
             Text(
                 text = option.label,
             style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.Normal,
+                fontWeight = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) FontWeight.SemiBold else FontWeight.Normal,
                 fontSize = 16.sp,
-                color = TealAccent
+                color = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) PinkPrimary else TealAccent
             ),
             modifier = Modifier.weight(1f)
         )
@@ -1430,7 +1553,7 @@ private fun SettingsOptionRow(
                     ThemeMode.DARK -> "Dark"
                     ThemeMode.SYSTEM -> "System"
                 }
-                    Text(
+                Text(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium,
@@ -1455,6 +1578,123 @@ private fun SettingsOptionRow(
             }
         }
     }
+}
+
+@Composable
+private fun ChangePasswordDialog(
+    isProcessing: Boolean,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var newPassword by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var localError by remember { mutableStateOf<String?>(null) }
+
+    AlertDialog(
+        onDismissRequest = {
+            if (!isProcessing) {
+                onDismiss()
+            }
+        },
+        title = {
+            Text(
+                text = "Modifier le mot de passe",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = PinkPrimary
+                )
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                CustomTextField(
+                    value = newPassword,
+                    onValueChange = {
+                        newPassword = it
+                        localError = null
+                    },
+                    placeholder = "Nouveau mot de passe",
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true,
+                    enabled = !isProcessing
+                )
+                CustomTextField(
+                    value = confirmPassword,
+                    onValueChange = {
+                        confirmPassword = it
+                        localError = null
+                    },
+                    placeholder = "Confirmer le mot de passe",
+                    keyboardType = KeyboardType.Password,
+                    isPassword = true,
+                    enabled = !isProcessing
+                )
+                localError?.let { message ->
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = PinkPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                onClick = {
+                    val trimmedPassword = newPassword.trim()
+                    val trimmedConfirm = confirmPassword.trim()
+                    when {
+                        trimmedPassword.length < 6 -> {
+                            localError = "Le mot de passe doit contenir au moins 6 caractères."
+                        }
+                        trimmedPassword != trimmedConfirm -> {
+                            localError = "Les mots de passe ne correspondent pas."
+                        }
+                        else -> {
+                            localError = null
+                            onConfirm(trimmedPassword)
+                        }
+                    }
+                },
+                enabled = !isProcessing
+            ) {
+                if (isProcessing) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                        color = PinkPrimary
+                    )
+                } else {
+                    Text(
+                        text = "Confirmer",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = PinkPrimary
+                        )
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = {
+                    if (!isProcessing) {
+                        onDismiss()
+                    }
+                }
+            ) {
+                Text(
+                    text = "Annuler",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = TealAccent
+                    )
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -1665,7 +1905,7 @@ private fun CustomTextField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     enabled: Boolean = true,
-    keyboardType: androidx.compose.ui.text.input.KeyboardType = androidx.compose.ui.text.input.KeyboardType.Text,
+    keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false
 ) {
     androidx.compose.material3.OutlinedTextField(

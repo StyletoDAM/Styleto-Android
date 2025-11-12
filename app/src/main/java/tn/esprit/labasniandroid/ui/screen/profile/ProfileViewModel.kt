@@ -26,6 +26,9 @@ class ProfileViewModel(
     private val _successMessage = MutableStateFlow<String?>(null)
     val successMessage: StateFlow<String?> = _successMessage.asStateFlow()
 
+    private val _accountDeleted = MutableStateFlow(false)
+    val accountDeleted: StateFlow<Boolean> = _accountDeleted.asStateFlow()
+
     fun loadProfile(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -99,9 +102,33 @@ class ProfileViewModel(
         _successMessage.value = null
     }
 
+    fun acknowledgeAccountDeleted() {
+        _accountDeleted.value = false
+    }
+
     fun setInitialUser(initialUser: User?) {
         if (initialUser != null) {
             _user.value = initialUser
+        }
+    }
+
+    fun deleteAccount(token: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+
+            profileRepository.deleteAccount(token).fold(
+                onSuccess = { response ->
+                    _user.value = null
+                    _accountDeleted.value = true
+                    _successMessage.value = response.message
+                },
+                onFailure = { error ->
+                    _errorMessage.value = error.message
+                }
+            )
+
+            _isLoading.value = false
         }
     }
 }

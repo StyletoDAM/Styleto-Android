@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -82,6 +83,7 @@ import tn.esprit.labasniandroid.ui.components.LabasniTab
 import androidx.compose.ui.layout.ContentScale
 import tn.esprit.labasniandroid.models.entities.User
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ProfileView(
     onBack: () -> Unit,

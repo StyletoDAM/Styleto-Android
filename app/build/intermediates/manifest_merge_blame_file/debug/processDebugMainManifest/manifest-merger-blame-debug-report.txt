@@ -10,11 +10,11 @@
 10
 11    <!-- Permissions réseau -->
 12    <uses-permission android:name="android.permission.INTERNET" />
-12-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:6:5-67
-12-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:6:22-64
+12-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:6:5-67
+12-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:6:22-64
 13    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-13-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:7:5-79
-13-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:7:22-76
+13-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:7:5-79
+13-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:7:22-76
 14
 15    <permission
 15-->[androidx.core:core:1.17.0] /Users/macbook/.gradle/caches/8.13/transforms/dae0d163bf86f0de0a2a6f2e4aa00811/transformed/core-1.17.0/AndroidManifest.xml:22:5-24:47
@@ -28,49 +28,49 @@
 19-->[androidx.core:core:1.17.0] /Users/macbook/.gradle/caches/8.13/transforms/dae0d163bf86f0de0a2a6f2e4aa00811/transformed/core-1.17.0/AndroidManifest.xml:26:22-94
 20
 21    <application
-21-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:9:5-30:19
+21-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:9:5-30:19
 22        android:allowBackup="true"
-22-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:10:9-35
+22-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:10:9-35
 23        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
 23-->[androidx.core:core:1.17.0] /Users/macbook/.gradle/caches/8.13/transforms/dae0d163bf86f0de0a2a6f2e4aa00811/transformed/core-1.17.0/AndroidManifest.xml:28:18-86
 24        android:dataExtractionRules="@xml/data_extraction_rules"
-24-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:11:9-65
+24-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:11:9-65
 25        android:debuggable="true"
 26        android:extractNativeLibs="false"
 27        android:fullBackupContent="@xml/backup_rules"
-27-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:12:9-54
+27-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:12:9-54
 28        android:icon="@mipmap/ic_launcher"
-28-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:13:9-43
+28-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:13:9-43
 29        android:label="@string/app_name"
-29-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:14:9-41
+29-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:14:9-41
 30        android:networkSecurityConfig="@xml/network_security_config"
-30-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:16:9-69
+30-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:16:9-69
 31        android:roundIcon="@mipmap/ic_launcher_round"
-31-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:15:9-54
+31-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:15:9-54
 32        android:supportsRtl="true"
-32-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:17:9-35
+32-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:17:9-35
 33        android:testOnly="true"
 34        android:theme="@style/Theme.LabasniAndroid" >
-34-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:18:9-52
+34-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:18:9-52
 35        <activity
-35-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:19:9-29:20
+35-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:19:9-29:20
 36            android:name="tn.esprit.labasniandroid.MainActivity"
-36-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:20:13-41
+36-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:20:13-41
 37            android:exported="true"
-37-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:21:13-36
+37-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:21:13-36
 38            android:label="@string/app_name"
-38-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:22:13-45
+38-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:22:13-45
 39            android:theme="@style/Theme.LabasniAndroid" >
-39-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:23:13-56
+39-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:23:13-56
 40            <intent-filter>
-40-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:24:13-28:29
+40-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:24:13-28:29
 41                <action android:name="android.intent.action.MAIN" />
-41-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:25:17-69
-41-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:25:25-66
+41-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:25:17-69
+41-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:25:25-66
 42
 43                <category android:name="android.intent.category.LAUNCHER" />
-43-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:27:17-77
-43-->/Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:27:27-74
+43-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:27:17-77
+43-->/Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:27:27-74
 44            </intent-filter>
 45        </activity>
 46        <activity

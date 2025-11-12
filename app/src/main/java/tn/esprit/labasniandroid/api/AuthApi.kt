@@ -3,6 +3,7 @@ package tn.esprit.labasniandroid.api
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.PATCH
@@ -102,4 +103,7 @@ interface AuthApi {
 
     @POST("/auth/reset-password")
     suspend fun resetPassword(@Body request: ResetPasswordRequest): Response<Responses.ResetPasswordResponse>
+
+    @DELETE("/auth/profile")
+    suspend fun deleteProfile(@Header("Authorization") token: String): Response<Responses.MessageResponse>
 }

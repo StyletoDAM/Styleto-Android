@@ -1,9 +1,9 @@
 -- Merging decision tree log ---
 manifest
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:2:1-32:12
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:2:1-32:12
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:2:1-32:12
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:2:1-32:12
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:2:1-32:12
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:2:1-32:12
 MERGED from [androidx.navigation:navigation-common:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/e31ccff3d49bf0bb292d46d669752122/transformed/navigation-common-2.8.4/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-runtime:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/08b4c76d73a5f4dd15a29c398044db17/transformed/navigation-runtime-2.8.4/AndroidManifest.xml:17:1-22:12
 MERGED from [androidx.navigation:navigation-common-ktx:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/6d5e393c218a1ee60234250486e9b443/transformed/navigation-common-ktx-2.8.4/AndroidManifest.xml:2:1-7:12
@@ -73,26 +73,26 @@ MERGED from [androidx.tracing:tracing:1.2.0] /Users/macbook/.gradle/caches/8.13/
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/macbook/.gradle/caches/8.13/transforms/cac8ec2c14576119790b1b4e0e83b979/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:17:1-27:12
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/macbook/.gradle/caches/8.13/transforms/93d3dd48b5a65a46f0f2d9ef7052818d/transformed/core-runtime-2.2.0/AndroidManifest.xml:17:1-22:12
 	package
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 	android:versionName
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 	xmlns:tools
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:3:5-51
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:3:5-51
 	android:versionCode
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 	xmlns:android
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:2:11-69
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:2:11-69
 uses-permission#android.permission.INTERNET
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:6:5-67
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:6:5-67
 	android:name
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:6:22-64
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:6:22-64
 uses-permission#android.permission.ACCESS_NETWORK_STATE
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:7:5-79
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:7:5-79
 	android:name
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:7:22-76
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:7:22-76
 application
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:9:5-30:19
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:9:5-30:19
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:9:5-30:19
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:9:5-30:19
 MERGED from [com.google.android.gms:play-services-auth:21.0.0] /Users/macbook/.gradle/caches/8.13/transforms/dd8109df38bac9aa454a20f7a288e8a3/transformed/play-services-auth-21.0.0/AndroidManifest.xml:22:5-38:19
 MERGED from [com.google.android.gms:play-services-auth:21.0.0] /Users/macbook/.gradle/caches/8.13/transforms/dd8109df38bac9aa454a20f7a288e8a3/transformed/play-services-auth-21.0.0/AndroidManifest.xml:22:5-38:19
 MERGED from [com.google.android.gms:play-services-fido:20.0.1] /Users/macbook/.gradle/caches/8.13/transforms/225d0401ebd9754f66eaa00dfcc5d994/transformed/play-services-fido-20.0.1/AndroidManifest.xml:7:5-8:19
@@ -120,51 +120,51 @@ MERGED from [androidx.startup:startup-runtime:1.1.1] /Users/macbook/.gradle/cach
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/macbook/.gradle/caches/8.13/transforms/cac8ec2c14576119790b1b4e0e83b979/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
 MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/macbook/.gradle/caches/8.13/transforms/cac8ec2c14576119790b1b4e0e83b979/transformed/versionedparcelable-1.1.1/AndroidManifest.xml:24:5-25:19
 	android:extractNativeLibs
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 	android:appComponentFactory
 		ADDED from [androidx.core:core:1.17.0] /Users/macbook/.gradle/caches/8.13/transforms/dae0d163bf86f0de0a2a6f2e4aa00811/transformed/core-1.17.0/AndroidManifest.xml:28:18-86
 	android:supportsRtl
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:17:9-35
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:17:9-35
 	android:label
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:14:9-41
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:14:9-41
 	android:fullBackupContent
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:12:9-54
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:12:9-54
 	android:roundIcon
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:15:9-54
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:15:9-54
 	android:icon
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:13:9-43
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:13:9-43
 	android:allowBackup
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:10:9-35
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:10:9-35
 	android:theme
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:18:9-52
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:18:9-52
 	android:networkSecurityConfig
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:16:9-69
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:16:9-69
 	android:dataExtractionRules
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:11:9-65
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:11:9-65
 activity#tn.esprit.labasniandroid.MainActivity
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:19:9-29:20
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:19:9-29:20
 	android:label
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:22:13-45
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:22:13-45
 	android:exported
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:21:13-36
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:21:13-36
 	android:theme
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:23:13-56
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:23:13-56
 	android:name
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:20:13-41
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:20:13-41
 intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:24:13-28:29
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:24:13-28:29
 action#android.intent.action.MAIN
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:25:17-69
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:25:17-69
 	android:name
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:25:25-66
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:25:25-66
 category#android.intent.category.LAUNCHER
-ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:27:17-77
+ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:27:17-77
 	android:name
-		ADDED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml:27:27-74
+		ADDED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml:27:27-74
 uses-sdk
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml reason: use-sdk injection requested
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
-INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
+INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 MERGED from [androidx.navigation:navigation-common:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/e31ccff3d49bf0bb292d46d669752122/transformed/navigation-common-2.8.4/AndroidManifest.xml:20:5-44
 MERGED from [androidx.navigation:navigation-common:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/e31ccff3d49bf0bb292d46d669752122/transformed/navigation-common-2.8.4/AndroidManifest.xml:20:5-44
 MERGED from [androidx.navigation:navigation-runtime:2.8.4] /Users/macbook/.gradle/caches/8.13/transforms/08b4c76d73a5f4dd15a29c398044db17/transformed/navigation-runtime-2.8.4/AndroidManifest.xml:20:5-44
@@ -302,9 +302,9 @@ MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] /Users/macb
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/macbook/.gradle/caches/8.13/transforms/93d3dd48b5a65a46f0f2d9ef7052818d/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
 MERGED from [androidx.arch.core:core-runtime:2.2.0] /Users/macbook/.gradle/caches/8.13/transforms/93d3dd48b5a65a46f0f2d9ef7052818d/transformed/core-runtime-2.2.0/AndroidManifest.xml:20:5-44
 	android:targetSdkVersion
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 	android:minSdkVersion
-		INJECTED from /Users/macbook/Desktop/version otp /Labasni 2/FrontEndAndroid /app/src/main/AndroidManifest.xml
+		INJECTED from /Users/macbook/Documents/GitHub/Labasni-Android/app/src/main/AndroidManifest.xml
 activity#com.google.android.gms.auth.api.signin.internal.SignInHubActivity
 ADDED from [com.google.android.gms:play-services-auth:21.0.0] /Users/macbook/.gradle/caches/8.13/transforms/dd8109df38bac9aa454a20f7a288e8a3/transformed/play-services-auth-21.0.0/AndroidManifest.xml:23:9-27:75
 	android:excludeFromRecents
