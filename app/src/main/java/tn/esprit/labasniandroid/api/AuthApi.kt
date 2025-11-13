@@ -6,10 +6,13 @@ import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.PATCH
+import retrofit2.http.Part
 import retrofit2.http.POST
 import tn.esprit.labasniandroid.models.Responses
 import tn.esprit.labasniandroid.models.entities.User
+import okhttp3.MultipartBody
 
 // DTOs intégrés directement dans l'API (même structure que dans AuthRepository)
 data class SigninRequest(
@@ -67,7 +70,8 @@ data class UpdateProfileRequest(
     @SerializedName("gender") val gender: String? = null,
     @SerializedName("phoneNumber") val phoneNumber: String? = null,
     @SerializedName("preferences") val preferences: List<String>? = null,
-    @SerializedName("password") val password: String? = null
+    @SerializedName("password") val password: String? = null,
+    @SerializedName("profilePicture") val profilePicture: String? = null
 )
 
 interface AuthApi {
@@ -90,6 +94,13 @@ interface AuthApi {
     suspend fun updateProfile(
         @Header("Authorization") token: String,
         @Body request: UpdateProfileRequest
+    ): Response<User>
+
+    @Multipart
+    @PATCH("/auth/profile/photo")
+    suspend fun updateProfilePhoto(
+        @Header("Authorization") token: String,
+        @Part image: MultipartBody.Part
     ): Response<User>
 
     @POST("/auth/verify-email")

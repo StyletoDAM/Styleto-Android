@@ -84,6 +84,7 @@ fun LoginView(
     // Configuration Google Sign-In
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestId() // garantit un identifiant Google stable pour lier un compte existant
             .requestEmail()
             .requestProfile()
             .build()
@@ -402,10 +403,18 @@ private fun handleGoogleSignInResult(
         val account = task.getResult(ApiException::class.java)
         Log.d("GoogleSignIn", "Account retrieved: ${account?.email}")
         account?.let {
-            val googleId = it.id ?: ""
+            val primaryGoogleId = it.id.orEmpty()
+            val fallbackIdToken = it.idToken.orEmpty()
             val fullName = it.displayName ?: ""
             val email = it.email ?: ""
             val profilePicture = it.photoUrl?.toString()
+
+            val googleId = when {
+                primaryGoogleId.isNotBlank() -> primaryGoogleId
+                fallbackIdToken.isNotBlank() -> fallbackIdToken
+                email.isNotBlank() -> "email:${email.lowercase()}"
+                else -> ""
+            }
 
             if (googleId.isNotEmpty() && email.isNotEmpty()) {
                 Log.d("GoogleSignIn", "Calling signInWithGoogle with ID: $googleId, Email: $email")

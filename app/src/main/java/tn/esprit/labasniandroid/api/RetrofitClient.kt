@@ -6,6 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import tn.esprit.labasniandroid.utils.APIConstants
 import java.util.concurrent.TimeUnit
+import tn.esprit.labasniandroid.api.StoreApi
 
 object RetrofitClient {
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -26,5 +27,8 @@ object RetrofitClient {
         .build()
 
     val authApi: AuthApi = retrofit.create(AuthApi::class.java)
+    val clothesApi: ClothesApi = retrofit.create(ClothesApi::class.java)
+    val outfitsApi: OutfitsApi = retrofit.create(OutfitsApi::class.java)
+    val storeApi: StoreApi = retrofit.create(StoreApi::class.java)
 }
 

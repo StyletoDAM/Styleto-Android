@@ -29,6 +29,9 @@ class ProfileViewModel(
     private val _accountDeleted = MutableStateFlow(false)
     val accountDeleted: StateFlow<Boolean> = _accountDeleted.asStateFlow()
 
+    private val _isPhotoUpdating = MutableStateFlow(false)
+    val isPhotoUpdating: StateFlow<Boolean> = _isPhotoUpdating.asStateFlow()
+
     fun loadProfile(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -129,6 +132,26 @@ class ProfileViewModel(
             )
 
             _isLoading.value = false
+        }
+    }
+
+    fun uploadProfilePhoto(token: String, imageData: ByteArray) {
+        viewModelScope.launch {
+            _isPhotoUpdating.value = true
+            _errorMessage.value = null
+            _successMessage.value = null
+
+            profileRepository.uploadProfilePhoto(token, imageData).fold(
+                onSuccess = { updatedUser ->
+                    _user.value = updatedUser
+                    _successMessage.value = "Photo de profil mise à jour avec succès !"
+                },
+                onFailure = { error ->
+                    _errorMessage.value = error.message
+                }
+            )
+
+            _isPhotoUpdating.value = false
         }
     }
 }

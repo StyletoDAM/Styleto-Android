@@ -16,5 +16,13 @@ object APIConstants {
     const val VERIFY_OTP_PATH = "/auth/verify-otp"
     const val RESET_PASSWORD_PATH = "/auth/reset-password"
     const val JSON_CONTENT_TYPE = "application/json"
+
+    // Cloudinary
+    // Renseignez votre cloud_name et le tag (ou dossier virtuel) qui regroupe les images visibles dans la galerie.
+    const val CLOUDINARY_CLOUD_NAME = "your_cloud_name"
+    const val CLOUDINARY_GALLERY_TAG = "profile_gallery"
+
+    val CLOUDINARY_GALLERY_URL: String
+        get() = "https://res.cloudinary.com/$CLOUDINARY_CLOUD_NAME/image/list/$CLOUDINARY_GALLERY_TAG.json"
 }
 

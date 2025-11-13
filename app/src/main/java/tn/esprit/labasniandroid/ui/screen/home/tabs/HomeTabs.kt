@@ -52,6 +52,7 @@ import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.TextFields
 import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material.icons.automirrored.rounded.ExitToApp
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -98,12 +99,14 @@ import tn.esprit.labasniandroid.ui.theme.TealAccent
 import tn.esprit.labasniandroid.ui.theme.ThemeMode
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.utils.TokenManager
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.SnackbarHostState
  
 // region Dressing
 
 @OptIn(ExperimentalFoundationApi::class, ExperimentalLayoutApi::class)
 @Composable
-fun DressingTab(
+fun LegacyDressingTab(
     isLoading: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -213,10 +216,9 @@ fun DressingTab(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                     categories.forEachIndexed { index, category ->
-                        val selected = index == 0 || category == selectedCategory
-                        CategoryChip(
+                        LegacyCategoryChip(
                             label = category,
-                        selected = selected,
+                        selected = selectedCategory == category,
                         onClick = { selectedCategory = category }
                     )
                     }
@@ -236,7 +238,7 @@ fun DressingTab(
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 22.dp)
             ) {
                 items(clothes) { item ->
-                    ClothingCard(item = item)
+                    LegacyClothingCard(item = item)
                     }
                 }
             }
@@ -298,7 +300,7 @@ private data class ClothingItem(
 }
 
 @Composable
-private fun CategoryChip(
+private fun LegacyCategoryChip(
     label: String,
     selected: Boolean,
     onClick: () -> Unit
@@ -333,7 +335,7 @@ private fun CategoryChip(
 }
 
 @Composable
-private fun ClothingCard(item: ClothingItem) {
+private fun LegacyClothingCard(item: ClothingItem) {
     Column(
         modifier = Modifier
             .clip(RoundedCornerShape(20.dp))
@@ -365,7 +367,7 @@ private fun ClothingCard(item: ClothingItem) {
                 style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.SemiBold,
                     fontSize = 16.sp,
-                color = TealAccent
+                    color = TealAccent
                 )
             )
             Text(
@@ -373,7 +375,7 @@ private fun ClothingCard(item: ClothingItem) {
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Medium,
                     fontSize = 13.sp,
-                color = TealAccent.copy(alpha = 0.7f)
+                    color = TealAccent.copy(alpha = 0.7f)
                 )
             )
         }
@@ -384,321 +386,11 @@ private fun ClothingCard(item: ClothingItem) {
 
 // region Tenues
 
-@Composable
-fun TenuesTab(modifier: Modifier = Modifier) {
-    val outfits = remember { StaticTenue.samples }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(Color.White)
-            .padding(horizontal = 20.dp, vertical = 18.dp)
-    ) {
-        Text(
-            text = "Mes Tenues",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.ExtraBold,
-                color = PinkPrimary
-            )
-        )
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        SuggestionCard()
-
-        Spacer(modifier = Modifier.height(20.dp))
-
-        Text(
-            text = "Tenues récentes",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = TealAccent
-            )
-        )
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            items(outfits.size) { index ->
-                TenueCard(tenue = outfits[index])
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        androidx.compose.material3.FloatingActionButton(
-            onClick = { /* TODO Ajouter tenue */ },
-            containerColor = TealAccent,
-            contentColor = Color.White,
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text(text = "+", fontWeight = FontWeight.Bold)
-        }
-    }
-}
-
-private data class StaticTenue(
-    val title: String,
-    val itemsCount: Int,
-    val dateLabel: String,
-    val isFavorite: Boolean,
-    val emojis: List<String>
-) {
-    companion object {
-        val samples = listOf(
-            StaticTenue("Look Casual", 3, "Aujourd'hui", true, listOf("👕", "👖", "👟")),
-            StaticTenue("Tenue Bureau", 4, "Hier", false, listOf("👔", "👖", "🥿")),
-            StaticTenue("Sport", 2, "Mar.", true, listOf("👕", "👟"))
-        )
-    }
-}
-
-@Composable
-private fun SuggestionCard() {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(RoundedCornerShape(28.dp))
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(PinkPrimary, TealAccent)
-                )
-            )
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Text(
-            text = "Suggestion du jour",
-            style = MaterialTheme.typography.titleLarge.copy(
-                color = Color.White,
-                fontWeight = FontWeight.ExtraBold
-            )
-        )
-        Text(
-            text = "Il fait beau aujourd'hui ! Pourquoi ne pas essayer une tenue légère et colorée ?",
-            style = MaterialTheme.typography.bodyMedium.copy(color = Color.White.copy(alpha = 0.92f))
-        )
-        OutlinedButton(
-            onClick = { /* TODO action suggestion */ },
-            border = androidx.compose.foundation.BorderStroke(1.dp, Color.White),
-            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                contentColor = Color.White
-            )
-        ) {
-            Text(text = "Voir la suggestion")
-        }
-    }
-}
-
-@Composable
-private fun TenueCard(tenue: StaticTenue) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp)
-    ) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Text(
-                        text = tenue.title,
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = TealAccent
-                        )
-                    )
-                    Text(
-                        text = "${tenue.itemsCount} articles",
-                        style = MaterialTheme.typography.bodyMedium.copy(color = TealAccent.copy(alpha = 0.7f))
-                    )
-                }
-                Icon(
-                    imageVector = Icons.Rounded.Favorite,
-                    contentDescription = null,
-                    tint = if (tenue.isFavorite) PinkPrimary else TealAccent.copy(alpha = 0.4f)
-                )
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                tenue.emojis.forEach { emoji ->
-                    Box(
-                        modifier = Modifier
-                            .size(56.dp)
-                            .clip(RoundedCornerShape(16.dp))
-                            .background(
-                                if (emoji == "👖") AquaSoft.copy(alpha = 0.3f) else PinkGradientTop.copy(alpha = 0.4f)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(text = emoji, fontSize = 22.sp)
-                    }
-                }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Icon(
-                    imageVector = Icons.Rounded.Settings,
-                    contentDescription = null,
-                    tint = TealAccent.copy(alpha = 0.6f)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = tenue.dateLabel,
-                    style = MaterialTheme.typography.bodyMedium.copy(color = TealAccent.copy(alpha = 0.7f))
-                )
-            }
-        }
-    }
-}
+// (Legacy Tenues UI removed)
 
 // endregion
 
 // region Store
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-fun StoreTab(modifier: Modifier = Modifier) {
-    val products = remember { StoreProduct.samples }
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .background(AquaSoft.copy(alpha = 0.18f))
-            .padding(horizontal = 16.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Store",
-                style = MaterialTheme.typography.headlineSmall.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    color = PinkPrimary
-                )
-            )
-            androidx.compose.material3.FloatingActionButton(
-                onClick = { /* TODO add product */ },
-                containerColor = PinkPrimary,
-                contentColor = Color.White,
-                modifier = Modifier.size(48.dp)
-            ) {
-                Text(text = "+", fontWeight = FontWeight.Bold)
-            }
-        }
-
-        SearchField(placeholder = "Rechercher un article...") {
-            Icon(
-                imageVector = Icons.Rounded.LocalMall,
-                contentDescription = null,
-                tint = TealAccent
-            )
-        }
-
-        Text(
-            text = "Articles populaires",
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.SemiBold,
-                color = TealAccent
-            )
-        )
-
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            items(products) { product ->
-                ProductCard(product = product)
-            }
-        }
-    }
-}
-
-private data class StoreProduct(
-    val title: String,
-    val price: String,
-    val rating: Double,
-    val emoji: String
-) {
-    companion object {
-        val samples = listOf(
-            StoreProduct("Pull tricoté", "45 DT", 4.5, "🧶"),
-            StoreProduct("Jean slim", "65 DT", 4.8, "👖"),
-            StoreProduct("Chemise", "59 DT", 4.2, "👔"),
-            StoreProduct("Veste été", "120 DT", 4.7, "🧥"),
-            StoreProduct("T-shirt coton", "35 DT", 4.1, "👕"),
-            StoreProduct("Parka", "210 DT", 4.9, "🧥")
-        )
-    }
-}
-
-@Composable
-private fun ProductCard(product: StoreProduct) {
-    Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-    ) {
-        Column {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(140.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                PinkGradientTop.copy(alpha = 0.35f),
-                                AquaSoft.copy(alpha = 0.45f)
-                            )
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(text = product.emoji, fontSize = 48.sp)
-            }
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                Text(
-                    text = product.title,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        color = TealAccent
-                    )
-                )
-                Text(
-                    text = product.price,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = PinkPrimary
-                    )
-                )
-                Text(
-                    text = "⭐ ${product.rating}",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = TealAccent.copy(alpha = 0.7f)
-                    )
-                )
-            }
-        }
-    }
-}
 
 // endregion
 

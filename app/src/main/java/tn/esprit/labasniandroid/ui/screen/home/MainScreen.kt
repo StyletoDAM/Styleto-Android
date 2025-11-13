@@ -31,6 +31,9 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -47,10 +50,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tn.esprit.labasniandroid.ui.screen.home.tabs.AvatarTab
-import tn.esprit.labasniandroid.ui.screen.home.tabs.DressingTab
+import tn.esprit.labasniandroid.ui.screen.dressing.DressingTab
+import tn.esprit.labasniandroid.ui.screen.tenues.FavoriteTab
+import tn.esprit.labasniandroid.ui.screen.tenues.TenuesTab
+import tn.esprit.labasniandroid.ui.screen.tenues.TenuesViewModel
 import tn.esprit.labasniandroid.ui.screen.home.tabs.SettingsTab
-import tn.esprit.labasniandroid.ui.screen.home.tabs.StoreTab
-import tn.esprit.labasniandroid.ui.screen.home.tabs.TenuesTab
+import tn.esprit.labasniandroid.ui.screen.store.StoreTab
+import tn.esprit.labasniandroid.ui.screen.store.StoreViewModel
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
 import tn.esprit.labasniandroid.ui.theme.TealAccent
@@ -71,6 +77,9 @@ fun MainScreen(
 
     var selectedTab by rememberSaveable { mutableStateOf(LabasniHomeTab.Dressing) }
     var tokenMissing by remember { mutableStateOf(false) }
+    var showFavorites by rememberSaveable { mutableStateOf(false) }
+    var authToken by rememberSaveable { mutableStateOf("") }
+    var userId by rememberSaveable { mutableStateOf("") }
 
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -79,9 +88,12 @@ fun MainScreen(
 
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
-        if (token.isNullOrEmpty()) {
+        val id = TokenManager.getUserId(context)
+        if (token.isNullOrEmpty() || id.isNullOrEmpty()) {
             tokenMissing = true
         } else {
+            authToken = token
+            userId = id
             viewModel.loadProfile(token)
         }
     }
@@ -123,9 +135,48 @@ fun MainScreen(
         ) {
             when (selectedTab) {
                 LabasniHomeTab.Dressing -> DressingTab(isLoading = isLoading)
-                LabasniHomeTab.Tenues -> TenuesTab()
+                LabasniHomeTab.Tenues -> {
+                    val tenuesViewModel: TenuesViewModel = viewModel()
+                    if (authToken.isBlank() || userId.isBlank()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = PinkPrimary)
+                        }
+                    } else if (showFavorites) {
+                        FavoriteTab(
+                            viewModel = tenuesViewModel,
+                            onBack = { showFavorites = false }
+                        )
+                    } else {
+                        TenuesTab(
+                            token = authToken,
+                            userId = userId,
+                            viewModel = tenuesViewModel,
+                            onBack = { selectedTab = LabasniHomeTab.Dressing },
+                            onOpenFavorites = { showFavorites = true }
+                        )
+                    }
+                }
                 LabasniHomeTab.Avatar -> AvatarTab()
-                LabasniHomeTab.Store -> StoreTab()
+                LabasniHomeTab.Store -> {
+                    val storeViewModel: StoreViewModel = viewModel()
+                    if (authToken.isBlank() || userId.isBlank()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(color = PinkPrimary)
+                        }
+                    } else {
+                        StoreTab(
+                            token = authToken,
+                            userId = userId,
+                            viewModel = storeViewModel
+                        )
+                    }
+                }
                 LabasniHomeTab.Settings -> SettingsTab(
                     user = user,
                     themeMode = themeMode,

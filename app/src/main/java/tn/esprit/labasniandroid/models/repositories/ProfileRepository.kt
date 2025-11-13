@@ -6,6 +6,9 @@ import tn.esprit.labasniandroid.api.UpdateProfileRequest
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.Responses
 import tn.esprit.labasniandroid.models.entities.User
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class ProfileRepository {
     private val authApi = RetrofitClient.authApi
@@ -37,7 +40,8 @@ class ProfileRepository {
         gender: String? = null,
         phoneNumber: String? = null,
         preferences: List<String>? = null,
-        password: String? = null
+        password: String? = null,
+        profilePictureUrl: String? = null
     ): Result<User> {
         return try {
             // Construire la requête - ne pas inclure les champs null
@@ -47,7 +51,8 @@ class ProfileRepository {
                 gender = gender?.takeIf { it.isNotBlank() },
                 phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
                 preferences = preferences?.takeIf { it.isNotEmpty() },
-                password = password?.takeIf { it.isNotBlank() }
+                password = password?.takeIf { it.isNotBlank() },
+                profilePicture = profilePictureUrl?.takeIf { it.isNotBlank() }
             )
             // Log pour débogage détaillé
             Log.d("ProfileRepository", "=== UPDATE PROFILE REQUEST ===")
@@ -56,6 +61,7 @@ class ProfileRepository {
             Log.d("ProfileRepository", "gender: $gender (filtered: ${request.gender})")
             Log.d("ProfileRepository", "phoneNumber: $phoneNumber (filtered: ${request.phoneNumber})")
             Log.d("ProfileRepository", "preferences: $preferences (filtered: ${request.preferences})")
+            Log.d("ProfileRepository", "profilePicture: $profilePictureUrl (filtered: ${request.profilePicture})")
             Log.d("ProfileRepository", "Request object: $request")
             
             val response = authApi.updateProfile("Bearer $token", request)
@@ -71,6 +77,7 @@ class ProfileRepository {
                     Log.d("ProfileRepository", "New fullName: ${updatedUser.fullName}")
                     Log.d("ProfileRepository", "New email: ${updatedUser.email}")
                     Log.d("ProfileRepository", "New gender: ${updatedUser.gender}")
+                    Log.d("ProfileRepository", "New profilePicture: ${updatedUser.profilePicture}")
                     Result.success(updatedUser)
                 } else {
                     Log.e("ProfileRepository", "❌ Response body is null!")
@@ -88,6 +95,43 @@ class ProfileRepository {
                     409 -> "Email déjà utilisé."
                     400 -> "Données invalides: $errorBody"
                     else -> errorBody ?: "Une erreur est survenue lors de la mise à jour (code: ${response.code()})."
+                }
+                Result.failure(NetworkError.ServerMessage(errorMessage))
+            }
+        } catch (e: Exception) {
+            Result.failure(NetworkError.Transport(e))
+        }
+    }
+
+    suspend fun uploadProfilePhoto(
+        token: String,
+        imageData: ByteArray,
+        fileName: String = "profile.jpg"
+    ): Result<User> {
+        return try {
+            val mediaType = "image/jpeg".toMediaType()
+            val requestBody = imageData.toRequestBody(mediaType)
+            val multipartBody = MultipartBody.Part.createFormData(
+                name = "image",
+                filename = fileName,
+                body = requestBody
+            )
+
+            val response = authApi.updateProfilePhoto("Bearer $token", multipartBody)
+
+            if (response.isSuccessful) {
+                val updatedUser = response.body()
+                if (updatedUser != null) {
+                    Result.success(updatedUser)
+                } else {
+                    Result.failure(NetworkError.ServerMessage("Réponse vide du serveur."))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val errorMessage = when (response.code()) {
+                    401 -> "Token invalide ou expiré."
+                    413 -> "Image trop lourde."
+                    else -> errorBody ?: "Une erreur est survenue lors de l'upload (code: ${response.code()})."
                 }
                 Result.failure(NetworkError.ServerMessage(errorMessage))
             }

@@ -1,46 +1,59 @@
 package tn.esprit.labasniandroid.ui.screen.profile
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.Checkroom
 import androidx.compose.material.icons.rounded.LocalMall
-import androidx.compose.material.icons.rounded.Star
-import androidx.compose.material.icons.rounded.ShoppingCart
 import androidx.compose.material.icons.rounded.Notifications
-import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.PhotoCamera
+import androidx.compose.material.icons.rounded.ShoppingCart
+import androidx.compose.material.icons.rounded.Star
 import androidx.compose.material.icons.rounded.ThumbUp
-import androidx.compose.material.icons.rounded.Person
-import androidx.compose.ui.res.painterResource
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -52,38 +65,44 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import android.util.Log
+import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tn.esprit.labasniandroid.R
+import tn.esprit.labasniandroid.models.entities.User
+import tn.esprit.labasniandroid.ui.components.GenderChip
+import tn.esprit.labasniandroid.ui.components.LabasniPillButton
+import tn.esprit.labasniandroid.ui.components.LabasniStatItem
+import tn.esprit.labasniandroid.ui.components.LabasniTab
+import tn.esprit.labasniandroid.ui.components.LabasniTabBar
+import tn.esprit.labasniandroid.ui.components.LabasniTopBar
+import tn.esprit.labasniandroid.ui.components.StyleTag
+import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.ui.theme.AquaSoft
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
 import tn.esprit.labasniandroid.ui.theme.TealAccent
 import tn.esprit.labasniandroid.utils.TokenManager
-import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
-import tn.esprit.labasniandroid.ui.components.LabasniTopBar
-import tn.esprit.labasniandroid.ui.components.LabasniPillButton
-import tn.esprit.labasniandroid.ui.components.GenderChip
-import tn.esprit.labasniandroid.ui.components.StyleTag
-import tn.esprit.labasniandroid.ui.components.LabasniStatItem
-import tn.esprit.labasniandroid.ui.components.LabasniTabBar
-import tn.esprit.labasniandroid.ui.components.LabasniTab
-import androidx.compose.ui.layout.ContentScale
-import tn.esprit.labasniandroid.models.entities.User
+import java.io.ByteArrayOutputStream
 
-@OptIn(ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun ProfileView(
     onBack: () -> Unit,
@@ -111,6 +130,34 @@ fun ProfileView(
     val selectedStyles = remember { 
         mutableStateListOf<String>().apply {
             user?.preferences?.forEach { add(it) }
+        }
+    }
+
+    val isPhotoUpdating by viewModel.isPhotoUpdating.collectAsState()
+
+    var pendingImageBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var pendingImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var showPhotoConfirmation by remember { mutableStateOf(false) }
+    var localProfileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+
+        scope.launch {
+            val result = loadBitmapAndBytes(context, uri)
+            if (result != null) {
+                val (bitmap, bytes) = result
+                pendingImageBitmap = bitmap
+                pendingImageBytes = bytes
+                showPhotoConfirmation = true
+            } else {
+                snackbarHostState.showSnackbar(
+                    message = "Impossible de charger l'image sélectionnée.",
+                    duration = SnackbarDuration.Short
+                )
+            }
         }
     }
     
@@ -374,19 +421,86 @@ fun ProfileView(
                                 color = PinkPrimary
                             )
                         )
+                        val profilePicture = user?.profilePicture
                         Box(
                             modifier = Modifier
                                 .size(120.dp)
                                 .clip(CircleShape)
-                                .background(PinkPrimary),
+                                .background(PinkPrimary.copy(alpha = 0.12f))
+                                .clickable(enabled = !isPhotoUpdating) {
+                                    if (!isPhotoUpdating) {
+                                        Log.d("ProfileView", "Avatar clicked.")
+                                        pickImageLauncher.launch("image/*")
+                                    }
+                                },
                             contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = initials(user?.fullName ?: "User"),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    color = Color.White,
-                                    fontWeight = FontWeight.ExtraBold
+                            when {
+                                localProfileBitmap != null -> {
+                                    Image(
+                                        bitmap = localProfileBitmap!!.asImageBitmap(),
+                                        contentDescription = "Photo de profil",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
+                                }
+                                !profilePicture.isNullOrBlank() -> {
+                                AsyncImage(
+                                    model = profilePicture,
+                                    contentDescription = "Photo de profil",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop
                                 )
+                                }
+                                else -> {
+                                    Text(
+                                        text = initials(user?.fullName ?: "User"),
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            color = PinkPrimary,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    )
+                                }
+                            }
+
+                            if (isPhotoUpdating) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(40.dp),
+                                    color = PinkPrimary,
+                                    strokeWidth = 3.dp
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .align(Alignment.BottomEnd)
+                                    .padding(6.dp)
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(PinkPrimary.copy(alpha = 0.9f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Rounded.PhotoCamera,
+                                    contentDescription = "Changer la photo de profil",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                        TextButton(
+                            onClick = {
+                                if (!isPhotoUpdating) {
+                                    Log.d("ProfileView", "\"Changer la photo\" button pressed.")
+                                    pickImageLauncher.launch("image/*")
+                                }
+                            },
+                            enabled = !isPhotoUpdating
+                        ) {
+                            Text(
+                                text = if (isPhotoUpdating) "Chargement..." else "Changer la photo",
+                                color = PinkPrimary,
+                                fontWeight = FontWeight.SemiBold
                             )
                         }
                         
@@ -863,7 +977,112 @@ fun ProfileView(
             }
         }
         
-        // Boîte de dialogue de confirmation de déconnexion
+        if (showPhotoConfirmation) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (!isPhotoUpdating) {
+                        showPhotoConfirmation = false
+                        pendingImageBitmap = null
+                        pendingImageBytes = null
+                    }
+                },
+                title = {
+                    Text(
+                        text = "Confirmer le changement de photo",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = PinkPrimary
+                        )
+                    )
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        pendingImageBitmap?.let { bitmap ->
+                            Image(
+                                bitmap = bitmap.asImageBitmap(),
+                                contentDescription = "Aperçu de la nouvelle photo",
+                                modifier = Modifier
+                                    .size(160.dp)
+                                    .clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        Text(
+                            text = "Voulez-vous vraiment changer votre photo de profil ?",
+                            style = MaterialTheme.typography.bodyMedium.copy(color = TealAccent),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isPhotoUpdating && pendingImageBytes != null,
+                        onClick = {
+                            if (pendingImageBytes == null) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Aucune image sélectionnée.",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                                return@TextButton
+                            }
+                            val token = TokenManager.getToken(context)
+                            if (token.isNullOrEmpty()) {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar(
+                                        message = "Session expirée. Veuillez vous reconnecter.",
+                                        duration = SnackbarDuration.Short
+                                    )
+                                }
+                                return@TextButton
+                            }
+
+                            val bytes = pendingImageBytes!!
+                            val bitmap = pendingImageBitmap
+                            scope.launch {
+                                showPhotoConfirmation = false
+                                if (bitmap != null) {
+                                    localProfileBitmap = bitmap
+                                }
+                                viewModel.uploadProfilePhoto(token, bytes)
+                                pendingImageBitmap = null
+                                pendingImageBytes = null
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = if (isPhotoUpdating) "En cours..." else "Confirmer",
+                            color = PinkPrimary,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            if (!isPhotoUpdating) {
+                                showPhotoConfirmation = false
+                                pendingImageBitmap = null
+                                pendingImageBytes = null
+                            }
+                        }
+                    ) {
+                        Text(
+                            text = "Annuler",
+                            color = TealAccent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
+
         if (showLogoutDialog) {
             AlertDialog(
                 onDismissRequest = { showLogoutDialog = false },
@@ -955,6 +1174,31 @@ private fun ProfileLabeledField(
         }
     }
 }
+
+private suspend fun loadBitmapAndBytes(context: Context, uri: Uri): Pair<Bitmap, ByteArray>? =
+    withContext(Dispatchers.IO) {
+        try {
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ImageDecoder.decodeBitmap(source)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+            }
+
+            val outputStream = ByteArrayOutputStream()
+            val compressed = bitmap.compress(Bitmap.CompressFormat.JPEG, 80, outputStream)
+            if (!compressed) {
+                return@withContext null
+            }
+            val bytes = outputStream.toByteArray()
+            outputStream.close()
+            Pair(bitmap, bytes)
+        } catch (e: Exception) {
+            Log.e("ProfileView", "Error decoding image: ${e.message}", e)
+            null
+        }
+    }
 
 private fun initials(name: String): String =
     name.split(" ")
