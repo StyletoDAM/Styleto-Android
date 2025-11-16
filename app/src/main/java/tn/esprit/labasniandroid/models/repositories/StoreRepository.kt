@@ -35,12 +35,10 @@ class StoreRepository(
 
     suspend fun addStoreItem(
         token: String,
-        userId: String,
         clothesId: String,
         price: Double
     ): Result<StoreItem> {
         val request = CreateStoreItemRequest(
-            userId = userId,
             clothesId = clothesId,
             price = price
         )
@@ -55,6 +53,25 @@ class StoreRepository(
                     400 -> "Impossible d'ajouter cet article. Vérifiez les informations."
                     401 -> "Session expirée. Veuillez vous reconnecter."
                     else -> errorBody ?: "Ajout impossible pour le moment."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    suspend fun deleteStoreItem(token: String, storeItemId: String): Result<Unit> {
+        return try {
+            val response = storeApi.deleteStoreItem("Bearer $token", storeItemId)
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    404 -> "Article introuvable."
+                    else -> errorBody ?: "Suppression impossible pour le moment."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }

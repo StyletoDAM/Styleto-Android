@@ -46,6 +46,9 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -507,17 +510,33 @@ private fun ClothCard(cloth: Cloth) {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(36.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.White),
-            contentAlignment = Alignment.Center
-        ) {
-            Text(
-                text = emojiForType(cloth.type),
-                fontSize = 18.sp
+        val context = androidx.compose.ui.platform.LocalContext.current
+        if (cloth.imageUrl.isNotBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(cloth.imageUrl)
+                    .crossfade(true)
+                    .build(),
+                contentDescription = cloth.name,
+                modifier = Modifier
+                    .size(50.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White),
+                contentScale = ContentScale.Fit
             )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(36.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = emojiForType(cloth.type),
+                    fontSize = 18.sp
+                )
+            }
         }
         Text(
             text = cloth.name.ifBlank { cloth.type },

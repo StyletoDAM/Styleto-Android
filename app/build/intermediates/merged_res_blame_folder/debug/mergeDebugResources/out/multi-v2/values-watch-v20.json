@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-47:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/36266ff2994fc3ae8c4203be8c0dbeb2/transformed/play-services-auth-21.0.0/res/values-watch-v20/values.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/36266ff2994fc3ae8c4203be8c0dbeb2/transformed/play-services-auth-21.0.0/res/values-watch-v20/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11",
                         "startColumns": "0,0,0,0,0,0,0,0",

@@ -31,6 +31,9 @@ class StoreViewModel(
     private val _storeItems = MutableStateFlow<List<StoreItem>>(emptyList())
     val storeItems: StateFlow<List<StoreItem>> = _storeItems.asStateFlow()
 
+    private val _deletingIds = MutableStateFlow<Set<String>>(emptySet())
+    val deletingIds: StateFlow<Set<String>> = _deletingIds.asStateFlow()
+
     private val _availableClothes = MutableStateFlow<List<Cloth>>(emptyList())
     val availableClothes: StateFlow<List<Cloth>> = _availableClothes.asStateFlow()
 
@@ -48,6 +51,21 @@ class StoreViewModel(
         cachedUserId = userId
         loadStoreItems(token)
         loadAvailableClothes(token)
+    }
+
+    fun deleteStoreItem(token: String, storeItemId: String) {
+        if (_deletingIds.value.contains(storeItemId)) return
+        viewModelScope.launch {
+            _deletingIds.value = _deletingIds.value + storeItemId
+            storeRepository.deleteStoreItem(token, storeItemId).fold(
+                onSuccess = {
+                    _storeItems.value = _storeItems.value.filterNot { it.id == storeItemId }
+                    _successMessage.value = "Article supprimé."
+                },
+                onFailure = { error -> _errorMessage.value = error.message }
+            )
+            _deletingIds.value = _deletingIds.value - storeItemId
+        }
     }
 
     fun refresh(token: String) {
@@ -76,7 +94,6 @@ class StoreViewModel(
     }
 
     fun addStoreItem(token: String, selectedCloth: Cloth, price: Double) {
-        val userId = cachedUserId ?: return
         if (_isSubmitting.value) return
         viewModelScope.launch {
             _isSubmitting.value = true
@@ -84,13 +101,12 @@ class StoreViewModel(
 
             storeRepository.addStoreItem(
                 token = token,
-                userId = userId,
                 clothesId = selectedCloth.id,
                 price = price
             ).fold(
                 onSuccess = { item ->
-                    val enriched = mergeWithDressing(listOf(item), _availableClothes.value).firstOrNull() ?: item
-                    _storeItems.value = listOf(enriched) + _storeItems.value
+                    // Après ajout, on recharge la liste depuis /store/my pour éviter tout décalage
+                    refresh(token)
                     _successMessage.value = "Article ajouté à la boutique."
                 },
                 onFailure = { error -> _errorMessage.value = error.message }

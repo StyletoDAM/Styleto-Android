@@ -10,7 +10,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface OutfitsApi {
-    @GET("/outfits")
+    @GET("/outfits/my")
     suspend fun getOutfits(
         @Header("Authorization") token: String
     ): Response<List<OutfitResponse>>
@@ -40,7 +40,6 @@ data class OutfitResponse(
 )
 
 data class CreateOutfitRequest(
-    @SerializedName("userId") val userId: String,
     @SerializedName("clothesIds") val clothesIds: List<String>,
     @SerializedName("eventType") val eventType: String?,
     @SerializedName("status") val status: String? = "pending"

@@ -40,7 +40,6 @@ class TenuesRepository(
         status: String? = "pending"
     ): Result<Unit> {
         val request = CreateOutfitRequest(
-            userId = userId,
             clothesIds = clothesIds,
             eventType = eventType,
             status = status

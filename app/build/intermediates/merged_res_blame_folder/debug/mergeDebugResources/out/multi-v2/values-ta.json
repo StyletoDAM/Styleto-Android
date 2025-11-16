@@ -4,41 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-47:/values-ta/values-ta.xml",
             "map": [
                 {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/c64f615122f0a87c457becf48467ba80/transformed/ui-release/res/values-ta/values-ta.xml",
-                    "from": {
-                        "startLines": "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "183,280,364,458,559,650,733,842,933,1028,1110,1196,1286,1378,1463,1536,1607,1687,1756",
-                        "endColumns": "96,83,93,100,90,82,108,90,94,81,85,89,91,84,72,70,79,68,119",
-                        "endOffsets": "275,359,453,554,645,728,837,928,1023,1105,1191,1281,1373,1458,1531,1602,1682,1751,1871"
-                    },
-                    "to": {
-                        "startLines": "10,11,30,31,32,33,34,92,93,94,95,96,97,98,99,100,102,103,104",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "928,1025,3345,3439,3540,3631,3714,10402,10493,10588,10670,10756,10846,10938,11023,11096,11268,11348,11417",
-                        "endColumns": "96,83,93,100,90,82,108,90,94,81,85,89,91,84,72,70,79,68,119",
-                        "endOffsets": "1020,1104,3434,3535,3626,3709,3818,10488,10583,10665,10751,10841,10933,11018,11091,11162,11343,11412,11532"
-                    }
-                },
-                {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/94ea6383fed28c629e8779befe561176/transformed/play-services-base-18.0.1/res/values-ta/values.xml",
-                    "from": {
-                        "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
-                        "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
-                        "startOffsets": "193,294,442,565,667,815,939,1048,1145,1321,1424,1573,1704,1854,2006,2064,2123",
-                        "endColumns": "100,147,122,101,147,123,108,96,175,102,148,130,149,151,57,58,76",
-                        "endOffsets": "293,441,564,666,814,938,1047,1144,1320,1423,1572,1703,1853,2005,2063,2122,2199"
-                    },
-                    "to": {
-                        "startLines": "12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,28,29",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "1109,1214,1366,1493,1599,1751,1879,1992,2254,2434,2541,2694,2829,2983,3139,3201,3264",
-                        "endColumns": "104,151,126,105,151,127,112,100,179,106,152,134,153,155,61,62,80",
-                        "endOffsets": "1209,1361,1488,1594,1746,1874,1987,2088,2429,2536,2689,2824,2978,3134,3196,3259,3340"
-                    }
-                },
-                {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/73c258a6cfe578880ffc9808468c3ecc/transformed/play-services-basement-18.2.0/res/values-ta/values.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/73c258a6cfe578880ffc9808468c3ecc/transformed/play-services-basement-18.2.0/res/values-ta/values.xml",
                     "from": {
                         "startLines": "4",
                         "startColumns": "0",
@@ -55,7 +21,24 @@
                     }
                 },
                 {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/7fda1a49d82c9c710d99c4b0dc99412f/transformed/material3-release/res/values-ta/values-ta.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/77e802d2ea25905def1ea0496b40b9ca/transformed/core-1.17.0/res/values-ta/values-ta.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,151,254,353,451,558,673,801",
+                        "endColumns": "95,102,98,97,106,114,127,100",
+                        "endOffsets": "146,249,348,446,553,668,796,897"
+                    },
+                    "to": {
+                        "startLines": "3,4,5,6,7,8,9,101",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "182,278,381,480,578,685,800,11167",
+                        "endColumns": "95,102,98,97,106,114,127,100",
+                        "endOffsets": "273,376,475,573,680,795,923,11263"
+                    }
+                },
+                {
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/7fda1a49d82c9c710d99c4b0dc99412f/transformed/material3-release/res/values-ta/values-ta.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -72,7 +55,41 @@
                     }
                 },
                 {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/3b0a001df5d6b56e6d60f09bc99e6258/transformed/foundation-release/res/values-ta/values-ta.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/94ea6383fed28c629e8779befe561176/transformed/play-services-base-18.0.1/res/values-ta/values.xml",
+                    "from": {
+                        "startLines": "4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20",
+                        "startColumns": "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0",
+                        "startOffsets": "193,294,442,565,667,815,939,1048,1145,1321,1424,1573,1704,1854,2006,2064,2123",
+                        "endColumns": "100,147,122,101,147,123,108,96,175,102,148,130,149,151,57,58,76",
+                        "endOffsets": "293,441,564,666,814,938,1047,1144,1320,1423,1572,1703,1853,2005,2063,2122,2199"
+                    },
+                    "to": {
+                        "startLines": "12,13,14,15,16,17,18,19,21,22,23,24,25,26,27,28,29",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "1109,1214,1366,1493,1599,1751,1879,1992,2254,2434,2541,2694,2829,2983,3139,3201,3264",
+                        "endColumns": "104,151,126,105,151,127,112,100,179,106,152,134,153,155,61,62,80",
+                        "endOffsets": "1209,1361,1488,1594,1746,1874,1987,2088,2429,2536,2689,2824,2978,3134,3196,3259,3340"
+                    }
+                },
+                {
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/c64f615122f0a87c457becf48467ba80/transformed/ui-release/res/values-ta/values-ta.xml",
+                    "from": {
+                        "startLines": "3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "183,280,364,458,559,650,733,842,933,1028,1110,1196,1286,1378,1463,1536,1607,1687,1756",
+                        "endColumns": "96,83,93,100,90,82,108,90,94,81,85,89,91,84,72,70,79,68,119",
+                        "endOffsets": "275,359,453,554,645,728,837,928,1023,1105,1191,1281,1373,1458,1531,1602,1682,1751,1871"
+                    },
+                    "to": {
+                        "startLines": "10,11,30,31,32,33,34,92,93,94,95,96,97,98,99,100,102,103,104",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "928,1025,3345,3439,3540,3631,3714,10402,10493,10588,10670,10756,10846,10938,11023,11096,11268,11348,11417",
+                        "endColumns": "96,83,93,100,90,82,108,90,94,81,85,89,91,84,72,70,79,68,119",
+                        "endOffsets": "1020,1104,3434,3535,3626,3709,3818,10488,10583,10665,10751,10841,10933,11018,11091,11162,11343,11412,11532"
+                    }
+                },
+                {
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/3b0a001df5d6b56e6d60f09bc99e6258/transformed/foundation-release/res/values-ta/values-ta.xml",
                     "from": {
                         "startLines": "2,3,4",
                         "startColumns": "4,4,4",
@@ -86,23 +103,6 @@
                         "startOffsets": "105,11537,11630",
                         "endColumns": "76,92,97",
                         "endOffsets": "177,11625,11723"
-                    }
-                },
-                {
-                    "source": "/Users/macbook/.gradle/caches/8.13/transforms/77e802d2ea25905def1ea0496b40b9ca/transformed/core-1.17.0/res/values-ta/values-ta.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,151,254,353,451,558,673,801",
-                        "endColumns": "95,102,98,97,106,114,127,100",
-                        "endOffsets": "146,249,348,446,553,668,796,897"
-                    },
-                    "to": {
-                        "startLines": "3,4,5,6,7,8,9,101",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "182,278,381,480,578,685,800,11167",
-                        "endColumns": "95,102,98,97,106,114,127,100",
-                        "endOffsets": "273,376,475,573,680,795,923,11263"
                     }
                 }
             ]

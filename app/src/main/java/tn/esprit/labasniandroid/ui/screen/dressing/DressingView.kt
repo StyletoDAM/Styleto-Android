@@ -30,6 +30,8 @@ import androidx.compose.material.icons.rounded.RemoveCircle
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -54,6 +56,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -63,6 +66,8 @@ import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
@@ -355,27 +360,69 @@ private fun DressingCard(
     isDeleting: Boolean,
     onDelete: () -> Unit
 ) {
+    val context = LocalContext.current
     val backgroundColor = remember(cloth.colorHex) { parseColorToCompose(cloth.colorHex) }
     val contentColor = remember(backgroundColor) { contentColorForBackground(backgroundColor) }
     val emoji = remember(cloth.type) { emojiForType(cloth.type) }
 
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(20.dp))
-            .shadow(8.dp, RoundedCornerShape(20.dp))
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
+                    .height(150.dp) // léger espace autour de la photo
                     .background(backgroundColor),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = emoji,
-                    fontSize = 46.sp
-                )
+                // Bouton de suppression en haut à droite
+                IconButton(
+                    onClick = { if (!isDeleting) onDelete() },
+                    enabled = !isDeleting,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.95f))
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PinkPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.RemoveCircle,
+                            contentDescription = "Supprimer",
+                            tint = PinkPrimary
+                        )
+                    }
+                }
+
+                if (cloth.imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(cloth.imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = cloth.name,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp) // image plus petite, centrée dans le cadre
+                            .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
+                        contentScale = ContentScale.Fit // affiche tout le vêtement sans dépasser
+                    )
+                } else {
+                    Text(
+                        text = emoji,
+                        fontSize = 46.sp
+                    )
+                }
             }
             Column(
                 modifier = Modifier
@@ -397,31 +444,6 @@ private fun DressingCard(
                         fontWeight = FontWeight.Medium,
                         color = contentColor.copy(alpha = 0.85f)
                     )
-                )
-            }
-        }
-
-        IconButton(
-            onClick = { if (!isDeleting) onDelete() },
-            enabled = !isDeleting,
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(10.dp)
-                .size(32.dp)
-                .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.9f))
-        ) {
-            if (isDeleting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    color = PinkPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.Rounded.RemoveCircle,
-                    contentDescription = "Supprimer",
-                    tint = PinkPrimary
                 )
             }
         }

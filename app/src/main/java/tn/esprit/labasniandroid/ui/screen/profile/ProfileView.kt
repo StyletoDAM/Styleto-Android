@@ -29,6 +29,12 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,7 +92,10 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tn.esprit.labasniandroid.R
+import tn.esprit.labasniandroid.models.entities.CloudinaryImage
 import tn.esprit.labasniandroid.models.entities.User
+import tn.esprit.labasniandroid.models.services.CloudinaryGalleryService
+import tn.esprit.labasniandroid.utils.APIConstants
 import tn.esprit.labasniandroid.ui.components.GenderChip
 import tn.esprit.labasniandroid.ui.components.LabasniPillButton
 import tn.esprit.labasniandroid.ui.components.LabasniStatItem
@@ -139,6 +148,12 @@ fun ProfileView(
     var pendingImageBytes by remember { mutableStateOf<ByteArray?>(null) }
     var showPhotoConfirmation by remember { mutableStateOf(false) }
     var localProfileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var showPhotoOptions by remember { mutableStateOf(false) }
+    var showCloudinaryGallery by remember { mutableStateOf(false) }
+    var cloudinaryImages by remember { mutableStateOf<List<CloudinaryImage>>(emptyList()) }
+    var isCloudinaryLoading by remember { mutableStateOf(false) }
+    var cloudinaryError by remember { mutableStateOf<String?>(null) }
+    val cloudinaryService = remember { CloudinaryGalleryService() }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -158,6 +173,41 @@ fun ProfileView(
                     duration = SnackbarDuration.Short
                 )
             }
+        }
+    }
+    
+    fun isCloudinaryConfigured(): Boolean {
+        val name = APIConstants.CLOUDINARY_CLOUD_NAME
+        return name.isNotBlank() && name != "your_cloud_name"
+    }
+
+    fun openPhotoOptions() {
+        if (isPhotoUpdating) return
+        if (!isCloudinaryConfigured()) {
+            pickImageLauncher.launch("image/*")
+            return
+        }
+        showPhotoOptions = true
+    }
+
+    fun fetchCloudinaryGallery(force: Boolean = false) {
+        if (isCloudinaryLoading) return
+        if (!force && cloudinaryImages.isNotEmpty()) return
+        scope.launch {
+            isCloudinaryLoading = true
+            cloudinaryError = null
+            cloudinaryService.loadGallery().fold(
+                onSuccess = { images ->
+                    cloudinaryImages = images
+                    if (images.isEmpty()) {
+                        cloudinaryError = "Aucune image disponible pour le moment."
+                    }
+                },
+                onFailure = { error ->
+                    cloudinaryError = error.message ?: "Erreur lors du chargement de Cloudinary."
+                }
+            )
+            isCloudinaryLoading = false
         }
     }
     
@@ -426,13 +476,8 @@ fun ProfileView(
                             modifier = Modifier
                                 .size(120.dp)
                                 .clip(CircleShape)
-                                .background(PinkPrimary.copy(alpha = 0.12f))
-                                .clickable(enabled = !isPhotoUpdating) {
-                                    if (!isPhotoUpdating) {
-                                        Log.d("ProfileView", "Avatar clicked.")
-                                        pickImageLauncher.launch("image/*")
-                                    }
-                                },
+                .background(PinkPrimary.copy(alpha = 0.12f))
+                .clickable(enabled = !isPhotoUpdating) { openPhotoOptions() },
                             contentAlignment = Alignment.Center
                         ) {
                             when {
@@ -489,12 +534,7 @@ fun ProfileView(
                             }
                         }
                         TextButton(
-                            onClick = {
-                                if (!isPhotoUpdating) {
-                                    Log.d("ProfileView", "\"Changer la photo\" button pressed.")
-                                    pickImageLauncher.launch("image/*")
-                                }
-                            },
+                            onClick = { openPhotoOptions() },
                             enabled = !isPhotoUpdating
                         ) {
                             Text(
@@ -977,6 +1017,65 @@ fun ProfileView(
             }
         }
         
+        if (showPhotoOptions) {
+            val cloudinaryEnabled = isCloudinaryConfigured()
+            AlertDialog(
+                onDismissRequest = { showPhotoOptions = false },
+                title = {
+                    Text(
+                        text = "Changer la photo de profil",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = PinkPrimary
+                        )
+                    )
+                },
+                text = {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        LabasniPillButton(
+                            text = "Depuis l'appareil",
+                            onClick = {
+                                showPhotoOptions = false
+                                pickImageLauncher.launch("image/*")
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            background = PinkPrimary,
+                            contentColor = Color.White
+                        )
+                        if (cloudinaryEnabled) {
+                            LabasniPillButton(
+                                text = "Depuis Cloudinary",
+                                onClick = {
+                                    showPhotoOptions = false
+                                    showCloudinaryGallery = true
+                                    fetchCloudinaryGallery()
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                background = AquaSoft,
+                                contentColor = Color.White
+                            )
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = {
+                    TextButton(onClick = { showPhotoOptions = false }) {
+                        Text(
+                            text = "Fermer",
+                            color = TealAccent,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                },
+                containerColor = Color.White,
+                shape = RoundedCornerShape(20.dp)
+            )
+        }
+
         if (showPhotoConfirmation) {
             AlertDialog(
                 onDismissRequest = {
@@ -1081,6 +1180,140 @@ fun ProfileView(
                 containerColor = Color.White,
                 shape = RoundedCornerShape(20.dp)
             )
+        }
+
+        if (showCloudinaryGallery) {
+            Dialog(
+                onDismissRequest = {
+                    if (!isPhotoUpdating) {
+                        showCloudinaryGallery = false
+                    }
+                }
+            ) {
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    tonalElevation = 4.dp,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .padding(20.dp)
+                            .heightIn(min = 200.dp, max = 520.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Sélectionnez une photo Cloudinary",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = PinkPrimary
+                                )
+                            )
+                            TextButton(
+                                onClick = { fetchCloudinaryGallery(force = true) },
+                                enabled = !isCloudinaryLoading
+                            ) {
+                                Text(
+                                    text = if (isCloudinaryLoading) "Chargement..." else "Rafraîchir",
+                                    color = TealAccent,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                        }
+                        when {
+                            isCloudinaryLoading -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(200.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(color = PinkPrimary)
+                                }
+                            }
+                            cloudinaryError != null -> {
+                                Column(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = cloudinaryError ?: "",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = TealAccent,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        textAlign = TextAlign.Center
+                                    )
+                                    LabasniPillButton(
+                                        text = "Réessayer",
+                                        onClick = { fetchCloudinaryGallery(force = true) },
+                                        background = PinkPrimary,
+                                        contentColor = Color.White
+                                    )
+                                }
+                            }
+                            else -> {
+                                LazyVerticalGrid(
+                                    columns = GridCells.Fixed(3),
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .weight(1f, fill = true)
+                                ) {
+                                    items(cloudinaryImages, key = { it.publicId }) { image ->
+                                        Box(
+                                            modifier = Modifier
+                                                .aspectRatio(1f)
+                                                .clip(RoundedCornerShape(12.dp))
+                                                .background(Color.LightGray.copy(alpha = 0.2f))
+                                                .clickable(enabled = !isPhotoUpdating) {
+                                                    val token = TokenManager.getToken(context)
+                                                    if (token.isNullOrEmpty()) {
+                                                        scope.launch {
+                                                            snackbarHostState.showSnackbar(
+                                                                message = "Session expirée. Veuillez vous reconnecter.",
+                                                                duration = SnackbarDuration.Short
+                                                            )
+                                                        }
+                                                        return@clickable
+                                                    }
+                                                    localProfileBitmap = null
+                                                    showCloudinaryGallery = false
+                                                    viewModel.setProfilePictureFromUrl(token, image.secureUrl)
+                                                },
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            AsyncImage(
+                                                model = image.thumbnailUrl ?: image.secureUrl,
+                                                contentDescription = "Image Cloudinary",
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        TextButton(
+                            onClick = { showCloudinaryGallery = false }
+                        ) {
+                            Text(
+                                text = "Fermer",
+                                color = PinkPrimary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        }
+                    }
+                }
+            }
         }
 
         if (showLogoutDialog) {

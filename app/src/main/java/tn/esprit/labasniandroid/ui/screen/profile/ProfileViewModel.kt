@@ -154,5 +154,28 @@ class ProfileViewModel(
             _isPhotoUpdating.value = false
         }
     }
+
+    fun setProfilePictureFromUrl(token: String, imageUrl: String) {
+        viewModelScope.launch {
+            _isPhotoUpdating.value = true
+            _errorMessage.value = null
+            _successMessage.value = null
+
+            profileRepository.updateProfile(
+                token = token,
+                profilePictureUrl = imageUrl
+            ).fold(
+                onSuccess = { updatedUser ->
+                    _user.value = updatedUser
+                    _successMessage.value = "Photo de profil mise à jour !"
+                },
+                onFailure = { error ->
+                    _errorMessage.value = error.message
+                }
+            )
+
+            _isPhotoUpdating.value = false
+        }
+    }
 }
 

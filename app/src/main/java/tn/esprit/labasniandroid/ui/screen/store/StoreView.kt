@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.LocalMall
+import androidx.compose.material.icons.rounded.RemoveCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -27,6 +28,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -56,8 +58,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.zIndex
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.StoreItem
 import tn.esprit.labasniandroid.ui.theme.AquaSoft
@@ -79,6 +85,7 @@ fun StoreTab(
     val successMessage by viewModel.successMessage.collectAsState()
     val availableClothes by viewModel.availableClothes.collectAsState()
     val isLoadingClothes by viewModel.isLoadingClothes.collectAsState()
+    val deletingIds by viewModel.deletingIds.collectAsState()
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -204,7 +211,13 @@ fun StoreTab(
                     horizontalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(filteredItems, key = { it.id }) { item ->
-                        ProductCard(storeItem = item)
+                        ProductCard(
+                            storeItem = item,
+                            isDeleting = deletingIds.contains(item.id),
+                            onDelete = {
+                                viewModel.deleteStoreItem(token, item.id)
+                            }
+                        )
                     }
                 }
             }
@@ -270,7 +283,11 @@ private fun StoreSearchField(
 }
 
 @Composable
-private fun ProductCard(storeItem: StoreItem) {
+private fun ProductCard(
+    storeItem: StoreItem,
+    isDeleting: Boolean,
+    onDelete: () -> Unit
+) {
     val cloth = storeItem.cloth
     val priceText = "${String.format("%.2f", storeItem.price)} DT"
     val statusLabel = when (storeItem.status?.lowercase()) {
@@ -278,6 +295,8 @@ private fun ProductCard(storeItem: StoreItem) {
         else -> "Disponible"
     }
     val emoji = emojiForType(cloth?.type.orEmpty())
+    val imageUrl = cloth?.imageUrl.orEmpty()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     Card(
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -287,18 +306,68 @@ private fun ProductCard(storeItem: StoreItem) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(
-                                PinkGradientTop.copy(alpha = 0.35f),
-                                AquaSoft.copy(alpha = 0.45f)
-                            )
-                        )
-                    ),
+                    .height(150.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = emoji, fontSize = 48.sp)
+                // Delete button top-right
+                IconButton(
+                    onClick = { if (!isDeleting) onDelete() },
+                    enabled = !isDeleting,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(Color.White.copy(alpha = 0.95f))
+                        .zIndex(1f)
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            color = PinkPrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Rounded.RemoveCircle,
+                            contentDescription = "Supprimer",
+                            tint = PinkPrimary
+                        )
+                    }
+                }
+
+                if (imageUrl.isNotBlank()) {
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = cloth?.name ?: "Article",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(120.dp) // image plus petite que le cadre
+                            .clip(RoundedCornerShape(topStart = 18.dp, topEnd = 18.dp))
+                            .zIndex(0f),
+                        contentScale = ContentScale.Fit // montre l'article entier dans la carte
+                    )
+                } else {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(140.dp)
+                            .background(
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        PinkGradientTop.copy(alpha = 0.35f),
+                                        AquaSoft.copy(alpha = 0.45f)
+                                    )
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(text = emoji, fontSize = 48.sp)
+                    }
+                }
             }
             Column(
                 modifier = Modifier

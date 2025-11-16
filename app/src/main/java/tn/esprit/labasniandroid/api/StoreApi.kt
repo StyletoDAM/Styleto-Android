@@ -6,9 +6,11 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
+import retrofit2.http.DELETE
+import retrofit2.http.Path
 
 interface StoreApi {
-    @GET("/store")
+    @GET("/store/my")
     suspend fun getStoreItems(
         @Header("Authorization") token: String
     ): Response<List<StoreItemResponse>>
@@ -18,6 +20,12 @@ interface StoreApi {
         @Header("Authorization") token: String,
         @Body request: CreateStoreItemRequest
     ): Response<StoreItemResponse>
+
+    @DELETE("/store/{id}")
+    suspend fun deleteStoreItem(
+        @Header("Authorization") token: String,
+        @Path("id") id: String
+    ): Response<Unit>
 }
 
 data class StoreItemResponse(
@@ -31,7 +39,6 @@ data class StoreItemResponse(
 )
 
 data class CreateStoreItemRequest(
-    @SerializedName("userId") val userId: String,
     @SerializedName("clothesId") val clothesId: String,
     @SerializedName("price") val price: Double
 )

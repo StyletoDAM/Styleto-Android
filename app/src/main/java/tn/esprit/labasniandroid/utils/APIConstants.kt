@@ -1,10 +1,17 @@
 package tn.esprit.labasniandroid.utils
 
+import tn.esprit.labasniandroid.BuildConfig
+
 object APIConstants {
-    // Pour l'émulateur Android, utilisez 10.0.2.2 pour accéder à localhost de la machine hôte
-    // Pour un appareil physique, remplacez par l'adresse IP locale de votre machine (ex: 192.168.1.xxx)
-    // Exemple pour appareil physique: const val BASE_URL = "http://192.168.1.100:3000"
-    const val BASE_URL = "http://10.0.2.2:3000"
+    private const val DEFAULT_BASE_URL = "http://10.0.2.2:3000"
+
+    /**
+     * URL du backend.
+     *
+     * - Émulateur officiel : laissez `labasni.baseUrl` vide pour utiliser 10.0.2.2.
+     * - Téléphone réel : dans `local.properties`, ajoutez `labasni.baseUrl=http://<ip_de_votre_mac>:3000`.
+     */
+    val BASE_URL: String = BuildConfig.BASE_URL.ifBlank { DEFAULT_BASE_URL }
     
     const val SIGNUP_PATH = "/auth/signup"
     const val SIGNIN_PATH = "/auth/signin"

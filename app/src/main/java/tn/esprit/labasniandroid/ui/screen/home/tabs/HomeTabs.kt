@@ -1,5 +1,13 @@
 package tn.esprit.labasniandroid.ui.screen.home.tabs
 
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.ImageDecoder
+import android.net.Uri
+import android.os.Build
+import android.provider.MediaStore
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
@@ -65,6 +73,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import android.widget.Toast
+import coil.compose.AsyncImage
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -72,6 +81,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
@@ -101,6 +111,10 @@ import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.utils.TokenManager
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.SnackbarHostState
+import java.io.ByteArrayOutputStream
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
  
 // region Dressing
 
@@ -463,12 +477,42 @@ fun SettingsTab(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val profileViewModel: ProfileViewModel = viewModel()
     val viewModelUser by profileViewModel.user.collectAsState()
     val isLoading by profileViewModel.isLoading.collectAsState()
     val errorMessage by profileViewModel.errorMessage.collectAsState()
     val successMessage by profileViewModel.successMessage.collectAsState()
     val accountDeleted by profileViewModel.accountDeleted.collectAsState()
+    val isPhotoUpdating by profileViewModel.isPhotoUpdating.collectAsState()
+
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val token = TokenManager.getToken(context)
+        if (token.isNullOrEmpty()) {
+            Toast.makeText(
+                context,
+                "Session expirée. Veuillez vous reconnecter.",
+                Toast.LENGTH_SHORT
+            ).show()
+            return@rememberLauncherForActivityResult
+        }
+
+        scope.launch {
+            val imageBytes = loadImageBytes(context, uri)
+            if (imageBytes == null) {
+                Toast.makeText(
+                    context,
+                    "Impossible de charger l'image sélectionnée.",
+                    Toast.LENGTH_SHORT
+                ).show()
+            } else {
+                profileViewModel.uploadProfilePhoto(token, imageBytes)
+            }
+        }
+    }
 
     val activeUser = viewModelUser ?: user
 
@@ -620,18 +664,40 @@ fun SettingsTab(
                     .background(PinkPrimary.copy(alpha = 0.15f)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = initials(activeUser?.fullName ?: "User"),
-                    style = MaterialTheme.typography.headlineMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = PinkPrimary,
-                        fontSize = 28.sp
-                    )
-                )
+                when {
+                    isPhotoUpdating -> {
+                        CircularProgressIndicator(color = PinkPrimary)
+                    }
+                    !activeUser?.profilePicture.isNullOrBlank() -> {
+                        AsyncImage(
+                            model = activeUser?.profilePicture,
+                            contentDescription = "Photo de profil",
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        )
+                    }
+                    else -> {
+                        Text(
+                            text = initials(activeUser?.fullName ?: "User"),
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = PinkPrimary,
+                                fontSize = 28.sp
+                            )
+                        )
+                    }
+                }
             }
-            TextButton(onClick = { /* TODO: Change photo */ }) {
+            TextButton(
+                onClick = {
+                    if (!isPhotoUpdating) {
+                        pickImageLauncher.launch("image/*")
+                    }
+                },
+                enabled = !isPhotoUpdating
+            ) {
                 Text(
-                    text = "Changer la photo",
+                    text = if (isPhotoUpdating) "Chargement..." else "Changer la photo",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = PinkPrimary
@@ -1505,6 +1571,32 @@ private fun initials(name: String): String {
         .joinToString("") { it.first().uppercaseChar().toString() }
         .ifEmpty { "LB" }
 }
+
+private suspend fun loadImageBytes(context: Context, uri: Uri): ByteArray? =
+    withContext(Dispatchers.IO) {
+        try {
+            val bitmap = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                val source = ImageDecoder.createSource(context.contentResolver, uri)
+                ImageDecoder.decodeBitmap(source)
+            } else {
+                @Suppress("DEPRECATION")
+                MediaStore.Images.Media.getBitmap(context.contentResolver, uri)
+            }
+
+            val output = ByteArrayOutputStream()
+            val compressed = bitmap.compress(Bitmap.CompressFormat.JPEG, 80, output)
+            if (!compressed) {
+                output.close()
+                return@withContext null
+            }
+
+            val bytes = output.toByteArray()
+            output.close()
+            bytes
+        } catch (e: Exception) {
+            null
+        }
+    }
 
 // endregion
 

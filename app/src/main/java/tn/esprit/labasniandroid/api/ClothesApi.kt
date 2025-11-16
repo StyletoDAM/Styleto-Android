@@ -11,7 +11,7 @@ import retrofit2.http.POST
 import retrofit2.http.Path
 
 interface ClothesApi {
-    @GET("/cloth")
+    @GET("/cloth/my")
     suspend fun getClothes(
         @Header("Authorization") token: String
     ): Response<List<ClothResponse>>
