@@ -52,23 +52,38 @@ import androidx.compose.ui.unit.sp
 import tn.esprit.labasniandroid.ui.theme.AquaSoft
 import tn.esprit.labasniandroid.ui.theme.NeutralSoft
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
-import tn.esprit.labasniandroid.ui.theme.PinkPrimary
-import tn.esprit.labasniandroid.ui.theme.TealAccent
 
+// Palette adaptative qui utilise les couleurs du thème actif
+// En BLEUTheme: primary = #4AA3A2, secondary = #A7E0E0
+// En PINKTheme: primary = rose, secondary = aqua
 object LabasniPalette {
-    val Primary = PinkPrimary
-    val Secondary = AquaSoft
-    val GradientTop = PinkGradientTop
-    val GradientBottom = AquaSoft
-    val Accent = TealAccent
-    val Neutral = NeutralSoft
+    @Composable
+    fun Primary(): Color = MaterialTheme.colorScheme.primary
+    
+    @Composable
+    fun Secondary(): Color = MaterialTheme.colorScheme.secondary
+    
+    @Composable
+    fun GradientTop(): Color {
+        val tertiary = MaterialTheme.colorScheme.tertiary
+        return if (tertiary.alpha > 0.1f) tertiary else PinkGradientTop
+    }
+    
+    @Composable
+    fun GradientBottom(): Color = MaterialTheme.colorScheme.secondary
+    
+    @Composable
+    fun Accent(): Color = MaterialTheme.colorScheme.primary // Utilise primary comme accent
+    
+    @Composable
+    fun Neutral(): Color = NeutralSoft // Reste neutre
 }
 
 @Composable
 fun LabasniGradientBackground(
     modifier: Modifier = Modifier,
-    topColor: Color = LabasniPalette.GradientTop,
-    bottomColor: Color = LabasniPalette.GradientBottom,
+    topColor: Color = LabasniPalette.GradientTop(),
+    bottomColor: Color = LabasniPalette.GradientBottom(),
     content: @Composable BoxScope.() -> Unit
 ) {
     Box(
@@ -112,7 +127,7 @@ fun LabasniPillButton(
     text: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    background: Color = LabasniPalette.Primary,
+    background: Color = LabasniPalette.Primary(),
     contentColor: Color = Color.White,
     borderColor: Color? = null,
     enabled: Boolean = true,
@@ -177,14 +192,14 @@ fun LabasniOutlinedField(
             focusedContainerColor = colorScheme.surface,
             unfocusedContainerColor = colorScheme.surface,
             disabledContainerColor = colorScheme.surface,
-            focusedBorderColor = LabasniPalette.Primary,
-            unfocusedBorderColor = LabasniPalette.Primary.copy(alpha = 0.6f),
+            focusedBorderColor = LabasniPalette.Primary(),
+            unfocusedBorderColor = LabasniPalette.Primary().copy(alpha = 0.6f),
             disabledBorderColor = colorScheme.outline.copy(alpha = 0.3f),
-            cursorColor = LabasniPalette.Primary,
+            cursorColor = LabasniPalette.Primary(),
             focusedTextColor = colorScheme.onSurface,
             unfocusedTextColor = colorScheme.onSurface,
             disabledTextColor = colorScheme.onSurface.copy(alpha = 0.5f),
-            focusedLabelColor = LabasniPalette.Primary,
+            focusedLabelColor = LabasniPalette.Primary(),
             unfocusedLabelColor = colorScheme.onSurface.copy(alpha = 0.7f),
             focusedPlaceholderColor = colorScheme.onSurface.copy(alpha = 0.6f),
             unfocusedPlaceholderColor = colorScheme.onSurface.copy(alpha = 0.6f)
@@ -207,15 +222,15 @@ fun LabasniCheckboxRow(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = CheckboxDefaults.colors(
-                checkedColor = LabasniPalette.Accent,
-                uncheckedColor = LabasniPalette.Accent,
+                checkedColor = LabasniPalette.Accent(),
+                uncheckedColor = LabasniPalette.Accent(),
                 checkmarkColor = Color.White
             )
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = LabasniPalette.Accent
+            color = LabasniPalette.Accent()
         )
     }
 }
@@ -260,11 +275,11 @@ fun GenderChip(
     onClick: () -> Unit
 ) {
     val background by animateColorAsState(
-        targetValue = if (selected) LabasniPalette.Primary else Color.White,
+        targetValue = if (selected) LabasniPalette.Primary() else Color.White,
         label = "chipBackground"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) Color.White else LabasniPalette.Primary.copy(alpha = 0.8f),
+        targetValue = if (selected) Color.White else LabasniPalette.Primary().copy(alpha = 0.8f),
         label = "chipContent"
     )
     Box(
@@ -291,11 +306,11 @@ fun StyleTag(
     onToggle: (() -> Unit)? = null
 ) {
     val background by animateColorAsState(
-        targetValue = if (selected) LabasniPalette.Primary else Color.White,
+        targetValue = if (selected) LabasniPalette.Primary() else Color.White,
         label = "styleBackground"
     )
     val contentColor by animateColorAsState(
-        targetValue = if (selected) Color.White else LabasniPalette.Accent,
+        targetValue = if (selected) Color.White else LabasniPalette.Accent(),
         label = "styleContent"
     )
     Box(
@@ -329,7 +344,7 @@ fun LabasniStatItem(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(LabasniPalette.Secondary.copy(alpha = 0.8f)),
+                .background(LabasniPalette.Secondary().copy(alpha = 0.8f)),
             contentAlignment = Alignment.Center
         ) {
             icon()
@@ -337,12 +352,12 @@ fun LabasniStatItem(
         Text(
             text = value,
             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-            color = LabasniPalette.Accent
+            color = LabasniPalette.Accent()
         )
         Text(
             text = label,
             style = MaterialTheme.typography.bodyMedium,
-            color = LabasniPalette.Neutral
+            color = LabasniPalette.Neutral()
         )
     }
 }
@@ -392,7 +407,7 @@ private fun LabasniTabItem(
     modifier: Modifier = Modifier
 ) {
     val tint by animateColorAsState(
-        targetValue = if (isActive) LabasniPalette.Primary else LabasniPalette.Neutral,
+        targetValue = if (isActive) LabasniPalette.Primary() else LabasniPalette.Neutral(),
         label = "tabTint"
     )
     Column(

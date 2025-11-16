@@ -52,7 +52,8 @@ class ProfileRepository {
                 phoneNumber = phoneNumber?.takeIf { it.isNotBlank() },
                 preferences = preferences?.takeIf { it.isNotEmpty() },
                 password = password?.takeIf { it.isNotBlank() },
-                profilePicture = profilePictureUrl?.takeIf { it.isNotBlank() }
+                // IMPORTANT: ne pas filtrer la chaîne vide pour permettre la suppression côté backend
+                profilePicture = profilePictureUrl
             )
             // Log pour débogage détaillé
             Log.d("ProfileRepository", "=== UPDATE PROFILE REQUEST ===")

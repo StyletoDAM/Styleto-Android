@@ -159,7 +159,7 @@ fun MainScreen(
                         )
                     }
                 }
-                LabasniHomeTab.Avatar -> AvatarTab()
+                LabasniHomeTab.Avatar -> tn.esprit.labasniandroid.ui.screen.mirror.MirrorView()
                 LabasniHomeTab.Store -> {
                     val storeViewModel: StoreViewModel = viewModel()
                     if (authToken.isBlank() || userId.isBlank()) {
@@ -208,12 +208,12 @@ private fun LabasniBottomBar(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(1.dp)
-                .background(PinkGradientTop.copy(alpha = 0.3f))
+                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
         )
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
-            color = Color.White,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = 8.dp
         ) {
             androidx.compose.foundation.layout.Row(
@@ -247,7 +247,7 @@ private fun LabasniBottomBar(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // Bouton central Avatar (plus grand et distinctif - comme iOS)
+                // Bouton central - ouvre le mode miroir (caméra)
                 androidx.compose.material3.IconButton(
                     onClick = { onSelectTab(LabasniHomeTab.Avatar) },
                     modifier = Modifier.offset(y = (-20).dp)
@@ -263,7 +263,7 @@ private fun LabasniBottomBar(
                         Icon(
                             imageVector = Icons.Filled.AutoAwesome,
                             contentDescription = "Avatar",
-                            tint = Color.White,
+                            tint = MaterialTheme.colorScheme.onPrimary,
                             modifier = Modifier.size(28.dp)
                         )
                     }
@@ -304,8 +304,8 @@ private fun TabButton(
     onClick: () -> Unit
 ) {
     val icon = if (selected) iconFilled else iconOutlined
-    val iconColor = if (selected) PinkPrimary else TealAccent.copy(alpha = 0.7f)
-    val textColor = if (selected) PinkPrimary else TealAccent.copy(alpha = 0.7f)
+    val iconColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val textColor = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
     val textWeight = if (selected) androidx.compose.ui.text.font.FontWeight.SemiBold else androidx.compose.ui.text.font.FontWeight.Normal
 
     androidx.compose.material3.TextButton(

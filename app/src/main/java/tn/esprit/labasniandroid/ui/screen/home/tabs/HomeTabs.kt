@@ -6,6 +6,8 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.Manifest
+import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -35,6 +37,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -96,6 +99,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.lifecycle.viewmodel.compose.viewModel
 import tn.esprit.labasniandroid.models.entities.User
 import tn.esprit.labasniandroid.ui.components.LabasniOutlinedField
@@ -107,6 +112,8 @@ import tn.esprit.labasniandroid.ui.theme.PinkPrimary
 import tn.esprit.labasniandroid.ui.theme.PinkSecondary
 import tn.esprit.labasniandroid.ui.theme.TealAccent
 import tn.esprit.labasniandroid.ui.theme.ThemeMode
+import tn.esprit.labasniandroid.ui.theme.ThemeController
+import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.utils.TokenManager
 import androidx.compose.material3.FloatingActionButton
@@ -115,6 +122,8 @@ import java.io.ByteArrayOutputStream
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.core.content.ContextCompat
  
 // region Dressing
 
@@ -459,6 +468,7 @@ private data class SettingsOption(
     val initialValue: Boolean = false,
     val hasChevron: Boolean = true,
     val isThemePicker: Boolean = false,
+    val isStylePicker: Boolean = false,
     val action: SettingsOptionAction? = null
 )
 
@@ -486,6 +496,9 @@ fun SettingsTab(
     val accountDeleted by profileViewModel.accountDeleted.collectAsState()
     val isPhotoUpdating by profileViewModel.isPhotoUpdating.collectAsState()
 
+    // Theme variant (PINKTheme / BLEUTheme)
+    val themeVariant by ThemeController.themeVariant.collectAsState()
+
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? ->
@@ -511,6 +524,42 @@ fun SettingsTab(
             } else {
                 profileViewModel.uploadProfilePhoto(token, imageBytes)
             }
+        }
+    }
+
+    // Options/confirmation pour la photo (comme iOS)
+    var pendingImageBitmap by remember { mutableStateOf<android.graphics.Bitmap?>(null) }
+    var pendingImageBytes by remember { mutableStateOf<ByteArray?>(null) }
+    var showPhotoOptions by remember { mutableStateOf(false) }
+    var showPhotoConfirmation by remember { mutableStateOf(false) }
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bm: android.graphics.Bitmap? ->
+        if (bm == null) return@rememberLauncherForActivityResult
+        scope.launch(Dispatchers.IO) {
+            val baos = java.io.ByteArrayOutputStream()
+            val ok = bm.compress(android.graphics.Bitmap.CompressFormat.JPEG, 85, baos)
+            val bytes = if (ok) baos.toByteArray() else null
+            baos.close()
+            withContext(Dispatchers.Main) {
+                if (bytes == null) {
+                    Toast.makeText(context, "Capture échouée.", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                val token = TokenManager.getToken(context)
+                if (token.isNullOrEmpty()) {
+                    Toast.makeText(context, "Session expirée.", Toast.LENGTH_SHORT).show()
+                    return@withContext
+                }
+                profileViewModel.uploadProfilePhoto(token, bytes)
+            }
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(RequestPermission()) { granted ->
+        if (granted) {
+            takePictureLauncher.launch(null)
+        } else {
+            Toast.makeText(context, "Autorisez la caméra pour prendre une photo.", Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -561,6 +610,7 @@ fun SettingsTab(
 
     val expandedSections = remember { mutableStateListOf<String>() }
     var showThemeDialog by remember { mutableStateOf(false) }
+    var showStyleDialog by remember { mutableStateOf(false) }
     var showLogoutDialog by remember { mutableStateOf(false) }
     var showPasswordDialog by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
@@ -581,7 +631,7 @@ fun SettingsTab(
                 icon = Icons.Rounded.Palette,
                 options = listOf(
                     SettingsOption("Thème", hasChevron = true, isThemePicker = true),
-                    SettingsOption("Style préféré", hasChevron = true),
+                    SettingsOption("Style préféré", hasChevron = true, isStylePicker = true),
                     SettingsOption("Animations", hasToggle = true)
                 )
             ),
@@ -616,7 +666,7 @@ fun SettingsTab(
     androidx.compose.foundation.layout.Column(
         modifier = modifier
             .fillMaxSize()
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -633,7 +683,7 @@ fun SettingsTab(
             text = "Settings",
                 style = MaterialTheme.typography.headlineLarge.copy(
                     fontWeight = FontWeight.Bold,
-                color = PinkPrimary
+                color = MaterialTheme.colorScheme.primary
             )
         )
             
@@ -644,7 +694,7 @@ fun SettingsTab(
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.ExitToApp,
                     contentDescription = "Déconnexion",
-                    tint = PinkPrimary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -661,12 +711,13 @@ fun SettingsTab(
                 modifier = Modifier
                     .size(96.dp)
                     .clip(CircleShape)
-                    .background(PinkPrimary.copy(alpha = 0.15f)),
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+                    .clickable(enabled = !isPhotoUpdating) { showPhotoOptions = true },
                 contentAlignment = Alignment.Center
             ) {
                 when {
                     isPhotoUpdating -> {
-                        CircularProgressIndicator(color = PinkPrimary)
+                        CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                     }
                     !activeUser?.profilePicture.isNullOrBlank() -> {
                         AsyncImage(
@@ -688,14 +739,7 @@ fun SettingsTab(
                     }
                 }
             }
-            TextButton(
-                onClick = {
-                    if (!isPhotoUpdating) {
-                        pickImageLauncher.launch("image/*")
-                    }
-                },
-                enabled = !isPhotoUpdating
-            ) {
+            TextButton(onClick = { if (!isPhotoUpdating) showPhotoOptions = true }, enabled = !isPhotoUpdating) {
                 Text(
                     text = if (isPhotoUpdating) "Chargement..." else "Changer la photo",
                     style = MaterialTheme.typography.bodyMedium.copy(
@@ -733,6 +777,89 @@ fun SettingsTab(
             }
         )
 
+        // Dialog: options photo
+        if (showPhotoOptions) {
+            val hasPhoto = !activeUser?.profilePicture.isNullOrBlank()
+            AlertDialog(
+                onDismissRequest = { showPhotoOptions = false },
+                title = { Text("Changer la photo de profil", style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        TextButton(onClick = {
+                            showPhotoOptions = false
+                            val granted = ContextCompat.checkSelfPermission(
+                                context, Manifest.permission.CAMERA
+                            ) == PackageManager.PERMISSION_GRANTED
+                            if (granted) takePictureLauncher.launch(null)
+                            else cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                        }) {
+                            Text("Prendre une photo", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        }
+                        TextButton(onClick = { showPhotoOptions = false; pickImageLauncher.launch("image/*") }) {
+                            Text("Choisir une photo", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+                        }
+                        if (hasPhoto) {
+                            TextButton(onClick = {
+                                showPhotoOptions = false
+                                val token = TokenManager.getToken(context)
+                                if (token != null) {
+                                    profileViewModel.setProfilePictureFromUrl(token, "")
+                                } else {
+                                    Toast.makeText(context, "Session expirée.", Toast.LENGTH_SHORT).show()
+                                }
+                            }) {
+                                Text("Supprimer la photo", color = Color(0xFFD23F57), fontWeight = FontWeight.SemiBold)
+                            }
+                        }
+                    }
+                },
+                confirmButton = {},
+                dismissButton = { TextButton(onClick = { showPhotoOptions = false }) { Text("Fermer") } }
+            )
+        }
+
+        // Dialog: confirmation upload
+        if (showPhotoConfirmation) {
+            AlertDialog(
+                onDismissRequest = {
+                    showPhotoConfirmation = false
+                    pendingImageBitmap = null
+                    pendingImageBytes = null
+                },
+                title = { Text("Confirmer le changement de photo", style = MaterialTheme.typography.titleLarge) },
+                text = {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                        pendingImageBitmap?.let { bm ->
+                            Image(bitmap = bm.asImageBitmap(), contentDescription = null, modifier = Modifier.size(140.dp).clip(CircleShape), contentScale = ContentScale.Crop)
+                        }
+                        Text("Voulez-vous vraiment changer votre photo de profil ?", textAlign = TextAlign.Center)
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        enabled = !isPhotoUpdating && pendingImageBytes != null,
+                        onClick = {
+                            val token = TokenManager.getToken(context)
+                            val bytes = pendingImageBytes
+                            if (token != null && bytes != null) {
+                                showPhotoConfirmation = false
+                                profileViewModel.uploadProfilePhoto(token, bytes)
+                                pendingImageBitmap = null
+                                pendingImageBytes = null
+                            }
+                        }
+                    ) { Text(if (isPhotoUpdating) "En cours..." else "Confirmer", color = MaterialTheme.colorScheme.primary) }
+                },
+                dismissButton = {
+                    TextButton(onClick = {
+                        showPhotoConfirmation = false
+                        pendingImageBitmap = null
+                        pendingImageBytes = null
+                    }) { Text("Annuler") }
+                }
+            )
+        }
+
         sections.forEach { section ->
             val isExpanded = expandedSections.contains(section.title)
             SettingsSectionCard(
@@ -743,6 +870,7 @@ fun SettingsTab(
                     if (isExpanded) expandedSections.remove(section.title) else expandedSections.add(section.title)
                 },
                 onThemeClick = { showThemeDialog = true },
+                onStyleClick = { showStyleDialog = true },
                 onOptionAction = { action ->
                     when (action) {
                         SettingsOptionAction.CHANGE_PASSWORD -> showPasswordDialog = true
@@ -783,6 +911,17 @@ fun SettingsTab(
         )
     }
 
+    if (showStyleDialog) {
+        StyleThemeDialog(
+            selected = themeVariant,
+            onSelect = { variant ->
+                ThemeController.setThemeVariant(variant)
+                showStyleDialog = false
+            },
+            onDismiss = { showStyleDialog = false }
+        )
+    }
+
     if (showLogoutDialog) {
         AlertDialog(
             onDismissRequest = { showLogoutDialog = false },
@@ -791,14 +930,14 @@ fun SettingsTab(
                     text = "Confirmer la déconnexion",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        color = PinkPrimary
+                        color = MaterialTheme.colorScheme.primary
                     )
                 )
             },
             text = {
                 Text(
                     text = "Voulez-vous vraiment vous déconnecter de votre compte Labasni ?",
-                    color = TealAccent
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
             confirmButton = {
@@ -806,12 +945,12 @@ fun SettingsTab(
                     showLogoutDialog = false
                     onLogout()
                 }) {
-                    Text("Déconnexion", color = PinkPrimary, fontWeight = FontWeight.SemiBold)
+                    Text("Déconnexion", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showLogoutDialog = false }) {
-                    Text("Annuler", color = TealAccent, fontWeight = FontWeight.SemiBold)
+                    Text("Annuler", color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f), fontWeight = FontWeight.SemiBold)
                 }
             }
         )
@@ -941,7 +1080,7 @@ private fun EditProfileCard(
     }
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
@@ -1146,13 +1285,13 @@ private fun ChipTag(label: String) {
     Box(
         modifier = Modifier
             .clip(RoundedCornerShape(50))
-            .background(PinkGradientTop.copy(alpha = 0.4f))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(horizontal = 14.dp, vertical = 8.dp)
     ) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall.copy(
-                color = TealAccent,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.SemiBold
             )
         )
@@ -1166,10 +1305,11 @@ private fun SettingsSectionCard(
     themeMode: ThemeMode,
     onToggleExpand: () -> Unit,
     onThemeClick: () -> Unit,
+    onStyleClick: () -> Unit,
     onOptionAction: (SettingsOptionAction) -> Unit
 ) {
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 12.dp),
         shape = RoundedCornerShape(20.dp),
         modifier = Modifier.fillMaxWidth()
@@ -1189,29 +1329,29 @@ private fun SettingsSectionCard(
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(PinkPrimary.copy(alpha = 0.15f)),
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = section.icon,
                         contentDescription = null,
-                        tint = PinkPrimary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                 }
-                    Text(
+                Text(
                         text = section.title,
-                    style = MaterialTheme.typography.titleMedium.copy(
+                        style = MaterialTheme.typography.titleMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 18.sp,
-                        color = TealAccent
+                        color = MaterialTheme.colorScheme.onSurface
                     ),
                     modifier = Modifier.weight(1f)
                 )
-                    Icon(
+                Icon(
                         imageVector = if (isExpanded) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
                         contentDescription = null,
-                    tint = TealAccent.copy(alpha = 0.7f),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                     modifier = Modifier.size(14.dp)
                     )
                 }
@@ -1224,12 +1364,13 @@ private fun SettingsSectionCard(
                         option = option,
                         themeMode = themeMode,
                         onThemeClick = onThemeClick,
+                        onStyleClick = onStyleClick,
                         onOptionAction = onOptionAction
                     )
                         if (index < section.options.size - 1) {
                             androidx.compose.material3.Divider(
                                 modifier = Modifier.padding(start = 80.dp),
-                                color = TealAccent.copy(alpha = 0.2f)
+                                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
                     )
                         }
                     }
@@ -1244,6 +1385,7 @@ private fun SettingsOptionRow(
     option: SettingsOption,
     themeMode: ThemeMode,
     onThemeClick: () -> Unit,
+    onStyleClick: () -> Unit,
     onOptionAction: (SettingsOptionAction) -> Unit
 ) {
     var isChecked by rememberSaveable(option.label) { mutableStateOf(option.initialValue) }
@@ -1254,6 +1396,7 @@ private fun SettingsOptionRow(
             .clickable {
                 when {
                     option.isThemePicker -> onThemeClick()
+                    option.isStylePicker -> onStyleClick()
                     option.action != null -> onOptionAction(option.action)
                 }
             }
@@ -1278,7 +1421,7 @@ private fun SettingsOptionRow(
                 else -> Icons.Rounded.Settings
             },
             contentDescription = null,
-            tint = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) PinkPrimary else TealAccent.copy(alpha = 0.7f),
+            tint = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
             modifier = Modifier.size(18.dp)
         )
         
@@ -1287,7 +1430,7 @@ private fun SettingsOptionRow(
             style = MaterialTheme.typography.bodyLarge.copy(
                 fontWeight = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) FontWeight.SemiBold else FontWeight.Normal,
                 fontSize = 16.sp,
-                color = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) PinkPrimary else TealAccent
+                color = if (option.action == SettingsOptionAction.DELETE_ACCOUNT) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
             ),
             modifier = Modifier.weight(1f)
         )
@@ -1300,8 +1443,8 @@ private fun SettingsOptionRow(
                     checked = isChecked,
                     onCheckedChange = { isChecked = it },
                     colors = androidx.compose.material3.SwitchDefaults.colors(
-                        checkedThumbColor = Color.White,
-                        checkedTrackColor = PinkPrimary
+                        checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                        checkedTrackColor = MaterialTheme.colorScheme.primary
                     )
                 )
             }
@@ -1315,7 +1458,27 @@ private fun SettingsOptionRow(
                     text = label,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.Medium,
-                        color = TealAccent.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                        fontSize = 15.sp
+                    )
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = TealAccent.copy(alpha = 0.7f),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+            option.isStylePicker -> {
+                val label = when (ThemeController.themeVariant.value) {
+                    ThemeVariant.PINK -> "PINKTheme"
+                    ThemeVariant.BLUE -> "BLEUTheme"
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
                         fontSize = 15.sp
                     )
                 )
@@ -1359,7 +1522,7 @@ private fun ChangePasswordDialog(
                 text = "Modifier le mot de passe",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = PinkPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -1468,7 +1631,7 @@ private fun ThemePickerDialog(
                 text = "Choisir un thème",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
-                    color = PinkPrimary
+                    color = MaterialTheme.colorScheme.primary
                 )
             )
         },
@@ -1485,7 +1648,7 @@ private fun ThemePickerDialog(
                             .fillMaxWidth()
                             .clip(RoundedCornerShape(16.dp))
                             .background(
-                                if (mode == selected) PinkGradientTop.copy(alpha = 0.35f) else Color.Transparent
+                                if (mode == selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
                             )
                             .padding(horizontal = 12.dp, vertical = 10.dp),
                         verticalAlignment = Alignment.CenterVertically,
@@ -1494,7 +1657,7 @@ private fun ThemePickerDialog(
                         Text(
                             text = label,
                             style = MaterialTheme.typography.bodyLarge.copy(
-                                color = TealAccent,
+                                color = MaterialTheme.colorScheme.primary,
                                 fontWeight = FontWeight.SemiBold
                             )
                         )
@@ -1502,7 +1665,7 @@ private fun ThemePickerDialog(
                             Text(
                                 text = "✓",
                                 style = MaterialTheme.typography.bodyLarge.copy(
-                                    color = PinkPrimary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     fontWeight = FontWeight.Bold
                                 )
                             )
@@ -1518,7 +1681,78 @@ private fun ThemePickerDialog(
         confirmButton = {},
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text(text = "Fermer", color = PinkPrimary, fontWeight = FontWeight.SemiBold)
+                Text(text = "Fermer", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun StyleThemeDialog(
+    selected: ThemeVariant,
+    onSelect: (ThemeVariant) -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Style préféré",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                listOf(
+                    ThemeVariant.PINK to "PINKTheme",
+                    ThemeVariant.BLUE to "BLEUTheme"
+                ).forEach { (variant, label) ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(
+                                if (variant == selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else Color.Transparent
+                            )
+                            .padding(horizontal = 12.dp, vertical = 10.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                        if (variant == selected) {
+                            Text(
+                                text = "✓",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        } else {
+                            TextButton(onClick = { onSelect(variant) }) {
+                                Text(text = "Choisir")
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(
+                    text = "Fermer",
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold
+                )
             }
         }
     )

@@ -15,7 +15,8 @@ class MainActivity : ComponentActivity() {
         ThemeController.initialize(applicationContext)
         setContent {
             val themeMode by ThemeController.themeMode.collectAsState()
-            LabasniTheme(themeMode = themeMode) {
+            val themeVariant by ThemeController.themeVariant.collectAsState()
+            LabasniTheme(themeMode = themeMode, variant = themeVariant) {
                 Surface {
                     LabasniApp()
                 }

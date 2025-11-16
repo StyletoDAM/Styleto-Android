@@ -7,12 +7,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,6 +25,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
@@ -72,10 +75,11 @@ import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
-import tn.esprit.labasniandroid.ui.theme.PinkSecondary
-import tn.esprit.labasniandroid.ui.theme.TealAccent
+import tn.esprit.labasniandroid.ui.theme.ThemeController
+import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.TokenManager
 import tn.esprit.labasniandroid.utils.findActivity
+import androidx.compose.runtime.collectAsState
 
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -197,7 +201,10 @@ fun DressingTab(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(PinkGradientTop.copy(alpha = 0.18f))
+                    .background(
+                        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.background
+                        else MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f)
+                    )
             )
 
             Column(
@@ -216,7 +223,7 @@ fun DressingTab(
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 32.sp,
-                            color = PinkPrimary
+                            color = PinkPrimary // Toujours en rose
                         )
                     )
                     IconButton(
@@ -224,12 +231,12 @@ fun DressingTab(
                         modifier = Modifier
                             .size(52.dp)
                             .clip(CircleShape)
-                            .background(PinkPrimary)
+                            .background(MaterialTheme.colorScheme.primary)
                     ) {
-                        Icon(
+                Icon(
                             imageVector = Icons.Rounded.Add,
                             contentDescription = "Ajouter un vêtement",
-                            tint = Color.White
+                    tint = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
@@ -243,10 +250,15 @@ fun DressingTab(
                         Icon(
                             imageVector = Icons.Rounded.Search,
                             contentDescription = null,
-                            tint = PinkSecondary
+                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                         )
                     },
-                    singleLine = true
+                    singleLine = true,
+                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = MaterialTheme.colorScheme.primary,
+                        unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                        cursorColor = MaterialTheme.colorScheme.primary
+                    )
                 )
 
                 if (availableTypes.size > 1) {
@@ -278,7 +290,7 @@ fun DressingTab(
                             text = "Aucun vêtement pour le moment.",
                             textAlign = TextAlign.Center,
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                color = TealAccent.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                             )
                         )
                     }
@@ -321,7 +333,7 @@ fun DressingTab(
                         .background(Color.Black.copy(alpha = 0.08f)),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = PinkPrimary)
+                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
                 }
             }
         }
@@ -334,14 +346,17 @@ private fun DressingCategoryChip(
     selected: Boolean,
     onClick: () -> Unit
 ) {
-    val background = if (selected) PinkPrimary else PinkGradientTop.copy(alpha = 0.45f)
-    val textColor = if (selected) Color.White else TealAccent
+    val isDark = isSystemInDarkTheme()
+    // Toujours utiliser PinkPrimary pour les chips de filtrage
+    val background = if (selected) PinkPrimary else if (!isDark) MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant
+    val textColor = if (selected) Color.White else if (!isDark) PinkPrimary else MaterialTheme.colorScheme.onSurfaceVariant
 
-    TextButton(
-        onClick = onClick,
-        shape = RoundedCornerShape(50.dp),
-        colors = ButtonDefaults.textButtonColors(contentColor = textColor),
-        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp, vertical = 10.dp)
+    androidx.compose.foundation.layout.Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(50.dp))
+            .background(background)
+            .clickable(onClick = onClick)
+            .padding(horizontal = 18.dp, vertical = 10.dp)
     ) {
         Text(
             text = label,
@@ -361,13 +376,23 @@ private fun DressingCard(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
-    val backgroundColor = remember(cloth.colorHex) { parseColorToCompose(cloth.colorHex) }
+    val themeVariant by ThemeController.themeVariant.collectAsState()
+    
+    // En BLEUTheme, utiliser #4AA3A2 pour les blocs/articles
+    // En PINKTheme, utiliser la couleur originale du vêtement
+    val backgroundColor = remember(cloth.colorHex, themeVariant) {
+        if (themeVariant == ThemeVariant.BLUE) {
+            Color(0xFF4AA3A2) // Couleur bleue pour les articles en BLEUTheme
+        } else {
+            parseColorToCompose(cloth.colorHex) // Couleur originale en PINKTheme
+        }
+    }
     val contentColor = remember(backgroundColor) { contentColorForBackground(backgroundColor) }
     val emoji = remember(cloth.type) { emojiForType(cloth.type) }
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column {
@@ -378,28 +403,29 @@ private fun DressingCard(
                     .background(backgroundColor),
                 contentAlignment = Alignment.Center
             ) {
-                // Bouton de suppression en haut à droite
+                // Bouton de suppression en haut à droite (style puce ronde)
                 IconButton(
                     onClick = { if (!isDeleting) onDelete() },
                     enabled = !isDeleting,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.95f))
+                        .size(30.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
                 ) {
                     if (isDeleting) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(18.dp),
-                            color = PinkPrimary,
+                            color = MaterialTheme.colorScheme.primary,
                             strokeWidth = 2.dp
                         )
                     } else {
                         Icon(
                             imageVector = Icons.Rounded.RemoveCircle,
                             contentDescription = "Supprimer",
-                            tint = PinkPrimary
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
@@ -424,11 +450,12 @@ private fun DressingCard(
                     )
                 }
             }
+            Spacer(modifier = Modifier.height(8.dp))
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(backgroundColor)
-                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                    .padding(horizontal = 12.dp, vertical = 16.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(

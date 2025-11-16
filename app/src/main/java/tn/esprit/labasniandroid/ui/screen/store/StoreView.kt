@@ -133,7 +133,7 @@ fun StoreTab(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(AquaSoft.copy(alpha = 0.18f))
+                .background(MaterialTheme.colorScheme.background)
                 .padding(paddingValues)
                 .padding(horizontal = 16.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
@@ -248,7 +248,7 @@ private fun StoreSearchField(
 ) {
     Card(
         shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
     ) {
         Row(
@@ -299,7 +299,7 @@ private fun ProductCard(
     val context = androidx.compose.ui.platform.LocalContext.current
 
     Card(
-        colors = CardDefaults.cardColors(containerColor = Color.White),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
     ) {
         Column {
@@ -318,7 +318,7 @@ private fun ProductCard(
                         .padding(8.dp)
                         .size(32.dp)
                         .clip(RoundedCornerShape(16.dp))
-                        .background(Color.White.copy(alpha = 0.95f))
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.95f))
                         .zIndex(1f)
                 ) {
                     if (isDeleting) {
@@ -372,7 +372,7 @@ private fun ProductCard(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
+                    .background(MaterialTheme.colorScheme.surface)
                     .padding(14.dp),
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
@@ -413,6 +413,7 @@ private fun AddStoreItemDialog(
     var selectedCloth by remember { mutableStateOf<Cloth?>(null) }
     var priceInput by rememberSaveable { mutableStateOf("") }
     var formError by remember { mutableStateOf<String?>(null) }
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     AlertDialog(
         onDismissRequest = { if (!isSubmitting) onDismiss() },
@@ -462,13 +463,32 @@ private fun AddStoreItemDialog(
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text(
-                                    text = selectionLabel,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        color = if (selectedCloth == null) TealAccent.copy(alpha = 0.6f) else TealAccent,
-                                        fontWeight = FontWeight.Medium
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    if (selectedCloth?.imageUrl?.isNotBlank() == true) {
+                                        AsyncImage(
+                                            model = ImageRequest.Builder(context)
+                                                .data(selectedCloth!!.imageUrl)
+                                                .crossfade(true)
+                                                .build(),
+                                            contentDescription = selectedCloth!!.name,
+                                            modifier = Modifier
+                                                .size(36.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                        )
+                                    }
+                                    Text(
+                                        text = selectionLabel,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = if (selectedCloth == null) TealAccent.copy(alpha = 0.6f) else TealAccent,
+                                            fontWeight = FontWeight.Medium
+                                        ),
+                                        modifier = Modifier.weight(1f)
                                     )
-                                )
+                                }
                                 Icon(
                                     imageVector = Icons.Rounded.KeyboardArrowDown,
                                     contentDescription = null,
@@ -483,7 +503,26 @@ private fun AddStoreItemDialog(
                         ) {
                             clothes.forEach { cloth ->
                                 DropdownMenuItem(
-                                    text = { Text(cloth.name) },
+                                    text = {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            if (cloth.imageUrl.isNotBlank()) {
+                                                AsyncImage(
+                                                    model = ImageRequest.Builder(context)
+                                                        .data(cloth.imageUrl)
+                                                        .crossfade(true)
+                                                        .build(),
+                                                    contentDescription = cloth.name,
+                                                    modifier = Modifier
+                                                        .size(36.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                )
+                                            }
+                                            Text(cloth.name)
+                                        }
+                                    },
                                     onClick = {
                                         selectedCloth = cloth
                                         expanded = false

@@ -44,6 +44,8 @@ class AuthService(
             if (userId.isNotEmpty()) {
                 TokenManager.saveUserId(context, userId)
             }
+            // Sauvegarder le genre pour le thème (male/female)
+            TokenManager.saveGender(context, response.user.gender.value)
         }
 
         return result
@@ -113,6 +115,7 @@ class AuthService(
             if (userId.isNotEmpty()) {
                 TokenManager.saveUserId(context, userId)
             }
+            TokenManager.saveGender(context, response.user.gender.value)
         }
 
         return result
@@ -147,6 +150,7 @@ class AuthService(
             if (userId.isNotEmpty()) {
                 TokenManager.saveUserId(context, userId)
             }
+            TokenManager.saveGender(context, response.user.gender.value)
         }
 
         return result

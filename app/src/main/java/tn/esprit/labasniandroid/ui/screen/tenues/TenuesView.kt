@@ -153,7 +153,7 @@ fun TenuesTab(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.background)
                 .padding(innerPadding)
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(18.dp)
@@ -405,8 +405,8 @@ private fun GradientOutfitCard(
             .background(
                 Brush.linearGradient(
                     listOf(
-                        PinkGradientTop.copy(alpha = 0.25f),
-                        Color.White.copy(alpha = 0.4f)
+                        PinkGradientTop.copy(alpha = 0.20f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.30f)
                     )
                 )
             )
@@ -416,7 +416,7 @@ private fun GradientOutfitCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(20.dp))
-                .background(Color.White)
+                .background(MaterialTheme.colorScheme.surface)
                 .padding(horizontal = 16.dp, vertical = 14.dp)
         ) {
             Row(

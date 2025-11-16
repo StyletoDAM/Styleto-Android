@@ -1,6 +1,7 @@
 package tn.esprit.labasniandroid.ui.screen.profile
 
 import android.content.Context
+import android.Manifest
 import android.graphics.Bitmap
 import android.graphics.ImageDecoder
 import android.net.Uri
@@ -91,6 +92,9 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
+import androidx.core.content.ContextCompat
+import android.content.pm.PackageManager
 import tn.esprit.labasniandroid.R
 import tn.esprit.labasniandroid.models.entities.CloudinaryImage
 import tn.esprit.labasniandroid.models.entities.User
@@ -108,6 +112,8 @@ import tn.esprit.labasniandroid.ui.theme.AquaSoft
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
 import tn.esprit.labasniandroid.ui.theme.TealAccent
+import tn.esprit.labasniandroid.ui.theme.ThemeController
+import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.TokenManager
 import java.io.ByteArrayOutputStream
 
@@ -154,6 +160,45 @@ fun ProfileView(
     var isCloudinaryLoading by remember { mutableStateOf(false) }
     var cloudinaryError by remember { mutableStateOf<String?>(null) }
     val cloudinaryService = remember { CloudinaryGalleryService() }
+    var forceInitials by remember { mutableStateOf(false) }
+
+    // Prendre une photo (aperçu) puis confirmer l'upload
+    val takePictureLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap: Bitmap? ->
+        if (bitmap == null) return@rememberLauncherForActivityResult
+        // Préparer l'aperçu et demander confirmation avant upload
+        scope.launch(Dispatchers.IO) {
+            val baos = ByteArrayOutputStream()
+            val ok = bitmap.compress(Bitmap.CompressFormat.JPEG, 85, baos)
+            val bytes = if (ok) baos.toByteArray() else null
+            baos.close()
+            withContext(Dispatchers.Main) {
+                if (bytes == null) {
+                    snackbarHostState.showSnackbar(
+                        message = "Impossible de capturer la photo.",
+                        duration = SnackbarDuration.Short
+                    )
+                } else {
+                    pendingImageBitmap = bitmap
+                    pendingImageBytes = bytes
+                    showPhotoConfirmation = true
+                }
+            }
+        }
+    }
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(RequestPermission()) { granted ->
+        if (granted) {
+            takePictureLauncher.launch(null)
+        } else {
+            scope.launch {
+                snackbarHostState.showSnackbar(
+                    message = "Autorisez la caméra pour prendre une photo.",
+                    duration = SnackbarDuration.Short
+                )
+            }
+        }
+    }
 
     val pickImageLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -183,10 +228,8 @@ fun ProfileView(
 
     fun openPhotoOptions() {
         if (isPhotoUpdating) return
-        if (!isCloudinaryConfigured()) {
-            pickImageLauncher.launch("image/*")
-            return
-        }
+        // Ouvre toujours la boîte d’options (plus clair pour l’utilisateur).
+        // Les actions (appareil / cloudinary / supprimer) s’adaptent selon la config.
         showPhotoOptions = true
     }
 
@@ -476,8 +519,8 @@ fun ProfileView(
                             modifier = Modifier
                                 .size(120.dp)
                                 .clip(CircleShape)
-                .background(PinkPrimary.copy(alpha = 0.12f))
-                .clickable(enabled = !isPhotoUpdating) { openPhotoOptions() },
+                                .background(PinkPrimary.copy(alpha = 0.12f))
+                                .clickable(enabled = !isPhotoUpdating) { openPhotoOptions() },
                             contentAlignment = Alignment.Center
                         ) {
                             when {
@@ -489,13 +532,22 @@ fun ProfileView(
                                         contentScale = ContentScale.Crop
                                     )
                                 }
+                                forceInitials -> {
+                                    Text(
+                                        text = initials(user?.fullName ?: "User"),
+                                        style = MaterialTheme.typography.headlineMedium.copy(
+                                            color = PinkPrimary,
+                                            fontWeight = FontWeight.ExtraBold
+                                        )
+                                    )
+                                }
                                 !profilePicture.isNullOrBlank() -> {
-                                AsyncImage(
-                                    model = profilePicture,
-                                    contentDescription = "Photo de profil",
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentScale = ContentScale.Crop
-                                )
+                                    AsyncImage(
+                                        model = profilePicture,
+                                        contentDescription = "Photo de profil",
+                                        modifier = Modifier.fillMaxSize(),
+                                        contentScale = ContentScale.Crop
+                                    )
                                 }
                                 else -> {
                                     Text(
@@ -716,6 +768,36 @@ fun ProfileView(
                                     }
                                 )
                             }
+                        }
+                    }
+
+                    // Style préféré (thème) : PINKTheme / BLEUTheme
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Text(
+                            text = "Style préféré (thème)",
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                            color = TealAccent
+                        )
+                        val currentVariant by ThemeController.themeVariant.collectAsState()
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            LabasniPillButton(
+                                text = "PINKTheme",
+                                onClick = { ThemeController.setThemeVariant(ThemeVariant.PINK) },
+                                modifier = Modifier.weight(1f),
+                                background = if (currentVariant == ThemeVariant.PINK) PinkPrimary else Color.White,
+                                contentColor = if (currentVariant == ThemeVariant.PINK) Color.White else PinkPrimary
+                            )
+                            LabasniPillButton(
+                                text = "BLEUTheme",
+                                onClick = { ThemeController.setThemeVariant(ThemeVariant.BLUE) },
+                                modifier = Modifier.weight(1f),
+                                background = if (currentVariant == ThemeVariant.BLUE) AquaSoft else Color.White,
+                                contentColor = if (currentVariant == ThemeVariant.BLUE) Color.White else TealAccent
+                            )
                         }
                     }
 
@@ -1037,13 +1119,30 @@ fun ProfileView(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         LabasniPillButton(
+                            text = "Prendre une photo",
+                            onClick = {
+                                showPhotoOptions = false
+                                val granted = ContextCompat.checkSelfPermission(
+                                    context, Manifest.permission.CAMERA
+                                ) == PackageManager.PERMISSION_GRANTED
+                                if (granted) {
+                                    takePictureLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(Manifest.permission.CAMERA)
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            background = PinkPrimary,
+                            contentColor = Color.White
+                        )
+                        LabasniPillButton(
                             text = "Depuis l'appareil",
                             onClick = {
                                 showPhotoOptions = false
                                 pickImageLauncher.launch("image/*")
                             },
                             modifier = Modifier.fillMaxWidth(),
-                            background = PinkPrimary,
+                            background = PinkPrimary.copy(alpha = 0.85f),
                             contentColor = Color.White
                         )
                         if (cloudinaryEnabled) {
@@ -1056,6 +1155,48 @@ fun ProfileView(
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 background = AquaSoft,
+                                contentColor = Color.White
+                            )
+                        }
+                        // Option supprimer si une photo existe
+                        val hasPhoto = (localProfileBitmap != null) || !(user?.profilePicture.isNullOrBlank())
+                        if (hasPhoto) {
+                            LabasniPillButton(
+                                text = "Supprimer la photo",
+                                onClick = {
+                                    showPhotoOptions = false
+                                    // Boîte de dialogue de confirmation
+                                    scope.launch {
+                                        val confirm = snackbarHostState.showSnackbar(
+                                            message = "Supprimer la photo de profil ?",
+                                            actionLabel = "Oui",
+                                            withDismissAction = true,
+                                            duration = SnackbarDuration.Short
+                                        )
+                                        if (confirm == androidx.compose.material3.SnackbarResult.ActionPerformed) {
+                                            val token = TokenManager.getToken(context)
+                                            if (!token.isNullOrEmpty()) {
+                                                // Optimiste: afficher immédiatement les initiales
+                                                localProfileBitmap = null
+                                                forceInitials = true
+                                                // Appel backend pour vider l’URL (si supporté)
+                                                viewModel.setProfilePictureFromUrl(token, "")
+                                                viewModel.loadProfile(token)
+                                                snackbarHostState.showSnackbar(
+                                                    message = "Photo supprimée.",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            } else {
+                                                snackbarHostState.showSnackbar(
+                                                    message = "Session expirée.",
+                                                    duration = SnackbarDuration.Short
+                                                )
+                                            }
+                                        }
+                                    }
+                                },
+                                modifier = Modifier.fillMaxWidth(),
+                                background = Color(0xFFD23F57),
                                 contentColor = Color.White
                             )
                         }
