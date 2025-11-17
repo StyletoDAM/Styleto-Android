@@ -1,5 +1,6 @@
 package tn.esprit.labasniandroid.api
 
+import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
 import retrofit2.Response
 import retrofit2.http.Body
@@ -7,11 +8,17 @@ import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.DELETE
+import retrofit2.http.PATCH
 import retrofit2.http.Path
 
 interface StoreApi {
     @GET("/store/my")
     suspend fun getStoreItems(
+        @Header("Authorization") token: String
+    ): Response<List<StoreItemResponse>>
+
+    @GET("/store")
+    suspend fun getAllStoreItems(
         @Header("Authorization") token: String
     ): Response<List<StoreItemResponse>>
 
@@ -26,12 +33,19 @@ interface StoreApi {
         @Header("Authorization") token: String,
         @Path("id") id: String
     ): Response<Unit>
+
+    @PATCH("/store/{id}")
+    suspend fun updateStoreItem(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body request: UpdateStoreItemRequest
+    ): Response<StoreItemResponse>
 }
 
 data class StoreItemResponse(
     @SerializedName("_id") val id: String,
     @SerializedName("userId") val user: Any?,
-    @SerializedName("clothesId") val clothes: ClothResponse?,
+    @SerializedName("clothesId") val clothesId: JsonElement?, // Accepte string ou objet
     @SerializedName("price") val price: Double,
     @SerializedName("status") val status: String?,
     @SerializedName("createdAt") val createdAt: String?,
@@ -41,5 +55,10 @@ data class StoreItemResponse(
 data class CreateStoreItemRequest(
     @SerializedName("clothesId") val clothesId: String,
     @SerializedName("price") val price: Double
+)
+
+data class UpdateStoreItemRequest(
+    @SerializedName("price") val price: Double? = null,
+    @SerializedName("status") val status: String? = null
 )
 

@@ -2,13 +2,12 @@ package tn.esprit.labasniandroid.ui.screen.dressing
 
 import android.Manifest
 import android.content.pm.PackageManager
-import android.graphics.Color as AndroidColor
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,27 +17,30 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.RemoveCircle
-import androidx.compose.material.icons.rounded.Search
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -60,7 +62,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -73,15 +74,14 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Cloth
-import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
-import tn.esprit.labasniandroid.ui.theme.PinkPrimary
+import tn.esprit.labasniandroid.models.entities.User
+import tn.esprit.labasniandroid.ui.theme.CategoryColors
+import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.TokenManager
 import tn.esprit.labasniandroid.utils.findActivity
-import androidx.compose.runtime.collectAsState
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun DressingTab(
     isLoading: Boolean,
@@ -91,6 +91,19 @@ fun DressingTab(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+
+    // Récupérer isMale depuis ThemeVariant (BLUE = MALE, PINK = FEMALE) - se met à jour en temps réel
+    val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
+    
+    // Couleurs dynamiques basées sur le genre
+    val themePrimary = DynamicThemeColors.primary(isMale)
+    val themeSecondary = DynamicThemeColors.secondary(isMale)
+    val themeSoftPink = DynamicThemeColors.softPink(isMale)
+    val themeAqua = DynamicThemeColors.aqua(isMale)
+    val themeTeal = DynamicThemeColors.teal(isMale)
+    val themeBackground = DynamicThemeColors.background()
+    val themeCard = DynamicThemeColors.card()
+    val themeText = DynamicThemeColors.text(isMale)
 
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
@@ -168,156 +181,193 @@ fun DressingTab(
     }
 
     var searchQuery by rememberSaveable { mutableStateOf("") }
-    var selectedType by rememberSaveable { mutableStateOf("Tous") }
+    var selectedCategory by rememberSaveable { mutableStateOf("All") }
 
-    val availableTypes = remember(clothes) {
-        listOf("Tous") + clothes.map { it.type }
-            .filter { it.isNotBlank() }
-            .distinctBy { it.lowercase() }
-            .sortedBy { it.lowercase() }
-    }
+    // Catégories comme iOS
+    val categories = listOf("All", "Tshirt", "Pants", "Dress", "Shoes", "Accessory")
 
-    val filteredClothes by remember(clothes, searchQuery, selectedType) {
+    val filteredClothes by remember(clothes, searchQuery, selectedCategory) {
         derivedStateOf {
             clothes.filter { cloth ->
-                val matchesType = selectedType == "Tous" || cloth.type.equals(selectedType, ignoreCase = true)
-                val matchesQuery = searchQuery.isBlank() ||
-                    cloth.name.contains(searchQuery, ignoreCase = true) ||
-                    cloth.type.contains(searchQuery, ignoreCase = true)
-                matchesType && matchesQuery
+                // Filtre par catégorie
+                val matchesCategory = selectedCategory == "All" || 
+                    cloth.type.equals(selectedCategory, ignoreCase = true)
+                
+                // Filtre par recherche textuelle (comme iOS)
+                val matchesQuery = if (searchQuery.isBlank()) {
+                    true
+                } else {
+                    val query = searchQuery.lowercase()
+                    val categoryMatch = cloth.type.lowercase().contains(query)
+                    val nameMatch = cloth.name.lowercase().contains(query)
+                    categoryMatch || nameMatch
+                }
+                
+                matchesCategory && matchesQuery
             }
         }
     }
 
+    var showDeleteDialog by remember { mutableStateOf<Cloth?>(null) }
+
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        snackbarHost = { SnackbarHost(snackbarHostState) }
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        containerColor = Color.Transparent
     ) { innerPadding ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(themeBackground)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        if (isSystemInDarkTheme()) MaterialTheme.colorScheme.background
-                        else MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f)
-                    )
-            )
-
+            // Scrollable Content (comme iOS)
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 16.dp, vertical = 18.dp),
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 12.dp)
+                    .padding(bottom = 80.dp), // Espace pour le bouton flottant
                 verticalArrangement = Arrangement.spacedBy(18.dp)
             ) {
+                // Header (comme iOS)
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        text = "Mon Dressing",
+                        text = "My Dressing",
                         style = MaterialTheme.typography.headlineLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 32.sp,
-                            color = PinkPrimary // Toujours en rose
+                            fontSize = 36.sp,
+                            color = themePrimary
                         )
                     )
-                    IconButton(
-                        onClick = { openCamera() },
+                    Spacer(modifier = Modifier)
+                }
+
+                // Search & Filter (comme iOS)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Barre de recherche
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        modifier = Modifier.weight(1f),
+                        placeholder = { Text("Rechercher...") },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Filled.Search,
+                                contentDescription = null,
+                                tint = themeSecondary
+                            )
+                        },
+                        singleLine = true,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = themeSecondary.copy(alpha = 0.6f),
+                            unfocusedBorderColor = themeSecondary.copy(alpha = 0.6f),
+                            cursorColor = themeSecondary,
+                            focusedContainerColor = themeSoftPink.copy(alpha = 0.25f),
+                            unfocusedContainerColor = themeSoftPink.copy(alpha = 0.25f)
+                        ),
+                        shape = RoundedCornerShape(18.dp)
+                    )
+
+                    // Bouton filtre circulaire (comme iOS)
+                    Box(
                         modifier = Modifier
-                            .size(52.dp)
+                            .size(48.dp)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary)
+                            .background(themeAqua)
+                            .shadow(
+                                elevation = 6.dp,
+                                shape = CircleShape,
+                                spotColor = Color.Black.copy(alpha = 0.1f)
+                            )
+                            .clickable { /* TODO: Ouvrir filtre */ },
+                        contentAlignment = Alignment.Center
                     ) {
                 Icon(
-                            imageVector = Icons.Rounded.Add,
-                            contentDescription = "Ajouter un vêtement",
-                    tint = MaterialTheme.colorScheme.onPrimary
+                            imageVector = Icons.Filled.FilterList,
+                            contentDescription = "Filtre",
+                            tint = Color.White,
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 }
 
-                OutlinedTextField(
-                    value = searchQuery,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier.fillMaxWidth(),
-                    placeholder = { Text("Rechercher un vêtement...") },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Rounded.Search,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                // Category Chips (comme iOS)
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    categories.forEach { category ->
+                        CategoryChip(
+                            label = category,
+                            selected = selectedCategory == category,
+                            themePrimary = themePrimary,
+                            themeSoftPink = themeSoftPink,
+                            themeTeal = themeTeal,
+                            onClick = {
+                                selectedCategory = category
+                                searchQuery = "" // Réinitialiser la recherche comme iOS
+                            }
                         )
-                    },
-                    singleLine = true,
-                    colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = MaterialTheme.colorScheme.primary,
-                        unfocusedBorderColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
-                        cursorColor = MaterialTheme.colorScheme.primary
-                    )
-                )
-
-                if (availableTypes.size > 1) {
-                    val scrollState = rememberScrollState()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .horizontalScroll(scrollState),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        availableTypes.forEach { type ->
-                            DressingCategoryChip(
-                                label = type,
-                                selected = selectedType.equals(type, ignoreCase = true),
-                                onClick = { selectedType = type }
-                            )
-                        }
                     }
                 }
 
-                if (filteredClothes.isEmpty() && !(loading || isLoading)) {
+                // Clothes Grid (comme iOS)
+                if (loading || isLoading) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .height(200.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = themePrimary)
+                    }
+                } else if (filteredClothes.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(200.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "Aucun vêtement pour le moment.",
-                            textAlign = TextAlign.Center,
-                            style = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                            )
+                            text = "No clothes found",
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center
                         )
                     }
                 } else {
                     LazyVerticalGrid(
-                        columns = GridCells.Adaptive(minSize = 160.dp),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .weight(1f),
+                        columns = GridCells.Fixed(2),
+                        modifier = Modifier.fillMaxWidth(),
                         verticalArrangement = Arrangement.spacedBy(16.dp),
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        contentPadding = PaddingValues(bottom = 32.dp)
+                        contentPadding = PaddingValues(bottom = 22.dp)
                     ) {
                         items(
                             items = filteredClothes,
                             key = { it.id }
                         ) { cloth ->
-                            DressingCard(
+                            ClothingCard(
                                 cloth = cloth,
                                 isDeleting = deletingIds.contains(cloth.id),
+                                themePrimary = themePrimary,
+                                themeCard = themeCard,
+                                themeTeal = themeTeal,
                                 onDelete = {
-                                    val token = authToken
-                                    when {
-                                        token.isNullOrBlank() ->
-                                            scope.launch { snackbarHostState.showSnackbar("Session expirée. Veuillez vous reconnecter.") }
-                                        else -> viewModel.deleteCloth(token, cloth.id)
-                                    }
+                                    showDeleteDialog = cloth
                                 }
                             )
                         }
@@ -325,38 +375,70 @@ fun DressingTab(
                 }
             }
 
-            val showLoading = isLoading || loading
-            if (showLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.08f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = MaterialTheme.colorScheme.primary)
-                }
+            // Bouton flottant EN BAS À DROITE (comme iOS)
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(end = 20.dp, bottom = 20.dp),
+                contentAlignment = Alignment.BottomEnd
+            ) {
+                FloatingAddButton(
+                    onClick = { openCamera() },
+                    themePrimary = themePrimary
+                )
             }
         }
     }
+
+    // Dialog de confirmation de suppression (comme iOS)
+    showDeleteDialog?.let { cloth ->
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = null },
+            title = { Text("Delete this item?") },
+            text = { Text("This action cannot be undone.") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        val token = authToken
+                        if (token.isNullOrBlank()) {
+                            scope.launch { snackbarHostState.showSnackbar("Session expirée.") }
+                        } else {
+                            viewModel.deleteCloth(token, cloth.id)
+                            showDeleteDialog = null
+                        }
+                    }
+                ) {
+                    Text("Delete", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = null }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
+// Category Chip (comme iOS)
 @Composable
-private fun DressingCategoryChip(
+private fun CategoryChip(
     label: String,
     selected: Boolean,
+    themePrimary: Color,
+    themeSoftPink: Color,
+    themeTeal: Color,
     onClick: () -> Unit
 ) {
-    val isDark = isSystemInDarkTheme()
-    // Toujours utiliser PinkPrimary pour les chips de filtrage
-    val background = if (selected) PinkPrimary else if (!isDark) MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f) else MaterialTheme.colorScheme.surfaceVariant
-    val textColor = if (selected) Color.White else if (!isDark) PinkPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+    val backgroundColor = if (selected) themePrimary else themeSoftPink.copy(alpha = 0.6f)
+    val textColor = if (selected) Color.White else themeTeal
 
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = Modifier
-            .clip(RoundedCornerShape(50.dp))
-            .background(background)
+            .clip(RoundedCornerShape(50.dp)) // Capsule
+            .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 18.dp, vertical = 10.dp)
+            .padding(horizontal = 16.dp, vertical = 10.dp)
     ) {
         Text(
             text = label,
@@ -369,153 +451,149 @@ private fun DressingCategoryChip(
     }
 }
 
+// Clothing Card (comme iOS)
 @Composable
-private fun DressingCard(
+private fun ClothingCard(
     cloth: Cloth,
     isDeleting: Boolean,
+    themePrimary: Color,
+    themeCard: Color,
+    themeTeal: Color,
     onDelete: () -> Unit
 ) {
-    val context = LocalContext.current
-    val themeVariant by ThemeController.themeVariant.collectAsState()
-    
-    // En BLEUTheme, utiliser #4AA3A2 pour les blocs/articles
-    // En PINKTheme, utiliser la couleur originale du vêtement
-    val backgroundColor = remember(cloth.colorHex, themeVariant) {
-        if (themeVariant == ThemeVariant.BLUE) {
-            Color(0xFF4AA3A2) // Couleur bleue pour les articles en BLEUTheme
-        } else {
-            parseColorToCompose(cloth.colorHex) // Couleur originale en PINKTheme
-        }
-    }
-    val contentColor = remember(backgroundColor) { contentColorForBackground(backgroundColor) }
-    val emoji = remember(cloth.type) { emojiForType(cloth.type) }
+    val categoryColor = CategoryColors.colorForCategory(cloth.type)
 
     Card(
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        colors = CardDefaults.cardColors(containerColor = themeCard),
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = Color.Black.copy(alpha = 0.08f)
+            )
     ) {
         Column {
+            // Image (comme iOS - 140dp de hauteur)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp) // léger espace autour de la photo
-                    .background(backgroundColor),
+                    .height(140.dp)
+                    .background(categoryColor.copy(alpha = 0.3f)),
                 contentAlignment = Alignment.Center
             ) {
-                // Bouton de suppression en haut à droite (style puce ronde)
-                IconButton(
-                    onClick = { if (!isDeleting) onDelete() },
-                    enabled = !isDeleting,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(30.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
-                ) {
-                    if (isDeleting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(18.dp),
-                            color = MaterialTheme.colorScheme.primary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Rounded.RemoveCircle,
-                            contentDescription = "Supprimer",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
                 if (cloth.imageUrl.isNotBlank()) {
                     AsyncImage(
-                        model = ImageRequest.Builder(context)
+                        model = ImageRequest.Builder(LocalContext.current)
                             .data(cloth.imageUrl)
                             .crossfade(true)
                             .build(),
                         contentDescription = cloth.name,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(120.dp) // image plus petite, centrée dans le cadre
+                            .height(140.dp)
                             .clip(RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp)),
-                        contentScale = ContentScale.Fit // affiche tout le vêtement sans dépasser
+                        contentScale = ContentScale.Crop
                     )
                 } else {
-                    Text(
-                        text = emoji,
-                        fontSize = 46.sp
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(24.dp),
+                        color = Color.White
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Column(
+
+            // Infos + Trash (comme iOS)
+            Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(backgroundColor)
-                    .padding(horizontal = 12.dp, vertical = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
+                    .background(themeCard)
+                    .padding(14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = cloth.name,
+                        text = cloth.type.replaceFirstChar { it.uppercaseChar() },
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = contentColor
+                            fontWeight = FontWeight.SemiBold,
+                            fontSize = 18.sp,
+                            color = themeTeal
+                        ),
+                        maxLines = 1
                     )
-                )
+                    // Note: iOS affiche aussi la saison si disponible, mais Cloth n'a pas ce champ
+                    // On peut afficher le nom si nécessaire
+                    if (cloth.name.isNotBlank() && cloth.name != cloth.type) {
                 Text(
-                    text = cloth.type,
+                            text = cloth.name,
                     style = MaterialTheme.typography.bodyMedium.copy(
-                        fontWeight = FontWeight.Medium,
-                        color = contentColor.copy(alpha = 0.85f)
-                    )
+                                fontSize = 13.sp,
+                                color = themeTeal.copy(alpha = 0.7f)
+                            ),
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                // Trash Button (comme iOS - 32dp)
+                IconButton(
+                    onClick = { if (!isDeleting) onDelete() },
+                    enabled = !isDeleting,
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(themePrimary.copy(alpha = 0.15f))
+                ) {
+                    if (isDeleting) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(16.dp),
+                            color = themePrimary,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Filled.Delete,
+                            contentDescription = "Supprimer",
+                            tint = themePrimary,
+                            modifier = Modifier.size(16.dp)
                 )
             }
         }
     }
 }
-
-private fun emojiForType(type: String): String {
-    return when (type.lowercase()) {
-        "t-shirt", "tshirt", "haut" -> "👕"
-        "chemise" -> "👔"
-        "pull", "sweat" -> "🧥"
-        "pantalon" -> "👖"
-        "jean" -> "👖"
-        "short" -> "🩳"
-        "robe" -> "👗"
-        "chaussures", "chaussure", "baskets" -> "👟"
-        "accessoire", "accessoires" -> "👜"
-        else -> "✨"
     }
 }
 
-private fun parseColorToCompose(colorHex: String): Color {
-    return try {
-        val normalized = normalizeColorForInput(colorHex)
-        Color(AndroidColor.parseColor(normalized))
-    } catch (_: Exception) {
-        Color(0xFFF6D4E3)
+// Floating Add Button (comme iOS)
+@Composable
+private fun FloatingAddButton(
+    onClick: () -> Unit,
+    themePrimary: Color
+) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier
+            .size(60.dp)
+            .clip(CircleShape)
+            .background(themePrimary)
+            .shadow(
+                elevation = 12.dp,
+                shape = CircleShape,
+                spotColor = Color.Black.copy(alpha = 0.2f)
+            )
+    ) {
+        Icon(
+            imageVector = Icons.Filled.Add,
+            contentDescription = "Ajouter un vêtement",
+            tint = Color.White,
+            modifier = Modifier.size(24.dp)
+        )
     }
 }
-
-private fun contentColorForBackground(background: Color): Color {
-    return if (background.luminance() > 0.5f) Color(0xFF24313C) else Color.White
-}
-
-private fun normalizeColorForInput(input: String): String {
-    val fallback = "#F6D4E3"
-    if (input.isBlank()) return fallback
-    val candidate = input.trim()
-    val withoutHash = candidate.removePrefix("#")
-    val hex = when (withoutHash.length) {
-        3 -> withoutHash.flatMap { listOf(it, it) }.joinToString(separator = "")
-        6 -> withoutHash
-        8 -> withoutHash.substring(2)
-        else -> return fallback
-    }
-    return "#${hex.uppercase()}"
-}
-

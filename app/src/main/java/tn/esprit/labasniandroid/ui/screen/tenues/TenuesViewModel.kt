@@ -40,11 +40,7 @@ class TenuesViewModel(
     private val _deletingIds = MutableStateFlow<Set<String>>(emptySet())
     val deletingIds: StateFlow<Set<String>> = _deletingIds.asStateFlow()
 
-    private val _suggestedOutfit = MutableStateFlow<Outfit?>(null)
-    val suggestedOutfit: StateFlow<Outfit?> = _suggestedOutfit.asStateFlow()
-
-    private val _isGeneratingSuggestion = MutableStateFlow(false)
-    val isGeneratingSuggestion: StateFlow<Boolean> = _isGeneratingSuggestion.asStateFlow()
+    // Variables de génération supprimées - pas de génération d'outfits
 
     private var initialized = false
     private var cachedToken: String? = null
@@ -132,106 +128,7 @@ class TenuesViewModel(
         _successMessage.value = null
     }
 
-    fun generateRandomSuggestion(token: String, force: Boolean = false) {
-        if (_isGeneratingSuggestion.value) return
-        if (!force && _suggestedOutfit.value != null) return
-
-        val available = _availableClothes.value
-        if (available.isEmpty()) {
-            if (!_isLoadingClothes.value) {
-                loadAvailableClothes(token)
-            }
-            _errorMessage.value = "Ajoutez des vêtements dans votre dressing pour générer une suggestion."
-            return
-        }
-
-        if (available.size < 3) {
-            _errorMessage.value = "Ajoutez au moins 3 vêtements différents pour une suggestion."
-            return
-        }
-
-        viewModelScope.launch {
-            _isGeneratingSuggestion.value = true
-
-            val clothesByType = available.groupBy { it.type.lowercase() }
-            val selectedClothes = mutableListOf<Cloth>()
-
-            // Sélectionner jusqu'à 3 types distincts
-            val randomTypes = clothesByType.keys.shuffled()
-            for (type in randomTypes) {
-                val choices = clothesByType[type]?.shuffled().orEmpty()
-                if (choices.isNotEmpty()) {
-                    selectedClothes.add(choices.first())
-                }
-                if (selectedClothes.size >= 3) break
-            }
-
-            // Compléter si nécessaire tout en évitant les doublons
-            val alreadySelectedIds = selectedClothes.map { it.id }.toMutableSet()
-            if (selectedClothes.size < 3) {
-                val remaining = available.filter { it.id !in alreadySelectedIds }.shuffled()
-                for (cloth in remaining) {
-                    selectedClothes.add(cloth)
-                    alreadySelectedIds.add(cloth.id)
-                    if (selectedClothes.size >= 3) break
-                }
-            }
-
-            // Toujours limiter à 5 pièces max
-            val finalSelection = selectedClothes.take(5)
-
-            val suggestion = Outfit(
-                id = "local_suggestion",
-                clothes = finalSelection,
-                eventType = "Suggestion",
-                weatherType = null,
-                status = "pending",
-                createdAt = null,
-                updatedAt = null,
-                isFavorite = false
-            )
-
-            _suggestedOutfit.value = suggestion
-            _isGeneratingSuggestion.value = false
-        }
-    }
-
-    fun approveSuggestion(token: String) {
-        val userId = cachedUserId ?: return
-        val suggestion = _suggestedOutfit.value ?: return
-        if (_isSubmitting.value) return
-
-        viewModelScope.launch {
-            _isSubmitting.value = true
-
-            tenuesRepository.createOutfit(
-                token = token,
-                userId = userId,
-                clothesIds = suggestion.clothes.map { it.id },
-                eventType = suggestion.eventType
-            ).fold(
-                onSuccess = {
-                    _successMessage.value = "Suggestion approuvée !"
-                    clearSuggestion()
-                    loadData(token)
-                },
-                onFailure = { error -> _errorMessage.value = error.message }
-            )
-
-            _isSubmitting.value = false
-        }
-    }
-
-    fun rejectSuggestion(token: String) {
-        if (_suggestedOutfit.value == null) return
-        _successMessage.value = "Suggestion rejetée."
-        _suggestedOutfit.value = null
-        generateRandomSuggestion(token, force = true)
-    }
-
-    fun clearSuggestion() {
-        _suggestedOutfit.value = null
-    }
+    // Fonctions de génération supprimées - pas de génération d'outfits
 
     val favorites: List<Outfit>
         get() = _outfits.value.filter { it.isFavorite }

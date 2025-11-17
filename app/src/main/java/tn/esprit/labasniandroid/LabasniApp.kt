@@ -20,6 +20,7 @@ sealed class LabasniDestination(val route: String) {
     data object Home : LabasniDestination("home")
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun LabasniApp() {
     val navController = rememberNavController()

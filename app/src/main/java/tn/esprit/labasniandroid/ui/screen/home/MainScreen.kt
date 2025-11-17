@@ -36,6 +36,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.ExperimentalComposeApi
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,7 +55,7 @@ import tn.esprit.labasniandroid.ui.screen.dressing.DressingTab
 import tn.esprit.labasniandroid.ui.screen.tenues.FavoriteTab
 import tn.esprit.labasniandroid.ui.screen.tenues.TenuesTab
 import tn.esprit.labasniandroid.ui.screen.tenues.TenuesViewModel
-import tn.esprit.labasniandroid.ui.screen.home.tabs.SettingsTab
+import tn.esprit.labasniandroid.ui.screen.settings.SettingsView
 import tn.esprit.labasniandroid.ui.screen.store.StoreTab
 import tn.esprit.labasniandroid.ui.screen.store.StoreViewModel
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
@@ -68,6 +69,7 @@ enum class LabasniHomeTab {
     Dressing, Tenues, Avatar, Store, Settings
 }
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
 fun MainScreen(
     onLogout: () -> Unit,
@@ -95,6 +97,15 @@ fun MainScreen(
             authToken = token
             userId = id
             viewModel.loadProfile(token)
+            // Synchroniser le thème avec le genre sauvegardé (comme iOS)
+            ThemeController.syncThemeVariantWithSavedGender(context)
+        }
+    }
+    
+    // Synchroniser automatiquement le thème quand l'utilisateur est chargé (comme iOS)
+    LaunchedEffect(user) {
+        user?.let {
+            ThemeController.syncThemeVariantWithGender(context, it.gender)
         }
     }
 
@@ -177,13 +188,19 @@ fun MainScreen(
                         )
                     }
                 }
-                LabasniHomeTab.Settings -> SettingsTab(
+                LabasniHomeTab.Settings -> SettingsView(
                     user = user,
                     themeMode = themeMode,
                     onThemeChange = ThemeController::setThemeMode,
                     onLogout = {
                         TokenManager.clearToken(context)
                         onLogout()
+                    },
+                    onUserUpdated = { updatedUser ->
+                        // Sauvegarder le genre dans TokenManager pour la synchronisation future
+                        TokenManager.saveGender(context, updatedUser.gender.value)
+                        // Synchroniser automatiquement le thème avec le genre mis à jour (comme iOS)
+                        ThemeController.syncThemeVariantWithGender(context, updatedUser.gender)
                     }
                 )
             }

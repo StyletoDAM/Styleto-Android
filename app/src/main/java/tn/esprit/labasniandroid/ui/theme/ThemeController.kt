@@ -50,4 +50,43 @@ object ThemeController {
         _themeVariant.value = variant
         preferences.edit().putString(KEY_THEME_VARIANT, variant.name).apply()
     }
+    
+    /**
+     * Synchronise automatiquement le themeVariant avec le genre de l'utilisateur
+     * (comme iOS: Male = BLUE, Female = PINK)
+     * Cette fonction doit être appelée lors du chargement du profil utilisateur
+     * et lors de la mise à jour du genre dans les settings
+     */
+    fun syncThemeVariantWithGender(context: Context, gender: tn.esprit.labasniandroid.models.entities.User.Gender) {
+        if (!::preferences.isInitialized) {
+            initialize(context)
+        }
+        val variant = when (gender) {
+            tn.esprit.labasniandroid.models.entities.User.Gender.MALE -> ThemeVariant.BLUE
+            tn.esprit.labasniandroid.models.entities.User.Gender.FEMALE -> ThemeVariant.PINK
+        }
+        // Ne mettre à jour que si différent pour éviter les recompositions inutiles
+        if (_themeVariant.value != variant) {
+            setThemeVariant(variant)
+        }
+    }
+    
+    /**
+     * Synchronise automatiquement le themeVariant avec le genre depuis TokenManager
+     * (utilisé lors de l'initialisation si l'utilisateur est déjà connecté)
+     */
+    fun syncThemeVariantWithSavedGender(context: Context) {
+        if (!::preferences.isInitialized) {
+            initialize(context)
+        }
+        val savedGender = tn.esprit.labasniandroid.utils.TokenManager.getGender(context)
+        if (savedGender != null) {
+            val gender = when (savedGender.lowercase()) {
+                "male" -> tn.esprit.labasniandroid.models.entities.User.Gender.MALE
+                "female" -> tn.esprit.labasniandroid.models.entities.User.Gender.FEMALE
+                else -> null
+            }
+            gender?.let { syncThemeVariantWithGender(context, it) }
+        }
+    }
 }

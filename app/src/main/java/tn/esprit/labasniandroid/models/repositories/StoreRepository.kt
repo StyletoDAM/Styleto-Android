@@ -33,6 +33,25 @@ class StoreRepository(
         }
     }
 
+    suspend fun fetchAllStoreItems(token: String): Result<List<StoreItem>> {
+        return try {
+            val response = storeApi.getAllStoreItems("Bearer $token")
+            if (response.isSuccessful && response.body() != null) {
+                val items = response.body()!!.map { it.toEntity() }
+                Result.success(items)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de récupérer la boutique."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
     suspend fun addStoreItem(
         token: String,
         clothesId: String,
@@ -79,12 +98,68 @@ class StoreRepository(
             Result.failure(NetworkError.Transport(exception))
         }
     }
+
+    suspend fun updateStorePrice(token: String, storeItemId: String, price: Double): Result<StoreItem> {
+        return try {
+            val request = tn.esprit.labasniandroid.api.UpdateStoreItemRequest(price = price)
+            val response = storeApi.updateStoreItem("Bearer $token", storeItemId, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toEntity())
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    404 -> "Article introuvable."
+                    else -> errorBody ?: "Mise à jour impossible pour le moment."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    suspend fun markAsSold(token: String, storeItemId: String): Result<StoreItem> {
+        return try {
+            val request = tn.esprit.labasniandroid.api.UpdateStoreItemRequest(status = "sold")
+            val response = storeApi.updateStoreItem("Bearer $token", storeItemId, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toEntity())
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    404 -> "Article introuvable."
+                    else -> errorBody ?: "Mise à jour impossible pour le moment."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
 }
 
 private fun StoreItemResponse.toEntity(): StoreItem {
+    // Gérer le cas où clothesId peut être une string (ID) ou un objet (ClothResponse)
+    val cloth = when {
+        clothesId == null || clothesId.isJsonNull -> null
+        clothesId.isJsonPrimitive -> null // C'est juste l'ID, pas l'objet complet
+        clothesId.isJsonObject -> {
+            try {
+                // Essayer de parser comme ClothResponse
+                val clothResponse = com.google.gson.Gson().fromJson(clothesId, ClothResponse::class.java)
+                clothResponse.toClothEntity()
+            } catch (e: Exception) {
+                null
+            }
+        }
+        else -> null
+    }
+    
     return StoreItem(
         id = id,
-        cloth = clothes?.toClothEntity(),
+        cloth = cloth,
         price = price,
         status = status,
         createdAt = createdAt,

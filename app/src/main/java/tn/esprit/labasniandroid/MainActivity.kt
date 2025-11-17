@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import tn.esprit.labasniandroid.ui.theme.LabasniTheme
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 
+@androidx.compose.material3.ExperimentalMaterial3Api
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

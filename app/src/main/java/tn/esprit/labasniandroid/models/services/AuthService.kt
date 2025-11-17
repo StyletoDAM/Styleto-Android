@@ -46,6 +46,11 @@ class AuthService(
             }
             // Sauvegarder le genre pour le thème (male/female)
             TokenManager.saveGender(context, response.user.gender.value)
+            // Synchroniser automatiquement le thème avec le genre (comme iOS)
+            tn.esprit.labasniandroid.ui.theme.ThemeController.syncThemeVariantWithGender(
+                context,
+                response.user.gender
+            )
         }
 
         return result
@@ -116,6 +121,11 @@ class AuthService(
                 TokenManager.saveUserId(context, userId)
             }
             TokenManager.saveGender(context, response.user.gender.value)
+            // Synchroniser automatiquement le thème avec le genre (comme iOS)
+            tn.esprit.labasniandroid.ui.theme.ThemeController.syncThemeVariantWithGender(
+                context,
+                response.user.gender
+            )
         }
 
         return result
@@ -151,6 +161,11 @@ class AuthService(
                 TokenManager.saveUserId(context, userId)
             }
             TokenManager.saveGender(context, response.user.gender.value)
+            // Synchroniser automatiquement le thème avec le genre (comme iOS)
+            tn.esprit.labasniandroid.ui.theme.ThemeController.syncThemeVariantWithGender(
+                context,
+                response.user.gender
+            )
         }
 
         return result
