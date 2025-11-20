@@ -28,10 +28,12 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -91,7 +93,9 @@ fun StoreTab(
     token: String,
     userId: String,
     modifier: Modifier = Modifier,
-    viewModel: StoreViewModel = viewModel()
+    viewModel: StoreViewModel = viewModel(),
+    onNavigateToCart: () -> Unit = {},
+    onNavigateToMessaging: () -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -164,16 +168,70 @@ fun StoreTab(
                     .padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
-                // Header (comme iOS) - Dark pink, bold, large
-                Text(
-                    text = "Store",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 36.sp,
-                        color = themePrimary
-                    ),
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
+                // Header avec boutons (comme iOS) - Dark pink, bold, large
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Store",
+                        style = MaterialTheme.typography.headlineLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 36.sp,
+                            color = themePrimary
+                        ),
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    )
+                    
+                    // Boutons Messages et Panier (comme iOS)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Bouton Messages
+                        IconButton(
+                            onClick = { onNavigateToMessaging() },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(themePrimary)
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = CircleShape,
+                                    spotColor = Color.Black.copy(alpha = 0.2f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Message,
+                                contentDescription = "Messages",
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                        
+                        // Bouton Panier
+                        IconButton(
+                            onClick = { onNavigateToCart() },
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(themePrimary)
+                                .shadow(
+                                    elevation = 8.dp,
+                                    shape = CircleShape,
+                                    spotColor = Color.Black.copy(alpha = 0.2f)
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.ShoppingCart,
+                                contentDescription = "Panier",
+                                tint = Color.White,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
 
                 // Search Bar (comme iOS)
                 StoreSearchBar(

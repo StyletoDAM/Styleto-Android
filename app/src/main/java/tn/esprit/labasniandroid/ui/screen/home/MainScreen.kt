@@ -58,6 +58,8 @@ import tn.esprit.labasniandroid.ui.screen.tenues.TenuesViewModel
 import tn.esprit.labasniandroid.ui.screen.settings.SettingsView
 import tn.esprit.labasniandroid.ui.screen.store.StoreTab
 import tn.esprit.labasniandroid.ui.screen.store.StoreViewModel
+import tn.esprit.labasniandroid.ui.screen.store.cart.CartView
+import tn.esprit.labasniandroid.ui.screen.store.messaging.MessagingView
 import tn.esprit.labasniandroid.ui.theme.PinkGradientTop
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
 import tn.esprit.labasniandroid.ui.theme.TealAccent
@@ -82,6 +84,8 @@ fun MainScreen(
     var showFavorites by rememberSaveable { mutableStateOf(false) }
     var authToken by rememberSaveable { mutableStateOf("") }
     var userId by rememberSaveable { mutableStateOf("") }
+    var showCart by rememberSaveable { mutableStateOf(false) }
+    var showMessaging by rememberSaveable { mutableStateOf(false) }
 
     val user by viewModel.user.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
@@ -181,11 +185,25 @@ fun MainScreen(
                             CircularProgressIndicator(color = PinkPrimary)
                         }
                     } else {
-                        StoreTab(
-                            token = authToken,
-                            userId = userId,
-                            viewModel = storeViewModel
-                        )
+                        when {
+                            showCart -> CartView(
+                                token = authToken,
+                                userId = userId,
+                                onNavigateBack = { showCart = false }
+                            )
+                            showMessaging -> MessagingView(
+                                token = authToken,
+                                userId = userId,
+                                onNavigateBack = { showMessaging = false }
+                            )
+                            else -> StoreTab(
+                                token = authToken,
+                                userId = userId,
+                                viewModel = storeViewModel,
+                                onNavigateToCart = { showCart = true },
+                                onNavigateToMessaging = { showMessaging = true }
+                            )
+                        }
                     }
                 }
                 LabasniHomeTab.Settings -> SettingsView(
