@@ -2,12 +2,15 @@ package tn.esprit.labasniandroid.api
 
 import com.google.gson.JsonElement
 import com.google.gson.annotations.SerializedName
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
+import retrofit2.http.Multipart
 import retrofit2.http.POST
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface ClothesApi {
@@ -27,6 +30,12 @@ interface ClothesApi {
         @Header("Authorization") token: String,
         @Path("id") id: String
     ): Response<Unit>
+
+    @Multipart
+    @POST("/detect")
+    suspend fun detectCloth(
+        @Part photo: MultipartBody.Part
+    ): Response<DetectionApiResponse>
 }
 
 data class ClothResponse(
@@ -41,10 +50,17 @@ data class ClothResponse(
 )
 
 data class CreateClothRequest(
-    @SerializedName("userId") val userId: String,
     @SerializedName("imageURL") val imageUrl: String,
     @SerializedName("category") val category: String,
-    @SerializedName("color") val color: String?,
-    @SerializedName("style") val style: String?
+    @SerializedName("color") val color: String,
+    @SerializedName("style") val style: String,
+    @SerializedName("season") val season: String
+)
+
+data class DetectionApiResponse(
+    @SerializedName("success") val success: Boolean,
+    @SerializedName("image_url") val imageUrl: String,
+    @SerializedName("public_id") val publicId: String?,
+    @SerializedName("detection_result") val detectionResult: String
 )
 

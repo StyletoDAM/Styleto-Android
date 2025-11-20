@@ -2,6 +2,9 @@ package tn.esprit.labasniandroid.ui.screen.dressing
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
@@ -69,10 +72,14 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import androidx.core.content.FileProvider
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.Dispatchers
+import java.io.File
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.User
 import tn.esprit.labasniandroid.ui.theme.CategoryColors
@@ -104,15 +111,145 @@ fun DressingTab(
     val themeBackground = DynamicThemeColors.background()
     val themeCard = DynamicThemeColors.card()
     val themeText = DynamicThemeColors.text(isMale)
+    val themeSecondaryText = DynamicThemeColors.secondaryText()
 
+    // États pour la détection
+    var showImageSourceDialog by remember { mutableStateOf(false) }
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
+    var showLoadingScreen by remember { mutableStateOf(false) }
+    var showDetectionResult by remember { mutableStateOf(false) }
+    var detectedImageURL by remember { mutableStateOf<String?>(null) }
+    
+    val isDetecting by viewModel.isDetecting.collectAsState()
+    val detectionResult by viewModel.detectionResult.collectAsState()
+    val isSaving by viewModel.isSaving.collectAsState()
+
+    // Helper pour créer un URI via FileProvider
+    fun createImageUri(): Uri? {
+        return try {
+            val imageFile = File(context.cacheDir, "temp_photo_${System.currentTimeMillis()}.jpg")
+            FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                imageFile
+            )
+        } catch (e: Exception) {
+            scope.launch {
+                snackbarHostState.showSnackbar("Erreur lors de la création du fichier: ${e.message}")
+            }
+            null
+        }
+    }
+
+    // Launcher pour la caméra (TakePicture avec URI)
     val takePictureLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.TakePicturePreview()
-    ) { bitmap ->
-        scope.launch {
-            if (bitmap != null) {
-                snackbarHostState.showSnackbar("Photo capturée (non enregistrée).")
-            } else {
-                snackbarHostState.showSnackbar("Capture annulée.")
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success && selectedImageUri != null) {
+            scope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(selectedImageUri!!)
+                    if (inputStream != null) {
+                        // Options pour décoder l'image avec une taille limitée
+                        val options = BitmapFactory.Options().apply {
+                            inJustDecodeBounds = false
+                            inSampleSize = 1 // Pas de downsampling initial
+                        }
+                        val bitmap = BitmapFactory.decodeStream(inputStream, null, options)
+                        inputStream.close()
+                        if (bitmap != null && !bitmap.isRecycled && bitmap.width > 0 && bitmap.height > 0) {
+                            // Créer une copie pour éviter le recyclage
+                            val config = bitmap.config ?: Bitmap.Config.ARGB_8888
+                            val copy = bitmap.copy(config, false)
+                            bitmap.recycle()
+                            capturedBitmap = copy
+                            showImageSourceDialog = false
+                            showLoadingScreen = true
+                            // Démarrer la détection
+                            viewModel.detectCloth(copy)
+                        } else {
+                            snackbarHostState.showSnackbar("Impossible de décoder l'image ou image invalide")
+                        }
+                    } else {
+                        snackbarHostState.showSnackbar("Impossible d'ouvrir le fichier image")
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    snackbarHostState.showSnackbar("Erreur: ${e.localizedMessage ?: e.message}")
+                }
+            }
+        } else if (!success) {
+            scope.launch {
+                snackbarHostState.showSnackbar("Capture annulée")
+            }
+        }
+    }
+
+    // Launcher pour la galerie
+    val pickImageLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        if (uri != null) {
+            scope.launch {
+                try {
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    if (inputStream != null) {
+                        // D'abord, lire les dimensions sans décoder complètement
+                        val options = BitmapFactory.Options().apply {
+                            inJustDecodeBounds = true
+                        }
+                        BitmapFactory.decodeStream(inputStream, null, options)
+                        inputStream.close()
+                        
+                        // Vérifier que l'image est valide
+                        if (options.outWidth <= 0 || options.outHeight <= 0) {
+                            snackbarHostState.showSnackbar("Image invalide ou corrompue")
+                            return@launch
+                        }
+                        
+                        // Calculer le sample size pour éviter OutOfMemoryError
+                        var sampleSize = 1
+                        val maxDimension = 2048
+                        if (options.outWidth > maxDimension || options.outHeight > maxDimension) {
+                            val widthRatio = options.outWidth / maxDimension
+                            val heightRatio = options.outHeight / maxDimension
+                            sampleSize = maxOf(widthRatio, heightRatio)
+                        }
+                        
+                        // Maintenant décoder avec le bon sample size
+                        val decodeOptions = BitmapFactory.Options().apply {
+                            inJustDecodeBounds = false
+                            inSampleSize = sampleSize
+                            inPreferredConfig = Bitmap.Config.ARGB_8888
+                        }
+                        
+                        val inputStream2 = context.contentResolver.openInputStream(uri)
+                        if (inputStream2 != null) {
+                            val bitmap = BitmapFactory.decodeStream(inputStream2, null, decodeOptions)
+                            inputStream2.close()
+                            
+                            if (bitmap != null && !bitmap.isRecycled && bitmap.width > 0 && bitmap.height > 0) {
+                                val config = bitmap.config ?: Bitmap.Config.ARGB_8888
+                                val copy = bitmap.copy(config, false)
+                                bitmap.recycle()
+                                capturedBitmap = copy
+                                showImageSourceDialog = false
+                                showLoadingScreen = true
+                                viewModel.detectCloth(copy)
+                            } else {
+                                snackbarHostState.showSnackbar("Impossible de décoder l'image")
+                            }
+                        } else {
+                            snackbarHostState.showSnackbar("Impossible de rouvrir le fichier image")
+                        }
+                    } else {
+                        snackbarHostState.showSnackbar("Impossible d'ouvrir le fichier image")
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    snackbarHostState.showSnackbar("Erreur: ${e.localizedMessage ?: e.message}")
+                }
             }
         }
     }
@@ -122,7 +259,11 @@ fun DressingTab(
     ) { granted ->
         scope.launch {
             if (granted) {
-                takePictureLauncher.launch(null)
+                val photoUri = createImageUri()
+                if (photoUri != null) {
+                    selectedImageUri = photoUri
+                    takePictureLauncher.launch(photoUri)
+                }
             } else {
                 snackbarHostState.showSnackbar("Autorisez la caméra pour prendre une photo.")
             }
@@ -133,7 +274,11 @@ fun DressingTab(
         val permission = Manifest.permission.CAMERA
         when {
             ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED -> {
-                takePictureLauncher.launch(null)
+                val photoUri = createImageUri()
+                if (photoUri != null) {
+                    selectedImageUri = photoUri
+                    takePictureLauncher.launch(photoUri)
+                }
             }
             context.findActivity()?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } == true -> {
                 scope.launch {
@@ -146,6 +291,10 @@ fun DressingTab(
         }
     }
 
+    fun openGallery() {
+        pickImageLauncher.launch("image/*")
+    }
+
     val clothes by viewModel.clothes.collectAsState()
     val loading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -154,6 +303,84 @@ fun DressingTab(
 
     var authToken by remember { mutableStateOf<String?>(null) }
     var userId by remember { mutableStateOf<String?>(null) }
+
+    // Observer le résultat de détection (comme iOS)
+    LaunchedEffect(detectionResult) {
+        if (detectionResult != null && showLoadingScreen) {
+            try {
+                val (result, imageUrl) = detectionResult!!
+                if (imageUrl.isNotBlank()) {
+                    detectedImageURL = imageUrl
+                    showLoadingScreen = false
+                    
+                    // Nettoyer le bitmap immédiatement (on utilise l'URL Cloudinary)
+                    capturedBitmap?.let {
+                        if (!it.isRecycled) {
+                            it.recycle()
+                        }
+                    }
+                    capturedBitmap = null
+                    
+                    // Délai comme iOS (DispatchQueue.main.asyncAfter) pour éviter les conflits de state
+                    kotlinx.coroutines.delay(150)
+                    showDetectionResult = true
+                } else {
+                    scope.launch {
+                        snackbarHostState.showSnackbar("Erreur: URL d'image manquante dans la réponse")
+                    }
+                    showLoadingScreen = false
+                    // Nettoyer en cas d'erreur aussi
+                    capturedBitmap?.let {
+                        if (!it.isRecycled) {
+                            it.recycle()
+                        }
+                    }
+                    capturedBitmap = null
+                    viewModel.clearDetectionResult()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                scope.launch {
+                    snackbarHostState.showSnackbar("Erreur lors du traitement: ${e.localizedMessage ?: e.message}")
+                }
+                showLoadingScreen = false
+                // Nettoyer en cas d'exception aussi
+                capturedBitmap?.let {
+                    if (!it.isRecycled) {
+                        it.recycle()
+                    }
+                }
+                capturedBitmap = null
+                viewModel.clearDetectionResult()
+            }
+        }
+    }
+
+    // Observer les erreurs de détection
+    LaunchedEffect(isDetecting, errorMessage) {
+        if (!isDetecting && showLoadingScreen && detectionResult == null) {
+            // Erreur lors de la détection
+            showLoadingScreen = false
+            // Nettoyer le bitmap en cas d'erreur
+            capturedBitmap?.let {
+                if (!it.isRecycled) {
+                    it.recycle()
+                }
+            }
+            capturedBitmap = null
+            // L'erreur sera affichée via errorMessage
+        }
+    }
+
+    // Observer le refresh event
+    LaunchedEffect(Unit) {
+        viewModel.refreshEvent.collect {
+            val token = authToken
+            if (token != null) {
+                viewModel.loadClothes(token)
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         authToken = TokenManager.getToken(context)
@@ -383,8 +610,77 @@ fun DressingTab(
                 contentAlignment = Alignment.BottomEnd
             ) {
                 FloatingAddButton(
-                    onClick = { openCamera() },
+                    onClick = { showImageSourceDialog = true },
                     themePrimary = themePrimary
+                )
+            }
+        }
+
+        // Dialog de choix caméra/galerie
+        if (showImageSourceDialog) {
+            ImageSourceDialog(
+                onDismiss = { showImageSourceDialog = false },
+                onCameraClick = { openCamera() },
+                onGalleryClick = { openGallery() },
+                themePrimary = themePrimary,
+                themeCard = themeCard,
+                themeText = themeText
+            )
+        }
+
+        // Écran de chargement plein écran
+        if (showLoadingScreen) {
+            AIAnalysisLoadingScreen(
+                themePrimary = themePrimary,
+                themeTeal = themeTeal,
+                themeBackground = themeBackground,
+                themeText = themeText,
+                themeSecondaryText = themeSecondaryText
+            )
+        }
+
+        // BottomSheet de résultats (comme iOS - utilise uniquement l'URL Cloudinary)
+        if (showDetectionResult && detectionResult != null) {
+            val (result, imageUrl) = detectionResult!!
+            if (imageUrl.isNotBlank()) {
+                DetectionResultBottomSheet(
+                    image = null, // On n'utilise plus le bitmap local (comme iOS)
+                    detectionResult = result,
+                    imageURL = imageUrl,
+                    isShowing = showDetectionResult,
+                    isSaving = isSaving,
+                    onDismiss = {
+                        showDetectionResult = false
+                        detectedImageURL = null
+                        viewModel.clearDetectionResult()
+                    },
+                    onSave = { imgURL, category, color, style, season ->
+                        val token = authToken
+                        if (token != null) {
+                            viewModel.saveDetectedCloth(
+                                token = token,
+                                imageURL = imgURL,
+                                category = category,
+                                color = color,
+                                style = style,
+                                season = season
+                            )
+                            showDetectionResult = false
+                            detectedImageURL = null
+                            viewModel.clearDetectionResult()
+                        } else {
+                            scope.launch {
+                                snackbarHostState.showSnackbar("Session expirée. Veuillez vous reconnecter.")
+                            }
+                        }
+                    },
+                    themePrimary = themePrimary,
+                    themeSecondary = themeSecondary,
+                    themeTeal = themeTeal,
+                    themeCard = themeCard,
+                    themeBackground = themeBackground,
+                    themeText = themeText,
+                    themeSecondaryText = themeSecondaryText
                 )
             }
         }
