@@ -147,11 +147,13 @@ class StoreViewModel(
         val price = "${item.price}"
         val status = item.status?.lowercase() ?: ""
         val name = item.cloth?.name?.lowercase() ?: ""
+        val size = item.size?.lowercase() ?: ""
 
         return category.contains(query) ||
                price.contains(query) ||
                status.contains(query) ||
-               name.contains(query)
+               name.contains(query) ||
+               size.contains(query)
     }
 
     fun deleteStoreItem(token: String, storeItemId: String) {
@@ -191,7 +193,7 @@ class StoreViewModel(
         }
     }
 
-    fun addStoreItem(token: String, selectedCloth: Cloth, price: Double) {
+    fun addStoreItem(token: String, selectedCloth: Cloth, price: Double, size: String) {
         if (_isSubmitting.value) return
         viewModelScope.launch {
             _isSubmitting.value = true
@@ -200,7 +202,8 @@ class StoreViewModel(
             storeRepository.addStoreItem(
                 token = token,
                 clothesId = selectedCloth.id,
-                price = price
+                price = price,
+                size = size
             ).fold(
                 onSuccess = {
                     _showAddToStore.value = false
@@ -228,10 +231,10 @@ class StoreViewModel(
         _showAddToStore.value = false
     }
 
-    fun updateStorePrice(token: String, storeItemId: String, price: Double) {
+    fun updateStorePrice(token: String, storeItemId: String, price: Double, size: String) {
         viewModelScope.launch {
             _isLoading.value = true
-            storeRepository.updateStorePrice(token, storeItemId, price).fold(
+            storeRepository.updateStorePrice(token, storeItemId, price = price, size = size).fold(
                 onSuccess = { updatedItem ->
                     // Mettre à jour dans les listes
                     _rawStoreItems.value = _rawStoreItems.value.map { 

@@ -47,6 +47,7 @@ data class StoreItemResponse(
     @SerializedName("userId") val user: Any?,
     @SerializedName("clothesId") val clothesId: JsonElement?, // Accepte string ou objet
     @SerializedName("price") val price: Double,
+    @SerializedName("size") val size: String?,
     @SerializedName("status") val status: String?,
     @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?
@@ -54,11 +55,13 @@ data class StoreItemResponse(
 
 data class CreateStoreItemRequest(
     @SerializedName("clothesId") val clothesId: String,
-    @SerializedName("price") val price: Double
+    @SerializedName("price") val price: Double,
+    @SerializedName("size") val size: String
 )
 
 data class UpdateStoreItemRequest(
     @SerializedName("price") val price: Double? = null,
-    @SerializedName("status") val status: String? = null
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("size") val size: String? = null
 )
 

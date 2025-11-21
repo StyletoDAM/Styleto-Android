@@ -9,6 +9,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +17,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -86,6 +88,8 @@ import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.TokenManager
+
+private val STANDARD_SIZES = listOf("XS", "S", "M", "L", "XL", "XXL", "XXXL")
 
 @androidx.compose.material3.ExperimentalMaterial3Api
 @Composable
@@ -406,6 +410,16 @@ fun StoreTab(
             }
         )
     }
+}
+
+private fun Cloth?.isShoeItem(): Boolean {
+    val keywords = listOf("shoe", "sneaker", "chaussure", "footwear", "shoes")
+    val normalized = listOfNotNull(this?.type, this?.name)
+        .joinToString(separator = " ")
+        .lowercase()
+        .trim()
+    if (normalized.isBlank()) return false
+    return keywords.any { normalized.contains(it) }
 }
 
 // Search Bar (exactement comme iOS)
@@ -785,8 +799,24 @@ private fun AddToStoreSheet(
 ) {
     var selectedCloth by remember { mutableStateOf<Cloth?>(null) }
     var priceInput by rememberSaveable { mutableStateOf("") }
+    var selectedSize by rememberSaveable { mutableStateOf<String?>(null) }
+    var shoeSizeInput by rememberSaveable { mutableStateOf("") }
     val context = LocalContext.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    LaunchedEffect(selectedCloth?.id) {
+        selectedSize = null
+        shoeSizeInput = ""
+    }
+
+    val currentSizeValue = when {
+        selectedCloth == null -> ""
+        selectedCloth.isShoeItem() -> shoeSizeInput.trim().replace(',', '.')
+        else -> selectedSize.orEmpty()
+    }
+
+    val isPriceValid = priceInput.toDoubleOrNull()?.let { it > 0 } == true
+    val isSizeValid = selectedCloth != null && currentSizeValue.isNotBlank()
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = { if (!isSubmitting) onDismiss() },
@@ -864,6 +894,21 @@ private fun AddToStoreSheet(
                 themePrimary = themePrimary
             )
 
+            SizeSelectorSection(
+                selectedCloth = selectedCloth,
+                selectedSize = selectedSize,
+                onSelectSize = { selectedSize = it },
+                shoeSizeInput = shoeSizeInput,
+                onShoeSizeChange = { input ->
+                    shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
+                },
+                themePrimary = themePrimary,
+                themeSecondaryText = themeSecondaryText,
+                themeSoftPink = themeSoftPink,
+                themeCard = themeCard,
+                themeText = themeText
+            )
+
             // Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -878,19 +923,24 @@ private fun AddToStoreSheet(
 
                 androidx.compose.material3.Button(
                     onClick = {
-                        if (selectedCloth != null && priceInput.isNotBlank()) {
-                            val price = priceInput.toDoubleOrNull() ?: 0.0
-                            if (price > 0) {
-                                viewModel.addStoreItem(token, selectedCloth!!, price)
-                                selectedCloth = null
-                                priceInput = ""
-                            }
+                        if (selectedCloth != null && isPriceValid && isSizeValid) {
+                            val price = priceInput.toDouble()
+                            viewModel.addStoreItem(
+                                token = token,
+                                selectedCloth = selectedCloth!!,
+                                price = price,
+                                size = currentSizeValue
+                            )
+                            selectedCloth = null
+                            selectedSize = null
+                            shoeSizeInput = ""
+                            priceInput = ""
                         }
                     },
-                    enabled = selectedCloth != null && priceInput.isNotBlank() && !isSubmitting && priceInput.toDoubleOrNull() != null && priceInput.toDoubleOrNull()!! > 0,
+                    enabled = selectedCloth != null && isPriceValid && isSizeValid && !isSubmitting,
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = if (selectedCloth != null && priceInput.isNotBlank() && !isSubmitting) themePrimary else Color.Gray.copy(alpha = 0.3f)
+                        containerColor = if (selectedCloth != null && isPriceValid && isSizeValid && !isSubmitting) themePrimary else Color.Gray.copy(alpha = 0.3f)
                     )
                 ) {
                     if (isSubmitting) {
@@ -1090,6 +1140,106 @@ private fun PriceInput(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun SizeSelectorSection(
+    title: String = "Size",
+    selectedCloth: Cloth?,
+    selectedSize: String?,
+    onSelectSize: (String) -> Unit,
+    shoeSizeInput: String,
+    onShoeSizeChange: (String) -> Unit,
+    themePrimary: Color,
+    themeSecondaryText: Color,
+    themeSoftPink: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleSmall.copy(
+                color = themeText
+            )
+        )
+
+        when {
+            selectedCloth == null -> {
+                Text(
+                    text = "Select an item to configure its size.",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = themeSecondaryText
+                    )
+                )
+            }
+            selectedCloth.isShoeItem() -> {
+                OutlinedTextField(
+                    value = shoeSizeInput,
+                    onValueChange = onShoeSizeChange,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    placeholder = { Text("Ex: 42 ou 42.5") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedContainerColor = themeCard,
+                        unfocusedContainerColor = themeCard,
+                        focusedBorderColor = themeSecondaryText.copy(alpha = 0.3f),
+                        unfocusedBorderColor = themeSecondaryText.copy(alpha = 0.3f),
+                        cursorColor = themePrimary
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    textStyle = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    text = "Enter the shoe size (EU).",
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        color = themeSecondaryText
+                    )
+                )
+            }
+            else -> {
+                Text(
+                    text = "Choose a size",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = themeSecondaryText
+                    )
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    STANDARD_SIZES.forEach { size ->
+                        val isSelected = selectedSize == size
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(50.dp))
+                                .background(
+                                    if (isSelected) themePrimary else themeSoftPink.copy(alpha = 0.3f)
+                                )
+                                .clickable { onSelectSize(size) }
+                                .padding(horizontal = 16.dp, vertical = 10.dp)
+                        ) {
+                            Text(
+                                text = size,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isSelected) Color.White else themePrimary
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 // EditStoreDialog (comme iOS)
 @Composable
 private fun EditStoreDialog(
@@ -1106,19 +1256,57 @@ private fun EditStoreDialog(
     onDismiss: () -> Unit,
     onDeleteClick: (StoreItem) -> Unit // Callback pour ouvrir le dialog de confirmation
 ) {
-    var newPrice by rememberSaveable { mutableStateOf(storeItem.price.toInt().toString()) }
+    var newPrice by rememberSaveable(storeItem.id + "_price") { mutableStateOf(storeItem.price.toInt().toString()) }
+    var selectedSize by rememberSaveable(storeItem.id + "_sizeChoice") { mutableStateOf("") }
+    var shoeSizeInput by rememberSaveable(storeItem.id + "_shoeSize") { mutableStateOf("") }
     val isAvailable = storeItem.status?.lowercase() != "sold"
     val context = LocalContext.current
+    val cloth = storeItem.cloth
+
+    LaunchedEffect(storeItem.id) {
+        val baseSize = storeItem.size?.trim().orEmpty()
+        if (cloth.isShoeItem()) {
+            shoeSizeInput = baseSize
+        } else {
+            val normalized = baseSize.uppercase()
+            selectedSize = when {
+                STANDARD_SIZES.contains(normalized) -> normalized
+                STANDARD_SIZES.isNotEmpty() -> STANDARD_SIZES.first()
+                else -> ""
+            }
+        }
+    }
+
+    val currentSizeValue = when {
+        cloth.isShoeItem() -> shoeSizeInput.trim().replace(',', '.')
+        else -> selectedSize.trim()
+    }
+    val isSizeValid = currentSizeValue.isNotBlank()
+    val isPriceValid = newPrice.toDoubleOrNull()?.let { it > 0 } == true
+    val sizeLabel = storeItem.size?.takeIf { it.isNotBlank() } ?: "—"
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
-            Text(
-                text = "Edit Item",
-                style = MaterialTheme.typography.titleLarge.copy(
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Edit Item",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
-            )
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "Cancel",
+                        color = themePrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
         },
                                     text = {
             Column(
@@ -1149,6 +1337,12 @@ private fun EditStoreDialog(
                             text = storeItem.cloth?.type?.replaceFirstChar { it.uppercaseChar() } ?: "Item",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 color = themeTeal
+                            )
+                        )
+                        Text(
+                            text = "Size: $sizeLabel",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = themeSecondary
                             )
                         )
                         Row(
@@ -1212,14 +1406,14 @@ private fun EditStoreDialog(
 
                 // New Price (only if available)
                 if (isAvailable) {
-                OutlinedTextField(
+                    OutlinedTextField(
                         value = newPrice,
                         onValueChange = { newPrice = it },
-                    modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth(),
                         label = { Text("New Price") },
                         placeholder = { Text("Ex: 55") },
                         keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Number
+                            keyboardType = KeyboardType.Number
                         ),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedContainerColor = themeCard,
@@ -1227,6 +1421,22 @@ private fun EditStoreDialog(
                         )
                     )
                 }
+
+                SizeSelectorSection(
+                    title = "Modifier la taille",
+                    selectedCloth = cloth,
+                    selectedSize = selectedSize,
+                    onSelectSize = { selectedSize = it },
+                    shoeSizeInput = shoeSizeInput,
+                    onShoeSizeChange = { input ->
+                        shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
+                    },
+                    themePrimary = themePrimary,
+                    themeSecondaryText = themeSecondary,
+                    themeSoftPink = themeSoftPink,
+                    themeCard = themeCard,
+                    themeText = themeText
+                )
             }
         },
         confirmButton = {
@@ -1238,16 +1448,21 @@ private fun EditStoreDialog(
                     androidx.compose.material3.Button(
                 onClick = {
                             val price = newPrice.toDoubleOrNull() ?: storeItem.price
-                            viewModel.updateStorePrice(token, storeItem.id, price)
+                            viewModel.updateStorePrice(
+                                token = token,
+                                storeItemId = storeItem.id,
+                                price = price,
+                                size = currentSizeValue
+                            )
                             onDismiss()
                         },
-                        enabled = newPrice.isNotBlank() && newPrice.toDoubleOrNull() != null,
+                        enabled = isPriceValid && isSizeValid,
                         modifier = Modifier.fillMaxWidth(),
                         colors = androidx.compose.material3.ButtonDefaults.buttonColors(
                             containerColor = themePrimary
                         )
                     ) {
-                        Text("Update Price", color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Update", color = Color.White, fontWeight = FontWeight.Bold)
                     }
                 }
 
@@ -1290,10 +1505,6 @@ private fun EditStoreDialog(
                 }
             }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text("Cancel", color = themePrimary, fontWeight = FontWeight.Bold)
-            }
-        }
+        dismissButton = {}
     )
 }

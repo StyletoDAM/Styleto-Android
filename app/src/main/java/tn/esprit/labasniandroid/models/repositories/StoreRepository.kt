@@ -55,11 +55,13 @@ class StoreRepository(
     suspend fun addStoreItem(
         token: String,
         clothesId: String,
-        price: Double
+        price: Double,
+        size: String
     ): Result<StoreItem> {
         val request = CreateStoreItemRequest(
             clothesId = clothesId,
-            price = price
+            price = price,
+            size = size
         )
 
         return try {
@@ -99,9 +101,17 @@ class StoreRepository(
         }
     }
 
-    suspend fun updateStorePrice(token: String, storeItemId: String, price: Double): Result<StoreItem> {
+    suspend fun updateStorePrice(
+        token: String,
+        storeItemId: String,
+        price: Double? = null,
+        size: String? = null
+    ): Result<StoreItem> {
         return try {
-            val request = tn.esprit.labasniandroid.api.UpdateStoreItemRequest(price = price)
+            val request = tn.esprit.labasniandroid.api.UpdateStoreItemRequest(
+                price = price,
+                size = size
+            )
             val response = storeApi.updateStoreItem("Bearer $token", storeItemId, request)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.toEntity())
@@ -161,6 +171,7 @@ private fun StoreItemResponse.toEntity(): StoreItem {
         id = id,
         cloth = cloth,
         price = price,
+        size = size,
         status = status,
         createdAt = createdAt,
         updatedAt = updatedAt
