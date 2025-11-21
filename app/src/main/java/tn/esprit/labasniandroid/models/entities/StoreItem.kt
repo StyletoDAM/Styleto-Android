@@ -7,6 +7,9 @@ data class StoreItem(
     val size: String?,
     val status: String?,
     val createdAt: String?,
-    val updatedAt: String?
+    val updatedAt: String?,
+    val ownerId: String? = null,
+    val ownerName: String? = null,
+    val ownerAvatar: String? = null
 )
 

@@ -99,7 +99,8 @@ fun StoreTab(
     modifier: Modifier = Modifier,
     viewModel: StoreViewModel = viewModel(),
     onNavigateToCart: () -> Unit = {},
-    onNavigateToMessaging: () -> Unit = {}
+    onNavigateToMessaging: () -> Unit = {},
+    onContactOwner: (StoreItem) -> Unit = {}
 ) {
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
@@ -272,10 +273,14 @@ fun StoreTab(
                     )
                     DiscoverGrid(
                         items = discoverItems,
+                        userId = userId,
                         themeCard = themeCard,
                         themeTeal = themeTeal,
+                        themePrimary = themePrimary,
                         themeSecondary = themeSecondary,
-                        themeAqua = themeAqua
+                        themeAqua = themeAqua,
+                        onItemClick = { showEditDialog = it },
+                        onContactOwner = onContactOwner
                     )
                 }
 
@@ -349,10 +354,13 @@ fun StoreTab(
 
     // Edit Dialog (comme iOS) - contient maintenant Update Price, Mark as Sold et Delete
     showEditDialog?.let { item ->
+        val isOwnItem = item.ownerId == userId
         EditStoreDialog(
             storeItem = item,
             viewModel = viewModel,
             token = token,
+            userId = userId,
+            isOwnItem = isOwnItem,
             themePrimary = themePrimary,
             themeSecondary = themeSecondary,
             themeAqua = themeAqua,
@@ -364,7 +372,10 @@ fun StoreTab(
             onDeleteClick = { storeItem ->
                 showEditDialog = null // Fermer le dialog d'édition
                 showDeleteConfirmation = storeItem // Ouvrir le dialog de confirmation
-            }
+            },
+            onContactOwner = if (!isOwnItem && item.ownerId != null) {
+                { onContactOwner(item) }
+            } else null
         )
     }
 
@@ -573,10 +584,14 @@ private fun MyItemsGrid(
 @Composable
 private fun DiscoverGrid(
     items: List<StoreItem>,
+    userId: String,
     themeCard: Color,
     themeTeal: Color,
+    themePrimary: Color,
     themeSecondary: Color,
-    themeAqua: Color
+    themeAqua: Color,
+    onItemClick: (StoreItem) -> Unit,
+    onContactOwner: (StoreItem) -> Unit
 ) {
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
@@ -589,13 +604,15 @@ private fun DiscoverGrid(
                 storeItem = item,
                 isDeleting = false,
                 showDeleteButton = false,
-                themePrimary = Color.Transparent, // Pas utilisé dans Discover
+                showContactButton = false, // Plus de bouton sur la carte
+                themePrimary = themePrimary,
                 themeCard = themeCard,
                 themeTeal = themeTeal,
                 themeSecondary = themeSecondary,
                 themeAqua = themeAqua,
                 onDelete = {},
-                onTap = {}
+                onTap = { onItemClick(item) },
+                onContactOwner = null
             )
         }
     }
@@ -607,13 +624,15 @@ private fun ProductCard(
     storeItem: StoreItem,
     isDeleting: Boolean,
     showDeleteButton: Boolean,
+    showContactButton: Boolean = false,
     themePrimary: Color,
     themeCard: Color,
     themeTeal: Color,
     themeSecondary: Color,
     themeAqua: Color,
     onDelete: () -> Unit,
-    onTap: () -> Unit
+    onTap: () -> Unit,
+    onContactOwner: (() -> Unit)? = null
 ) {
     val isAvailable = storeItem.status?.lowercase() != "sold"
     val opacity = if (isAvailable) 1.0f else 0.7f
@@ -721,6 +740,26 @@ private fun ProductCard(
                         color = if (isAvailable) themePrimary else Color.Gray
                     )
                 )
+                
+                // Bouton "Contact Owner" (seulement dans Discover)
+                if (showContactButton && onContactOwner != null) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    androidx.compose.material3.Button(
+                        onClick = { onContactOwner() },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = themePrimary
+                        ),
+                        shape = RoundedCornerShape(12.dp)
+                    ) {
+                        Text(
+                            text = "Contact Owner",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                    }
+                }
             }
         }
     }
@@ -1246,6 +1285,8 @@ private fun EditStoreDialog(
     storeItem: StoreItem,
     viewModel: StoreViewModel,
     token: String,
+    userId: String,
+    isOwnItem: Boolean,
     themePrimary: Color,
     themeSecondary: Color,
     themeAqua: Color,
@@ -1254,7 +1295,8 @@ private fun EditStoreDialog(
     themeTeal: Color,
     themeText: Color,
     onDismiss: () -> Unit,
-    onDeleteClick: (StoreItem) -> Unit // Callback pour ouvrir le dialog de confirmation
+    onDeleteClick: (StoreItem) -> Unit, // Callback pour ouvrir le dialog de confirmation
+    onContactOwner: (() -> Unit)? = null // Bouton "Contact Owner" pour les items qui ne sont pas les nôtres
 ) {
     var newPrice by rememberSaveable(storeItem.id + "_price") { mutableStateOf(storeItem.price.toInt().toString()) }
     var selectedSize by rememberSaveable(storeItem.id + "_sizeChoice") { mutableStateOf("") }
@@ -1294,7 +1336,7 @@ private fun EditStoreDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Edit Item",
+                    text = if (isOwnItem) "Edit Item" else "Item Details",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold
                     )
@@ -1404,8 +1446,8 @@ private fun EditStoreDialog(
                     )
                 }
 
-                // New Price (only if available)
-                if (isAvailable) {
+                // New Price (only if available and own item)
+                if (isAvailable && isOwnItem) {
                     OutlinedTextField(
                         value = newPrice,
                         onValueChange = { newPrice = it },
@@ -1422,29 +1464,48 @@ private fun EditStoreDialog(
                     )
                 }
 
-                SizeSelectorSection(
-                    title = "Modifier la taille",
-                    selectedCloth = cloth,
-                    selectedSize = selectedSize,
-                    onSelectSize = { selectedSize = it },
-                    shoeSizeInput = shoeSizeInput,
-                    onShoeSizeChange = { input ->
-                        shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
-                    },
-                    themePrimary = themePrimary,
-                    themeSecondaryText = themeSecondary,
-                    themeSoftPink = themeSoftPink,
-                    themeCard = themeCard,
-                    themeText = themeText
-                )
+                // Size Selector (only for own items)
+                if (isOwnItem) {
+                    SizeSelectorSection(
+                        title = "Modifier la taille",
+                        selectedCloth = cloth,
+                        selectedSize = selectedSize,
+                        onSelectSize = { selectedSize = it },
+                        shoeSizeInput = shoeSizeInput,
+                        onShoeSizeChange = { input ->
+                            shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
+                        },
+                        themePrimary = themePrimary,
+                        themeSecondaryText = themeSecondary,
+                        themeSoftPink = themeSoftPink,
+                        themeCard = themeCard,
+                        themeText = themeText
+                    )
+                }
             }
         },
         confirmButton = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                // Update Price (only if available)
-                if (isAvailable) {
+                // Bouton "Contact Owner" (seulement pour les items qui ne sont pas les nôtres)
+                if (!isOwnItem && onContactOwner != null) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            onContactOwner()
+                            onDismiss()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = themePrimary
+                        )
+                    ) {
+                        Text("Contact Owner", color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                
+                // Update Price (only if available and own item)
+                if (isAvailable && isOwnItem) {
                     androidx.compose.material3.Button(
                 onClick = {
                             val price = newPrice.toDoubleOrNull() ?: storeItem.price
@@ -1466,42 +1527,46 @@ private fun EditStoreDialog(
                     }
                 }
 
-                // Mark as Sold
-                androidx.compose.material3.Button(
-                    onClick = {
-                        if (isAvailable) {
-                            viewModel.markAsSold(token, storeItem.id)
-                            onDismiss()
-                        }
-                    },
-                    enabled = isAvailable,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = if (isAvailable) Color.Red.copy(alpha = 0.9f) else Color.Gray.copy(alpha = 0.5f)
-                    )
-                ) {
-                    Text(
-                        text = if (isAvailable) "Mark as Sold" else "Already Sold",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                // Mark as Sold (only for own items)
+                if (isOwnItem) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            if (isAvailable) {
+                                viewModel.markAsSold(token, storeItem.id)
+                                onDismiss()
+                            }
+                        },
+                        enabled = isAvailable,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = if (isAvailable) Color.Red.copy(alpha = 0.9f) else Color.Gray.copy(alpha = 0.5f)
+                        )
+                    ) {
+                        Text(
+                            text = if (isAvailable) "Mark as Sold" else "Already Sold",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
 
-                // Delete Button
-                androidx.compose.material3.Button(
-                    onClick = {
-                        onDeleteClick(storeItem)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = Color.Red.copy(alpha = 0.9f)
-                    )
-                ) {
-                    Text(
-                        text = "Delete",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
+                // Delete Button (only for own items)
+                if (isOwnItem) {
+                    androidx.compose.material3.Button(
+                        onClick = {
+                            onDeleteClick(storeItem)
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+                            containerColor = Color.Red.copy(alpha = 0.9f)
+                        )
+                    ) {
+                        Text(
+                            text = "Delete",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
                 }
             }
         },

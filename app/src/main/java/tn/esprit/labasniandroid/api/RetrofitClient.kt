@@ -30,5 +30,6 @@ object RetrofitClient {
     val clothesApi: ClothesApi = retrofit.create(ClothesApi::class.java)
     val outfitsApi: OutfitsApi = retrofit.create(OutfitsApi::class.java)
     val storeApi: StoreApi = retrofit.create(StoreApi::class.java)
+    val chatApi: ChatApi = retrofit.create(ChatApi::class.java)
 }
 

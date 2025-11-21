@@ -9,6 +9,7 @@ import tn.esprit.labasniandroid.api.StoreItemResponse
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.StoreItem
+import tn.esprit.labasniandroid.models.entities.User
 
 class StoreRepository(
     private val storeApi: StoreApi = RetrofitClient.storeApi
@@ -167,6 +168,75 @@ private fun StoreItemResponse.toEntity(): StoreItem {
         else -> null
     }
     
+    // Parser l'owner depuis le champ user (peut être String ou User object)
+    val (ownerId, ownerName, ownerAvatar) = try {
+        when {
+            user == null -> {
+                android.util.Log.d("StoreRepository", "user is null")
+                Triple(null, null, null)
+            }
+            user is String -> {
+                android.util.Log.d("StoreRepository", "user is String: $user")
+                Triple(user, null, null)
+            }
+            user is JsonElement -> {
+                if (user.isJsonObject) {
+                    android.util.Log.d("StoreRepository", "user is JsonObject")
+                    val userObj = com.google.gson.Gson().fromJson(user, User::class.java)
+                    val id = userObj.userId
+                    android.util.Log.d("StoreRepository", "Parsed ownerId: $id, name: ${userObj.fullName}")
+                    Triple(
+                        id,
+                        userObj.fullName,
+                        userObj.profilePicture
+                    )
+                } else if (user.isJsonPrimitive) {
+                    android.util.Log.d("StoreRepository", "user is JsonPrimitive: ${user.asString}")
+                    Triple(user.asString, null, null)
+                } else {
+                    android.util.Log.d("StoreRepository", "user is JsonElement but not object or primitive")
+                    Triple(null, null, null)
+                }
+            }
+            user is com.google.gson.JsonObject -> {
+                android.util.Log.d("StoreRepository", "user is JsonObject (direct)")
+                val userObj = com.google.gson.Gson().fromJson(user, User::class.java)
+                val id = userObj.userId
+                android.util.Log.d("StoreRepository", "Parsed ownerId: $id, name: ${userObj.fullName}")
+                Triple(
+                    id,
+                    userObj.fullName,
+                    userObj.profilePicture
+                )
+            }
+            else -> {
+                android.util.Log.d("StoreRepository", "user is unknown type: ${user?.javaClass?.name}")
+                // Essayer de convertir en JsonElement
+                try {
+                    val userJson = com.google.gson.Gson().toJsonTree(user)
+                    if (userJson.isJsonObject) {
+                        val userObj = com.google.gson.Gson().fromJson(userJson, User::class.java)
+                        Triple(
+                            userObj.userId,
+                            userObj.fullName,
+                            userObj.profilePicture
+                        )
+                    } else if (userJson.isJsonPrimitive) {
+                        Triple(userJson.asString, null, null)
+                    } else {
+                        Triple(null, null, null)
+                    }
+                } catch (e: Exception) {
+                    android.util.Log.e("StoreRepository", "Error parsing user: ${e.message}", e)
+                    Triple(null, null, null)
+                }
+            }
+        }
+    } catch (e: Exception) {
+        android.util.Log.e("StoreRepository", "Error in owner parsing: ${e.message}", e)
+        Triple(null, null, null)
+    }
+    
     return StoreItem(
         id = id,
         cloth = cloth,
@@ -174,7 +244,10 @@ private fun StoreItemResponse.toEntity(): StoreItem {
         size = size,
         status = status,
         createdAt = createdAt,
-        updatedAt = updatedAt
+        updatedAt = updatedAt,
+        ownerId = ownerId,
+        ownerName = ownerName,
+        ownerAvatar = ownerAvatar
     )
 }
 

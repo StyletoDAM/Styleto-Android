@@ -91,6 +91,11 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
     
+    // Socket.IO
+    implementation("io.socket:socket.io-client:2.0.1") {
+        exclude(group = "org.json", module = "json")
+    }
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
