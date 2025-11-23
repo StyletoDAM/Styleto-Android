@@ -1,5 +1,7 @@
 package tn.esprit.labasniandroid.ui.screen.settings
 
+import android.content.Intent
+import android.net.Uri
 import android.graphics.Bitmap
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
@@ -28,6 +30,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -77,6 +80,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.rounded.Email
 import tn.esprit.labasniandroid.models.entities.User
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.ui.theme.ThemeController
@@ -900,33 +906,64 @@ fun ColorThemePickerSheet(
     }
 }
 
-// MARK: - Contact Us Dialog
+// MARK: - Contact Us Dialog (comme ThemePickerSheet avec deux boutons)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContactUsDialog(
     onDismiss: () -> Unit,
     themePrimary: Color,
     themeCard: Color,
-    themeText: Color
+    themeText: Color,
+    themeBackground: Color
 ) {
-    AlertDialog(
+    val context = LocalContext.current
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    ModalBottomSheet(
         onDismissRequest = onDismiss,
-        title = {
+        containerColor = themeCard,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
             Text(
                 text = "Contact Us",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold
-                )
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
             )
-        },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+            
+            // Bouton Téléphone
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val phoneNumber = "+21652904114" // Numéro sans espaces pour l'URI
+                        val intent = Intent(Intent.ACTION_DIAL).apply {
+                            data = Uri.parse("tel:$phoneNumber")
+                        }
+                        context.startActivity(intent)
+                    }
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Phone,
+                    contentDescription = "Phone",
+                    tint = themePrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Phone:",
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        text = "Phone",
+                        style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
                         color = themeText
@@ -934,16 +971,57 @@ fun ContactUsDialog(
                     Text(
                         text = "+216 52904114",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = themeText
+                        color = themeText.copy(alpha = 0.7f)
                     )
                 }
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = themeText.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            
+            // Séparateur
+            Divider(
+                modifier = Modifier.padding(vertical = 4.dp),
+                color = themeText.copy(alpha = 0.1f)
+            )
+            
+            // Bouton Email
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable {
+                        val email = "labasni@gmail.com"
+                        val intent = Intent(Intent.ACTION_SENDTO).apply {
+                            data = Uri.parse("mailto:$email")
+                        }
+                        try {
+                            context.startActivity(intent)
+                        } catch (e: Exception) {
+                            // Si aucune application email n'est disponible, on peut afficher un message
+                            android.widget.Toast.makeText(
+                                context,
+                                "Aucune application email disponible",
+                                android.widget.Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    }
+                    .padding(vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Rounded.Email,
+                    contentDescription = "Email",
+                    tint = themePrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "Email:",
-                        style = MaterialTheme.typography.bodyMedium.copy(
+                        text = "Email",
+                        style = MaterialTheme.typography.bodyLarge.copy(
                             fontWeight = FontWeight.SemiBold
                         ),
                         color = themeText
@@ -951,17 +1029,27 @@ fun ContactUsDialog(
                     Text(
                         text = "labasni@gmail.com",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = themeText
+                        color = themeText.copy(alpha = 0.7f)
                     )
                 }
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = themeText.copy(alpha = 0.6f),
+                    modifier = Modifier.size(20.dp)
+                )
             }
-        },
-        confirmButton = {
-            TextButton(onClick = onDismiss) {
-                Text("OK", fontWeight = FontWeight.Bold, color = themePrimary)
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancel", fontWeight = FontWeight.Bold)
             }
         }
-    )
+    }
 }
 
 // MARK: - About Dialog

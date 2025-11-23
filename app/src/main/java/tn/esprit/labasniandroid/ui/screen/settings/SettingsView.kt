@@ -656,7 +656,8 @@ fun SettingsView(
             onDismiss = { showContactUsDialog = false },
             themePrimary = themePrimary,
             themeCard = themeCard,
-            themeText = themeText
+            themeText = themeText,
+            themeBackground = themeBackground
         )
     }
     
@@ -674,7 +675,8 @@ fun SettingsView(
             onDismiss = { showContactUsDialog = false },
             themePrimary = themePrimary,
             themeCard = themeCard,
-            themeText = themeText
+            themeText = themeText,
+            themeBackground = themeBackground
         )
     }
     
