@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-60:/values-watch-v20/values-watch-v20.xml",
+            "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
                     "source": "/Users/mac/.gradle/caches/8.13/transforms/b7293316cb5d08e7cb2d674f1bbc40d0/transformed/play-services-auth-21.0.0/res/values-watch-v20/values.xml",

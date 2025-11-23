@@ -1,8 +1,25 @@
 {
     "logs": [
         {
-            "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-60:/values-large-v4/values-large-v4.xml",
+            "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-large-v4/values-large-v4.xml",
             "map": [
+                {
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/d997f93ee6159c6fae3fda039993f5d6/transformed/material-1.11.0/res/values-large-v4/values-large-v4.xml",
+                    "from": {
+                        "startLines": "2,3,4,5",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "55,169,285,407",
+                        "endColumns": "113,115,121,133",
+                        "endOffsets": "164,280,402,536"
+                    },
+                    "to": {
+                        "startLines": "11,12,13,14",
+                        "startColumns": "4,4,4,4",
+                        "startOffsets": "752,866,982,1104",
+                        "endColumns": "113,115,121,133",
+                        "endOffsets": "861,977,1099,1233"
+                    }
+                },
                 {
                     "source": "/Users/mac/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-large-v4/values-large-v4.xml",
                     "from": {

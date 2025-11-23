@@ -44,6 +44,8 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,6 +66,12 @@ import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.CartManager
+import tn.esprit.labasniandroid.utils.PaymentService
+import com.stripe.android.paymentsheet.PaymentSheetResult
+import androidx.activity.ComponentActivity
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Snackbar
 
 /**
  * CartView Android (comme iOS CartView)
@@ -87,14 +95,76 @@ fun CartView(
     val themeSoftPink = DynamicThemeColors.softPink(isMale)
 
     val context = LocalContext.current
+    val activity = context as? ComponentActivity
+    val lifecycleOwner = LocalLifecycleOwner.current
     val scope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
     // Observer les articles du panier (comme iOS @ObservedObject cartManager)
     val cartItems by CartManager.cartItems.collectAsState(initial = emptyList())
     val totalPrice by CartManager.totalPrice.collectAsState(initial = 0.0)
 
+    // ViewModel states
+    val isLoading by viewModel.isLoading.collectAsState()
+    val errorMessage by viewModel.errorMessage.collectAsState()
+    val paymentSuccess by viewModel.paymentSuccess.collectAsState()
+    val clientSecret by viewModel.clientSecret.collectAsState()
+
     var itemToDelete by remember { mutableStateOf<CartItem?>(null) }
     var showDeleteAlert by remember { mutableStateOf(false) }
+    var showSuccessDialog by remember { mutableStateOf(false) }
+    
+    // Variable pour stocker le clientSecret à présenter
+    var pendingClientSecret by remember { mutableStateOf<String?>(null) }
+    
+    // Présenter PaymentSheet quand le clientSecret est disponible
+    // Utiliser Handler pour s'assurer que c'est sur le thread principal et de manière synchrone
+    LaunchedEffect(pendingClientSecret) {
+        if (pendingClientSecret != null && activity != null) {
+            // Utiliser Handler.post pour exécuter de manière synchrone sur le thread principal
+            // Cela évite les problèmes de lifecycle car c'est exécuté immédiatement
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                try {
+                    PaymentService.presentPaymentSheet(
+                        activity = activity,
+                        clientSecret = pendingClientSecret!!,
+                        onResult = { paymentResult ->
+                            when (paymentResult) {
+                                is PaymentSheetResult.Completed -> {
+                                    scope.launch {
+                                        viewModel.confirmPurchase(token, cartItems)
+                                        showSuccessDialog = true
+                                        CartManager.clearCart(context)
+                                    }
+                                }
+                                is PaymentSheetResult.Canceled -> {
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("Paiement annulé")
+                                    }
+                                }
+                                is PaymentSheetResult.Failed -> {
+                                    scope.launch {
+                                        val errorMsg = paymentResult.error?.message ?: "Erreur inconnue"
+                                        snackbarHostState.showSnackbar(
+                                            "Erreur de paiement: $errorMsg"
+                                        )
+                                    }
+                                }
+                            }
+                            pendingClientSecret = null
+                        }
+                    )
+                } catch (e: Exception) {
+                    scope.launch {
+                        snackbarHostState.showSnackbar(
+                            "Erreur: ${e.message ?: "Impossible d'ouvrir le paiement"}"
+                        )
+                    }
+                    pendingClientSecret = null
+                }
+            }
+        }
+    }
 
     LaunchedEffect(userId) {
         CartManager.fetchCartItems()
@@ -180,12 +250,85 @@ fun CartView(
                         themeCard = themeCard,
                         themePrimary = themePrimary,
                         themeTeal = themeTeal,
-                        themeText = themeText
+                        themeText = themeText,
+                        cartItems = cartItems,
+                        isLoading = isLoading,
+                        onCheckoutClick = {
+                            if (cartItems.isNotEmpty() && activity != null) {
+                                scope.launch {
+                                    // Créer le Payment Intent
+                                    val result = viewModel.createPaymentIntent(token, totalPrice)
+                                    result.onSuccess { secret ->
+                                        // Stocker le clientSecret pour que DisposableEffect le présente
+                                        pendingClientSecret = secret
+                                    }.onFailure { error ->
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar(
+                                                "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     )
 
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
+
+            // Snackbar pour les messages
+            SnackbarHost(
+                hostState = snackbarHostState,
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+    }
+
+    // Dialog de succès après paiement
+    if (showSuccessDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showSuccessDialog = false
+                viewModel.resetPaymentState()
+            },
+            title = {
+                Text(
+                    text = "✅ Paiement avec succès",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Green
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "Votre paiement a été effectué avec succès. Merci pour votre achat!",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showSuccessDialog = false
+                        viewModel.resetPaymentState()
+                    }
+                ) {
+                    Text(
+                        text = "OK",
+                        fontWeight = FontWeight.Bold,
+                        color = themePrimary
+                    )
+                }
+            }
+        )
+    }
+
+    // Afficher les erreurs
+    LaunchedEffect(errorMessage) {
+        errorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            viewModel.clearMessages()
         }
     }
 
@@ -437,7 +580,10 @@ private fun OrderSummary(
     themeCard: Color,
     themePrimary: Color,
     themeTeal: Color,
-    themeText: Color
+    themeText: Color,
+    cartItems: List<CartItem>,
+    isLoading: Boolean,
+    onCheckoutClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -529,8 +675,9 @@ private fun OrderSummary(
             // Proceed to Checkout button (comme iOS)
             Button(
                 onClick = {
-                    // TODO: Navigate to checkout
+                    onCheckoutClick()
                 },
+                enabled = !isLoading && cartItems.isNotEmpty(),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent

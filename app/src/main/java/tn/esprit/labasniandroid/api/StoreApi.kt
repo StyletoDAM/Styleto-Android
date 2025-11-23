@@ -40,6 +40,19 @@ interface StoreApi {
         @Path("id") id: String,
         @Body request: UpdateStoreItemRequest
     ): Response<StoreItemResponse>
+
+    @POST("/store/payment-intent")
+    suspend fun createPaymentIntent(
+        @Header("Authorization") token: String,
+        @Body request: CreatePaymentIntentRequest
+    ): Response<PaymentIntentResponse>
+
+    @POST("/store/purchase/{id}")
+    suspend fun confirmPurchase(
+        @Header("Authorization") token: String,
+        @Path("id") storeItemId: String,
+        @Body request: ConfirmPurchaseRequest
+    ): Response<StoreItemResponse>
 }
 
 data class StoreItemResponse(
@@ -57,6 +70,19 @@ data class CreateStoreItemRequest(
     @SerializedName("clothesId") val clothesId: String,
     @SerializedName("price") val price: Double,
     @SerializedName("size") val size: String
+)
+
+data class CreatePaymentIntentRequest(
+    @SerializedName("amount") val amount: Double,
+    @SerializedName("currency") val currency: String? = null
+)
+
+data class PaymentIntentResponse(
+    @SerializedName("clientSecret") val clientSecret: String
+)
+
+data class ConfirmPurchaseRequest(
+    @SerializedName("paymentIntentId") val paymentIntentId: String
 )
 
 data class UpdateStoreItemRequest(

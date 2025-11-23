@@ -12,6 +12,11 @@ val baseUrl =
         .trim()
         .ifEmpty { "http://10.0.2.2:3000" }
 
+val stripePublishableKey =
+    (localProperties.getProperty("STRIPE_PUBLISHABLE_KEY") ?: "")
+        .trim()
+        .ifEmpty { "" }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -33,6 +38,7 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
+        buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"$stripePublishableKey\"")
     }
 
     buildTypes {
@@ -115,4 +121,7 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraXVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraXVersion")
     implementation("androidx.camera:camera-view:$cameraXVersion")
+    
+    // Stripe Payment
+    implementation("com.stripe:stripe-android:20.49.0")
 }

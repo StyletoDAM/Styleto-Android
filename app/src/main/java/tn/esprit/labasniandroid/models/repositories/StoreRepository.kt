@@ -2,6 +2,8 @@ package tn.esprit.labasniandroid.models.repositories
 
 import com.google.gson.JsonElement
 import tn.esprit.labasniandroid.api.ClothResponse
+import tn.esprit.labasniandroid.api.ConfirmPurchaseRequest
+import tn.esprit.labasniandroid.api.CreatePaymentIntentRequest
 import tn.esprit.labasniandroid.api.CreateStoreItemRequest
 import tn.esprit.labasniandroid.api.RetrofitClient
 import tn.esprit.labasniandroid.api.StoreApi
@@ -142,6 +144,47 @@ class StoreRepository(
                     401 -> "Session expirée. Veuillez vous reconnecter."
                     404 -> "Article introuvable."
                     else -> errorBody ?: "Mise à jour impossible pour le moment."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    suspend fun createPaymentIntent(token: String, amount: Double, currency: String? = null): Result<String> {
+        return try {
+            val request = CreatePaymentIntentRequest(amount = amount, currency = currency)
+            val response = storeApi.createPaymentIntent("Bearer $token", request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.clientSecret)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    400 -> "Montant invalide."
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de créer le paiement."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    suspend fun confirmPurchase(token: String, storeItemId: String, paymentIntentId: String): Result<StoreItem> {
+        return try {
+            val request = ConfirmPurchaseRequest(paymentIntentId = paymentIntentId)
+            val response = storeApi.confirmPurchase("Bearer $token", storeItemId, request)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!.toEntity())
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    400 -> "Paiement échoué ou article déjà vendu."
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    404 -> "Article introuvable."
+                    else -> errorBody ?: "Impossible de confirmer l'achat."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
