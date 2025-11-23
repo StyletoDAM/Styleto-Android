@@ -57,6 +57,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,7 +79,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.foundation.Image
 import tn.esprit.labasniandroid.models.entities.User
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
+import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeMode
+import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 
 // MARK: - Edit Profile Section Card
 @Composable
@@ -363,6 +366,9 @@ fun SettingsSectionCard(
     themeText: Color,
     themeSecondaryText: Color,
     onThemeClick: () -> Unit,
+    onColorThemeClick: () -> Unit,
+    onContactUsClick: () -> Unit,
+    onAboutClick: () -> Unit,
     onPasswordChange: () -> Unit,
     onDeleteAccount: () -> Unit,
     viewModel: ProfileViewModel,
@@ -437,7 +443,10 @@ fun SettingsSectionCard(
                             themeText = themeText,
                             themeSecondaryText = themeSecondaryText,
                             onThemeClick = onThemeClick,
-                            onPasswordChange = { showPasswordUpdate = true },
+                            onColorThemeClick = onColorThemeClick,
+                            onContactUsClick = onContactUsClick,
+                            onAboutClick = onAboutClick,
+                            onPasswordChange = onPasswordChange,
                             onDeleteAccount = onDeleteAccount
                         )
                         if (index < section.options.size - 1) {
@@ -501,6 +510,9 @@ private fun SettingsOptionRow(
     themeText: Color,
     themeSecondaryText: Color,
     onThemeClick: () -> Unit,
+    onColorThemeClick: () -> Unit,
+    onContactUsClick: () -> Unit,
+    onAboutClick: () -> Unit,
     onPasswordChange: () -> Unit,
     onDeleteAccount: () -> Unit
 ) {
@@ -513,6 +525,9 @@ private fun SettingsOptionRow(
             .clickable {
                 when (option.title) {
                     "Theme" -> onThemeClick()
+                    "Color Theme" -> onColorThemeClick()
+                    "Contact Us" -> onContactUsClick()
+                    "About" -> onAboutClick()
                     "Change Password" -> onPasswordChange()
                     "Delete Account" -> onDeleteAccount()
                 }
@@ -543,6 +558,27 @@ private fun SettingsOptionRow(
                     ThemeMode.LIGHT -> "Light"
                     ThemeMode.DARK -> "Dark"
                     ThemeMode.SYSTEM -> "System"
+                }
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = themeSecondaryText
+                )
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = themeSecondaryText,
+                    modifier = Modifier.size(12.dp)
+                )
+            }
+            option.title == "Color Theme" -> {
+                val currentVariant = ThemeController.themeVariant.collectAsState().value
+                val label = when (currentVariant) {
+                    ThemeVariant.PINK -> "Pink"
+                    ThemeVariant.BLUE -> "Blue"
                 }
                 Text(
                     text = label,
@@ -785,6 +821,177 @@ fun ChangePasswordDialog(
         dismissButton = {
             TextButton(onClick = onDismiss) {
                 Text("Cancel", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+// MARK: - Color Theme Picker Sheet
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ColorThemePickerSheet(
+    currentVariant: ThemeVariant,
+    onVariantSelected: (ThemeVariant) -> Unit,
+    onDismiss: () -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color,
+    themeBackground: Color
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        containerColor = themeCard,
+        sheetState = sheetState
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            Text(
+                text = "Color Theme",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+            
+            ThemeVariant.values().forEach { variant ->
+                val label = when (variant) {
+                    ThemeVariant.PINK -> "Pink"
+                    ThemeVariant.BLUE -> "Blue"
+                }
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onVariantSelected(variant) }
+                        .padding(vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = themeText
+                    )
+                    if (currentVariant == variant) {
+                        Icon(
+                            imageVector = Icons.Filled.Check,
+                            contentDescription = null,
+                            tint = themePrimary
+                        )
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            TextButton(
+                onClick = onDismiss,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text("Cancel", fontWeight = FontWeight.Bold)
+            }
+        }
+    }
+}
+
+// MARK: - Contact Us Dialog
+@Composable
+fun ContactUsDialog(
+    onDismiss: () -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "Contact Us",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Phone:",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themeText
+                    )
+                    Text(
+                        text = "+216 52904114",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = themeText
+                    )
+                }
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "Email:",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themeText
+                    )
+                    Text(
+                        text = "labasni@gmail.com",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = themeText
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK", fontWeight = FontWeight.Bold, color = themePrimary)
+            }
+        }
+    )
+}
+
+// MARK: - About Dialog
+@Composable
+fun AboutDialog(
+    onDismiss: () -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Text(
+                text = "About",
+                style = MaterialTheme.typography.titleLarge.copy(
+                    fontWeight = FontWeight.Bold
+                )
+            )
+        },
+        text = {
+            Text(
+                text = "Labasni est une application de mode innovante qui vous permet de découvrir, partager et vendre vos vêtements. Créez votre garde-robe virtuelle, explorez les styles tendance et connectez-vous avec une communauté passionnée de mode.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = themeText
+            )
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text("OK", fontWeight = FontWeight.Bold, color = themePrimary)
             }
         }
     )

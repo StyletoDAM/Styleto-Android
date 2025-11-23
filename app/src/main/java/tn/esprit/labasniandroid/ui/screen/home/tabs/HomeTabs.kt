@@ -590,6 +590,8 @@ fun SettingsTab(
 
             if (accountDeleted) {
                 TokenManager.clearToken(context)
+                // Vider le panier lors de la suppression de compte (comme iOS)
+                tn.esprit.labasniandroid.utils.CartManager.handleLogout()
                 profileViewModel.acknowledgeAccountDeleted()
                 onLogout()
             } else {
@@ -603,6 +605,8 @@ fun SettingsTab(
     LaunchedEffect(accountDeleted) {
         if (accountDeleted) {
             TokenManager.clearToken(context)
+            // Vider le panier lors de la suppression de compte (comme iOS)
+            tn.esprit.labasniandroid.utils.CartManager.handleLogout()
             onLogout()
             profileViewModel.acknowledgeAccountDeleted()
         }

@@ -1,35 +1,74 @@
 package tn.esprit.labasniandroid.ui.screen.store.cart
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import kotlinx.coroutines.launch
+import tn.esprit.labasniandroid.data.local.entities.CartItem
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
+import tn.esprit.labasniandroid.utils.CartManager
 
+/**
+ * CartView Android (comme iOS CartView)
+ * Empty state, cart items list, free shipping banner, order summary
+ */
 @Composable
 fun CartView(
     token: String,
@@ -40,24 +79,40 @@ fun CartView(
 ) {
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
     val themePrimary = DynamicThemeColors.primary(isMale)
+    val themeTeal = DynamicThemeColors.teal(isMale)
+    val themeCard = DynamicThemeColors.card()
     val themeBackground = DynamicThemeColors.background()
     val themeText = DynamicThemeColors.text(isMale)
+    val themeSecondaryText = DynamicThemeColors.secondaryText()
+    val themeSoftPink = DynamicThemeColors.softPink(isMale)
+
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    // Observer les articles du panier (comme iOS @ObservedObject cartManager)
+    val cartItems by CartManager.cartItems.collectAsState(initial = emptyList())
+    val totalPrice by CartManager.totalPrice.collectAsState(initial = 0.0)
+
+    var itemToDelete by remember { mutableStateOf<CartItem?>(null) }
+    var showDeleteAlert by remember { mutableStateOf(false) }
+
+    LaunchedEffect(userId) {
+        CartManager.fetchCartItems()
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         topBar = {
-            // Bouton de retour (comme iOS NavigationStack)
+            // Header avec titre et bouton retour (comme iOS NavigationStack)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.Start,
+                horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
-                    onClick = onNavigateBack
-                ) {
+                IconButton(onClick = onNavigateBack) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Back",
@@ -65,6 +120,15 @@ fun CartView(
                         modifier = Modifier.size(24.dp)
                     )
                 }
+                Text(
+                    text = "My Cart (${cartItems.size})",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp,
+                        color = themePrimary
+                    )
+                )
+                Spacer(modifier = Modifier.width(48.dp)) // Équilibre avec le bouton retour
             }
         }
     ) { innerPadding ->
@@ -72,31 +136,436 @@ fun CartView(
             modifier = Modifier
                 .fillMaxSize()
                 .background(themeBackground)
-                .padding(innerPadding),
-            contentAlignment = Alignment.Center
+                .padding(innerPadding)
         ) {
+            if (cartItems.isEmpty()) {
+                // Empty State (comme iOS)
+                EmptyCartState(
+                    themePrimary = themePrimary,
+                    themeText = themeText
+                )
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(vertical = 10.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp)
+                ) {
+                    // Cart Items List (comme iOS)
+                    cartItems.forEach { item ->
+                        CartItemRow(
+                            cartItem = item,
+                            themeCard = themeCard,
+                            themePrimary = themePrimary,
+                            themeSoftPink = themeSoftPink,
+                            themeTeal = themeTeal,
+                            themeSecondaryText = themeSecondaryText,
+                            onDelete = {
+                                itemToDelete = item
+                                showDeleteAlert = true
+                            }
+                        )
+                    }
+
+                    // Free Shipping Banner (comme iOS)
+                    FreeShippingBanner(
+                        themeCard = themeCard,
+                        themeTeal = themeTeal
+                    )
+
+                    // Order Summary (comme iOS)
+                    OrderSummary(
+                        totalPrice = totalPrice,
+                        themeCard = themeCard,
+                        themePrimary = themePrimary,
+                        themeTeal = themeTeal,
+                        themeText = themeText
+                    )
+
+                    Spacer(modifier = Modifier.height(100.dp))
+                }
+            }
+        }
+    }
+
+    // Delete Confirmation Alert (comme iOS)
+    if (showDeleteAlert && itemToDelete != null) {
+        AlertDialog(
+            onDismissRequest = {
+                showDeleteAlert = false
+                itemToDelete = null
+            },
+            title = {
+                Text(
+                    text = "Remove from cart?",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+            },
+            text = {
+                Text(
+                    text = "This item will be removed from your cart.",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        itemToDelete?.let { item ->
+                            scope.launch {
+                                CartManager.removeFromCart(item)
+                            }
+                        }
+                        showDeleteAlert = false
+                        itemToDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "Remove",
+                        color = Color.Red,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteAlert = false
+                        itemToDelete = null
+                    }
+                ) {
+                    Text(
+                        text = "Cancel",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
+}
+
+/**
+ * Empty Cart State (comme iOS)
+ */
+@Composable
+private fun EmptyCartState(
+    themePrimary: Color,
+    themeText: Color
+) {
+    Column(
+        modifier = Modifier.fillMaxSize(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Icon(
+            imageVector = Icons.Filled.ShoppingCart,
+            contentDescription = null,
+            modifier = Modifier.size(60.dp),
+            tint = Color.Gray.copy(alpha = 0.5f)
+        )
+        Spacer(modifier = Modifier.height(20.dp))
+        Text(
+            text = "Your cart is empty",
+            style = MaterialTheme.typography.titleLarge.copy(
+                color = Color.Gray
+            )
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Add items from the store!",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = themeText.copy(alpha = 0.7f)
+            )
+        )
+    }
+}
+
+/**
+ * Cart Item Row (comme iOS CartItemRow)
+ */
+@Composable
+private fun CartItemRow(
+    cartItem: CartItem,
+    themeCard: Color,
+    themePrimary: Color,
+    themeSoftPink: Color,
+    themeTeal: Color,
+    themeSecondaryText: Color,
+    onDelete: () -> Unit
+) {
+    val context = LocalContext.current
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = themeCard),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Image (90x90dp comme iOS)
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(cartItem.imageURL ?: "")
+                    .crossfade(true)
+                    .build(),
+                contentDescription = cartItem.title,
+                modifier = Modifier
+                    .size(90.dp)
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
+
+            // Infos
             Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Text(
-                    text = "🛒",
-                    fontSize = 64.sp
+                    text = cartItem.title ?: "Item",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        fontSize = 17.sp,
+                        color = themePrimary
+                    ),
+                    maxLines = 2
                 )
+
+                // Size badge (comme iOS Label)
+                Row(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(themeSoftPink.copy(alpha = 0.4f))
+                        .padding(horizontal = 10.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "📏",
+                        fontSize = 12.sp
+                    )
+                    Text(
+                        text = cartItem.size ?: "One Size",
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            color = themeSecondaryText
+                        )
+                    )
+                }
+
+                // Price
                 Text(
-                    text = "Panier",
-                    style = MaterialTheme.typography.headlineLarge.copy(
+                    text = "${String.format("%.2f", cartItem.price)} DT",
+                    style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 28.sp,
+                        fontSize = 18.sp,
                         color = themePrimary
                     )
                 )
+            }
+
+            // Delete button
+            IconButton(onClick = onDelete) {
+                Icon(
+                    imageVector = Icons.Filled.Delete,
+                    contentDescription = "Delete",
+                    tint = Color.Red.copy(alpha = 0.8f),
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Free Shipping Banner (comme iOS)
+ */
+@Composable
+private fun FreeShippingBanner(
+    themeCard: Color,
+    themeTeal: Color
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = themeCard),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = "🚚",
+                fontSize = 20.sp
+            )
+            Text(
+                text = "Free shipping!",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = themeTeal
+                )
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Text(
+                text = "🎉",
+                fontSize = 20.sp
+            )
+        }
+    }
+}
+
+/**
+ * Order Summary (comme iOS)
+ */
+@Composable
+private fun OrderSummary(
+    totalPrice: Double,
+    themeCard: Color,
+    themePrimary: Color,
+    themeTeal: Color,
+    themeText: Color
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = themeCard),
+        shape = RoundedCornerShape(20.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
+        ) {
+            Text(
+                text = "Order Summary",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = themePrimary
+                )
+            )
+
+            Divider(
+                color = themePrimary.copy(alpha = 0.3f),
+                thickness = 1.dp
+            )
+
+            // Subtotal
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
                 Text(
-                    text = "Votre panier est vide",
+                    text = "${String.format("%.2f", totalPrice)} DT",
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        color = themeText.copy(alpha = 0.7f)
+                        color = themeText
                     )
                 )
+            }
+
+            // Shipping
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Shipping",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        color = themeTeal
+                    )
+                )
+                Text(
+                    text = "Free",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = Color.Green
+                    )
+                )
+            }
+
+            Divider(
+                color = themePrimary.copy(alpha = 0.3f),
+                thickness = 1.dp
+            )
+
+            // Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Total",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold
+                    )
+                )
+                Text(
+                    text = "${String.format("%.2f", totalPrice)} DT",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = themePrimary
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Proceed to Checkout button (comme iOS)
+            Button(
+                onClick = {
+                    // TODO: Navigate to checkout
+                },
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(0.dp),
+                shape = RoundedCornerShape(20.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(
+                            themePrimary,
+                            shape = RoundedCornerShape(20.dp)
+                        )
+                        .shadow(10.dp, RoundedCornerShape(20.dp), spotColor = themePrimary.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "💳",
+                            fontSize = 18.sp
+                        )
+                        Text(
+                            text = "Proceed to Checkout",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                    }
+                }
             }
         }
     }

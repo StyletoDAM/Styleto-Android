@@ -24,21 +24,21 @@ private val PinkLightColorScheme = lightColorScheme(
     onSurface = NeutralDark
 )
 
-// Thème sombre par défaut (PINKTheme)
+// Thème sombre par défaut (PINKTheme) - Identique à iOS DarkTheme
 private val PinkDarkColorScheme = darkColorScheme(
-    primary = PinkPrimary,
+    primary = Color(0xFFE85C8A), // Rose clair (comme iOS DarkTheme primary pour female)
     onPrimary = Color.White,
-    secondary = AquaSoft,
+    secondary = Color(0xFFF07BA3), // Rose secondaire clair (comme iOS DarkTheme secondary pour female)
     onSecondary = Color.White,
-    tertiary = PinkGradientTop,
-    background = Color(0xFF121212),
-    onBackground = Color(0xFFE0E0E0),
-    surface = Color(0xFF1E1E1E),
+    tertiary = Color(0xFFF5B5C8), // Rose très doux (comme iOS DarkTheme softPink pour female)
+    background = Color(0xFF1A1A2E), // Identique à iOS DarkTheme background
+    onBackground = Color(0xFFE0E0E0), // Texte clair (comme iOS DarkTheme text pour female)
+    surface = Color(0xFF2A2A3E), // Identique à iOS DarkTheme card
     onSurface = Color(0xFFE0E0E0),
-    surfaceVariant = Color(0xFF2C2C2C),
-    onSurfaceVariant = Color(0xFFB0B0B0),
-    outline = Color(0xFF3A3A3A),
-    outlineVariant = Color(0xFF2A2A2A)
+    surfaceVariant = Color(0xFF2A2A3E),
+    onSurfaceVariant = Color(0xFFB0B0B0), // Identique à iOS DarkTheme secondaryText
+    outline = Color(0xFF3A3A4E),
+    outlineVariant = Color(0xFF2A2A3E)
 )
 
 // Variante claire BLEUTheme
@@ -60,23 +60,21 @@ private val BlueLightColorScheme = lightColorScheme(
     outlineVariant = PinkGradientTop.copy(alpha = 0.2f)
 )
 
-// Variante sombre BLEUTheme
-// Couleurs dominantes: #4AA3A2 (TealAccent) et #A7E0E0 (AquaSoft)
-// Couleurs moins dominantes en background: #E8AABE (PinkGradientTop) et #DB6A8F (PinkSecondary)
+// Variante sombre BLEUTheme - Identique à iOS DarkTheme pour male
 private val BlueDarkColorScheme = darkColorScheme(
-    primary = BluePrimary, // #4AA3A2 - DOMINANT
+    primary = Color(0xFF6BC4C3), // Teal clair (comme iOS DarkTheme primary pour male)
     onPrimary = Color.White,
-    secondary = BlueSecondary, // #A7E0E0 - DOMINANT
+    secondary = Color(0xFFB8E8E8), // Aqua clair (comme iOS DarkTheme secondary pour male)
     onSecondary = Color.White,
-    tertiary = PinkSecondary.copy(alpha = 0.2f), // #DB6A8F en background léger
-    background = Color(0xFF0D1117),
-    onBackground = Color(0xFFE0E0E0),
-    surface = Color(0xFF161B22),
-    onSurface = Color(0xFFE0E0E0),
-    surfaceVariant = Color(0xFF1F2933), // Fond sombre avec légère teinte rose via overlay si nécessaire
-    onSurfaceVariant = Color(0xFFB0B0B0),
-    outline = BluePrimary.copy(alpha = 0.4f),
-    outlineVariant = PinkGradientTop.copy(alpha = 0.15f)
+    tertiary = Color(0xFFB8E8E8), // Aqua clair (comme iOS DarkTheme softPink pour male)
+    background = Color(0xFF1A1A2E), // Identique à iOS DarkTheme background
+    onBackground = Color(0xFFF5B5C8), // Rose doux (comme iOS DarkTheme text pour male)
+    surface = Color(0xFF2A2A3E), // Identique à iOS DarkTheme card
+    onSurface = Color(0xFFF5B5C8),
+    surfaceVariant = Color(0xFF2A2A3E),
+    onSurfaceVariant = Color(0xFFB0B0B0), // Identique à iOS DarkTheme secondaryText
+    outline = Color(0xFF3A3A4E),
+    outlineVariant = Color(0xFF2A2A3E)
 )
 
 @Composable

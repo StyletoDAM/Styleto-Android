@@ -105,17 +105,14 @@ class ChatDetailViewModel(
                 chatRepository.checkForNewMessages(token, conversationId).fold(
                     onSuccess = { hasNewMessages ->
                         if (hasNewMessages) {
-                            android.util.Log.d("ChatDetailViewModel", "✅ New messages received via polling")
                         }
                     },
                     onFailure = { error ->
                         // Ne pas afficher d'erreur pour le polling, juste logger
-                        android.util.Log.d("ChatDetailViewModel", "Polling error: ${error.message}")
                     }
                 )
             }
         }
-        android.util.Log.d("ChatDetailViewModel", "Started polling for conversation: $conversationId")
     }
     
     /**
@@ -124,7 +121,6 @@ class ChatDetailViewModel(
     private fun stopPolling() {
         pollingJob?.cancel()
         pollingJob = null
-        android.util.Log.d("ChatDetailViewModel", "Stopped polling")
     }
 
     private fun loadMessages(token: String, conversationId: String) {
@@ -147,6 +143,7 @@ class ChatDetailViewModel(
     }
 
     fun sendMessage(token: String, userId: String, content: String) {
+        // ⭐ CORRECTION : Envoyer soit via socket, soit via REST (comme iOS), mais pas les deux !
         val convId = _conversationId.value
         if (convId == null) {
             _errorMessage.value = "Aucune conversation active"
@@ -159,29 +156,27 @@ class ChatDetailViewModel(
 
         viewModelScope.launch {
             // Récupérer les infos de l'utilisateur pour l'optimistic update
-            // On peut utiliser des valeurs par défaut si nécessaire
             val senderName: String? = null // Peut être récupéré depuis le profil si disponible
             val senderAvatar: String? = null // Peut être récupéré depuis le profil si disponible
             
-            // Envoyer via socket avec optimistic update (le message apparaît immédiatement)
-            chatRepository.sendMessage(convId, content, userId, senderName, senderAvatar)
-            
-            // Aussi envoyer via REST comme backup
-            chatRepository.sendMessageViaRest(token, convId, content).fold(
-                onSuccess = { message ->
-                    // Le message sera remplacé par la version du serveur via socket
-                },
-                onFailure = { error ->
-                    // Ne pas afficher d'erreur si le socket fonctionne
-                    if (!_isConnected.value) {
+            // ⭐ CORRECTION : Envoyer soit via socket, soit via REST (comme iOS ligne 139-145), mais pas les deux !
+            if (_isConnected.value) {
+                // Socket connecté → envoyer via socket uniquement
+                chatRepository.sendMessage(convId, content, userId, senderName, senderAvatar)
+            } else {
+                // Socket déconnecté → envoyer via REST uniquement (fallback)
+                chatRepository.sendMessageViaRest(token, convId, content).fold(
+                    onSuccess = { message ->
+                    },
+                    onFailure = { error ->
                         _errorMessage.value = when (error) {
                             is NetworkError.ServerMessage -> error.serverMessage
                             is NetworkError.Transport -> "Erreur lors de l'envoi: ${error.error.message}"
                             else -> error.message ?: "Erreur inconnue"
                         }
                     }
-                }
-            )
+                )
+            }
         }
     }
 

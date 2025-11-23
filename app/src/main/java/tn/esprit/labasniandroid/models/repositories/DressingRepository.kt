@@ -292,7 +292,7 @@ class DressingRepository(
 
 private fun ClothResponse.toEntity(): Cloth {
     val name = extractCategory(category)
-    val type = style?.takeIf { it.isNotBlank() } ?: name
+    val type = name.ifBlank { style?.takeIf { it.isNotBlank() } ?: "Autre" }
     val normalizedColor = normalizeColor(color)
     val image = imageUrl?.takeIf { it.isNotBlank() } ?: buildPlaceholder(normalizedColor)
 
@@ -302,7 +302,10 @@ private fun ClothResponse.toEntity(): Cloth {
         type = type.ifBlank { "Autre" },
         colorHex = normalizedColor,
         imageUrl = image,
-        createdAt = createdAt
+        createdAt = createdAt,
+        season = season,
+        style = style,
+        color = color
     )
 }
 

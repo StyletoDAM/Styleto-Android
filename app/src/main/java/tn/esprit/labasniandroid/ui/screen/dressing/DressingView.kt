@@ -7,7 +7,11 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.isSystemInDarkTheme
@@ -61,7 +65,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -113,9 +119,11 @@ fun DressingTab(
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
 
-    // États pour la détection
+    // États pour la détection (workflow comme iOS: PhotoGuide → Camera)
+    var showPhotoGuide by remember { mutableStateOf(false) }
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var selectedCloth by remember { mutableStateOf<Cloth?>(null) } // Pour ClothingDetailSheet
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
     var showLoadingScreen by remember { mutableStateOf(false) }
     var showDetectionResult by remember { mutableStateOf(false) }
@@ -410,24 +418,42 @@ fun DressingTab(
     var searchQuery by rememberSaveable { mutableStateOf("") }
     var selectedCategory by rememberSaveable { mutableStateOf("All") }
 
-    // Catégories comme iOS
-    val categories = listOf("All", "Tshirt", "Pants", "Dress", "Shoes", "Accessory")
+    // Catégories standardisées (comme iOS)
+    val categories = listOf("All", "Top", "Bottom", "Dress", "Shoes", "Accessory", "Jacket")
+    
+    // Helper pour normaliser les catégories (Tshirt → Top, Pants → Bottom, etc.)
+    fun normalizeCategory(category: String): String {
+        val normalized = category.lowercase().trim()
+        return when {
+            normalized.contains("top") || normalized.contains("tshirt") || normalized.contains("shirt") || normalized.contains("haut") -> "Top"
+            normalized.contains("bottom") || normalized.contains("pant") || normalized.contains("jean") || normalized.contains("bas") -> "Bottom"
+            normalized.contains("dress") || normalized.contains("robe") -> "Dress"
+            normalized.contains("shoe") || normalized.contains("chaussure") -> "Shoes"
+            normalized.contains("accessory") || normalized.contains("accessoire") -> "Accessory"
+            normalized.contains("jacket") || normalized.contains("veste") || normalized.contains("manteau") -> "Jacket"
+            else -> category // Garder original si pas reconnu
+        }
+    }
 
+    // Filtrage amélioré (comme iOS - inclut color, style, season)
     val filteredClothes by remember(clothes, searchQuery, selectedCategory) {
         derivedStateOf {
             clothes.filter { cloth ->
-                // Filtre par catégorie
+                // Filtre par catégorie (normalisé: Top, Bottom, etc.)
+                val clothCategoryNormalized = normalizeCategory(cloth.type)
                 val matchesCategory = selectedCategory == "All" || 
-                    cloth.type.equals(selectedCategory, ignoreCase = true)
+                    clothCategoryNormalized.equals(selectedCategory, ignoreCase = true)
                 
-                // Filtre par recherche textuelle (comme iOS)
+                // Filtre par recherche textuelle (comme iOS - inclut type, color, style, season)
                 val matchesQuery = if (searchQuery.isBlank()) {
                     true
                 } else {
                     val query = searchQuery.lowercase()
                     val categoryMatch = cloth.type.lowercase().contains(query)
-                    val nameMatch = cloth.name.lowercase().contains(query)
-                    categoryMatch || nameMatch
+                    val colorMatch = cloth.color?.lowercase()?.contains(query) ?: false
+                    val styleMatch = cloth.style?.lowercase()?.contains(query) ?: false
+                    val seasonMatch = cloth.season?.lowercase()?.contains(query) ?: false
+                    categoryMatch || colorMatch || styleMatch || seasonMatch
                 }
                 
                 matchesCategory && matchesQuery
@@ -595,6 +621,9 @@ fun DressingTab(
                                 themeTeal = themeTeal,
                                 onDelete = {
                                     showDeleteDialog = cloth
+                                },
+                                onClick = {
+                                    selectedCloth = cloth // Ouvrir ClothingDetailSheet (comme iOS)
                                 }
                             )
                         }
@@ -602,7 +631,7 @@ fun DressingTab(
                 }
             }
 
-            // Bouton flottant EN BAS À DROITE (comme iOS)
+            // Bouton flottant EN BAS À DROITE (comme iOS - ouvre PhotoGuidePopup)
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -610,13 +639,29 @@ fun DressingTab(
                 contentAlignment = Alignment.BottomEnd
             ) {
                 FloatingAddButton(
-                    onClick = { showImageSourceDialog = true },
+                    onClick = { showPhotoGuide = true }, // Workflow iOS: bouton → PhotoGuide
                     themePrimary = themePrimary
                 )
             }
         }
 
-        // Dialog de choix caméra/galerie
+        // PhotoGuidePopupView (comme iOS - s'affiche avant ImageSourceDialog)
+        PhotoGuidePopupView(
+            isShowing = showPhotoGuide,
+            onDismiss = { showPhotoGuide = false },
+            onContinue = { 
+                showPhotoGuide = false
+                showImageSourceDialog = true // Après PhotoGuide, ouvrir ImageSourceDialog
+            },
+            themePrimary = themePrimary,
+            themeTeal = themeTeal,
+            themeCard = themeCard,
+            themeBackground = themeBackground,
+            themeText = themeText,
+            themeSecondaryText = themeSecondaryText
+        )
+
+        // Dialog de choix caméra/galerie (après PhotoGuide)
         if (showImageSourceDialog) {
             ImageSourceDialog(
                 onDismiss = { showImageSourceDialog = false },
@@ -686,7 +731,34 @@ fun DressingTab(
         }
     }
 
-    // Dialog de confirmation de suppression (comme iOS)
+    // ClothingDetailSheet (comme iOS - s'affiche quand on clique sur une carte)
+    ClothingDetailSheet(
+        cloth = selectedCloth,
+        isShowing = selectedCloth != null,
+        isDeleting = deletingIds.contains(selectedCloth?.id ?: ""),
+        onDismiss = { selectedCloth = null },
+        onDelete = {
+            val token = authToken
+            val cloth = selectedCloth
+            if (token != null && cloth != null) {
+                viewModel.deleteCloth(token, cloth.id)
+                selectedCloth = null // Fermer la sheet après suppression
+            } else {
+                scope.launch { snackbarHostState.showSnackbar("Session expirée.") }
+            }
+        },
+        themePrimary = themePrimary,
+        themeSecondary = themeSecondary,
+        themeSoftPink = themeSoftPink,
+        themeAqua = themeAqua,
+        themeTeal = themeTeal,
+        themeCard = themeCard,
+        themeBackground = themeBackground,
+        themeText = themeText,
+        themeSecondaryText = themeSecondaryText
+    )
+
+    // Dialog de confirmation de suppression (gardé pour le bouton trash sur la carte)
     showDeleteDialog?.let { cloth ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
@@ -713,6 +785,26 @@ fun DressingTab(
                 }
             }
         )
+    }
+}
+
+// Helper pour obtenir la couleur de bordure selon catégorie (comme iOS)
+@Composable
+private fun getBorderColorForCategory(category: String): Color {
+    val normalized = category.lowercase().trim()
+    return when {
+        normalized.contains("top") || normalized.contains("tshirt") || normalized.contains("shirt") || normalized.contains("haut") -> 
+            Color(0xFFA7E0E0) // Teal clair (Tops)
+        normalized.contains("bottom") || normalized.contains("pant") || normalized.contains("jean") || normalized.contains("bas") -> 
+            Color(0xFF4D5F8F) // Bleu marine (Pants)
+        normalized.contains("dress") || normalized.contains("robe") -> 
+            Color(0xFFDB6A8F) // Rose vif (Dress)
+        normalized.contains("shoe") || normalized.contains("chaussure") -> 
+            Color(0xFF4A4A4A) // Gris foncé (Shoes)
+        normalized.contains("accessory") || normalized.contains("accessoire") || normalized.contains("jacket") || normalized.contains("veste") -> 
+            Color(0xFFE8AABE) // Rose doux (Accessories & Jacket)
+        else -> 
+            Color(0xFFD3D3D3) // Gris clair par défaut
     }
 }
 
@@ -747,7 +839,7 @@ private fun CategoryChip(
     }
 }
 
-// Clothing Card (comme iOS)
+// Clothing Card (comme iOS - avec bordure colorée, saison, animation)
 @Composable
 private fun ClothingCard(
     cloth: Cloth,
@@ -755,19 +847,49 @@ private fun ClothingCard(
     themePrimary: Color,
     themeCard: Color,
     themeTeal: Color,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onClick: () -> Unit // Clic sur la carte → ClothingDetailSheet
 ) {
+    // Couleur de bordure selon catégorie (comme iOS)
+    val borderColor = getBorderColorForCategory(cloth.type)
     val categoryColor = CategoryColors.colorForCategory(cloth.type)
+    
+    // Animation de suppression (comme iOS)
+    val alpha by animateFloatAsState(
+        targetValue = if (isDeleting) 0f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "card_alpha"
+    )
+    val scale by animateFloatAsState(
+        targetValue = if (isDeleting) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "card_scale"
+    )
 
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = themeCard),
         modifier = Modifier
             .fillMaxWidth()
+            .clickable(onClick = onClick) // Clic sur la carte
+            .alpha(alpha)
+            .scale(scale)
             .shadow(
                 elevation = 8.dp,
                 shape = RoundedCornerShape(20.dp),
                 spotColor = Color.Black.copy(alpha = 0.08f)
+            )
+            // Bordure colorée fine (comme iOS - 2.5dp)
+            .border(
+                width = 2.5.dp,
+                color = borderColor,
+                shape = RoundedCornerShape(20.dp)
             )
     ) {
         Column {
@@ -822,12 +944,21 @@ private fun ClothingCard(
                         ),
                         maxLines = 1
                     )
-                    // Note: iOS affiche aussi la saison si disponible, mais Cloth n'a pas ce champ
-                    // On peut afficher le nom si nécessaire
-                    if (cloth.name.isNotBlank() && cloth.name != cloth.type) {
-                Text(
+                    // Afficher la saison si disponible (comme iOS)
+                    if (!cloth.season.isNullOrBlank()) {
+                        Text(
+                            text = cloth.season.replaceFirstChar { it.uppercaseChar() },
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 13.sp,
+                                color = themeTeal.copy(alpha = 0.7f)
+                            ),
+                            maxLines = 1
+                        )
+                    } else if (cloth.name.isNotBlank() && cloth.name != cloth.type) {
+                        // Fallback: afficher le nom si pas de saison
+                        Text(
                             text = cloth.name,
-                    style = MaterialTheme.typography.bodyMedium.copy(
+                            style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 13.sp,
                                 color = themeTeal.copy(alpha = 0.7f)
                             ),

@@ -1,0 +1,33 @@
+package tn.esprit.labasniandroid.ui.screen.store.messaging;
+
+@kotlin.Metadata(mv = {1, 9, 0}, k = 2, xi = 48, d1 = {"\u0000J\n\u0000\n\u0002\u0010\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\t\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000b\n\u0002\b\b\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\u0005\u001aP\u0010\u0000\u001a\u00020\u00012\u0006\u0010\u0002\u001a\u00020\u00032\u0006\u0010\u0004\u001a\u00020\u00052\u0006\u0010\u0006\u001a\u00020\u00052\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\t\u001a\u00020\b2\u0006\u0010\n\u001a\u00020\b2\f\u0010\u000b\u001a\b\u0012\u0004\u0012\u00020\u00010\fH\u0003\u00f8\u0001\u0000\u00a2\u0006\u0004\b\r\u0010\u000e\u001a8\u0010\u000f\u001a\u00020\u00012\u0006\u0010\u0006\u001a\u00020\u00052\f\u0010\u0010\u001a\b\u0012\u0004\u0012\u00020\u00010\f2\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\n\u001a\u00020\bH\u0003\u00f8\u0001\u0000\u00a2\u0006\u0004\b\u0011\u0010\u0012\u001ah\u0010\u0013\u001a\u00020\u00012\u0006\u0010\u0014\u001a\u00020\u00052\u0012\u0010\u0015\u001a\u000e\u0012\u0004\u0012\u00020\u0005\u0012\u0004\u0012\u00020\u00010\u00162\u0006\u0010\u0017\u001a\u00020\u00182\u0012\u0010\u0019\u001a\u000e\u0012\u0004\u0012\u00020\u0018\u0012\u0004\u0012\u00020\u00010\u00162\f\u0010\u001a\u001a\b\u0012\u0004\u0012\u00020\u00010\f2\u0006\u0010\u0007\u001a\u00020\b2\u0006\u0010\u001b\u001a\u00020\bH\u0003\u00f8\u0001\u0000\u00a2\u0006\u0004\b\u001c\u0010\u001d\u001a`\u0010\u001e\u001a\u00020\u00012\u0006\u0010\u001f\u001a\u00020\u00052\u0006\u0010\u0004\u001a\u00020\u00052\b\b\u0002\u0010 \u001a\u00020!2\b\b\u0002\u0010\"\u001a\u00020#2\f\u0010$\u001a\b\u0012\u0004\u0012\u00020\u00010\f2$\b\u0002\u0010%\u001a\u001e\u0012\u0004\u0012\u00020\u0005\u0012\u0006\u0012\u0004\u0018\u00010\u0005\u0012\u0006\u0012\u0004\u0018\u00010\u0005\u0012\u0004\u0012\u00020\u00010&H\u0007\u001a\u0010\u0010\'\u001a\u00020\u00052\u0006\u0010(\u001a\u00020\u0005H\u0002\u001a\u0010\u0010)\u001a\u00020\u00052\u0006\u0010*\u001a\u00020\u0005H\u0002\u0082\u0002\u0007\n\u0005\b\u00a1\u001e0\u0001\u00a8\u0006+"}, d2 = {"ConversationRow", "", "conversation", "Ltn/esprit/labasniandroid/models/entities/Conversation;", "userId", "", "searchText", "themePrimary", "Landroidx/compose/ui/graphics/Color;", "themeCard", "themeText", "onClick", "Lkotlin/Function0;", "ConversationRow-BqC95S0", "(Ltn/esprit/labasniandroid/models/entities/Conversation;Ljava/lang/String;Ljava/lang/String;JJJLkotlin/jvm/functions/Function0;)V", "EmptyStateView", "onClearSearch", "EmptyStateView-0YGnOg8", "(Ljava/lang/String;Lkotlin/jvm/functions/Function0;JJ)V", "MessagingSearchBar", "value", "onValueChange", "Lkotlin/Function1;", "isFocused", "", "onFocusChange", "onClear", "themeAqua", "MessagingSearchBar-IhcsPec", "(Ljava/lang/String;Lkotlin/jvm/functions/Function1;ZLkotlin/jvm/functions/Function1;Lkotlin/jvm/functions/Function0;JJ)V", "MessagingView", "token", "modifier", "Landroidx/compose/ui/Modifier;", "viewModel", "Ltn/esprit/labasniandroid/ui/screen/store/messaging/MessagingViewModel;", "onNavigateBack", "onNavigateToChat", "Lkotlin/Function3;", "formatRelativeTime", "dateString", "normalizeText", "text", "app_debug"})
+public final class MessagingViewKt {
+    
+    /**
+     * MessagingView Android (comme iOS ChatView)
+     * Liste des conversations avec recherche et navigation vers ChatDetailView
+     */
+    @androidx.compose.runtime.Composable()
+    public static final void MessagingView(@org.jetbrains.annotations.NotNull()
+    java.lang.String token, @org.jetbrains.annotations.NotNull()
+    java.lang.String userId, @org.jetbrains.annotations.NotNull()
+    androidx.compose.ui.Modifier modifier, @org.jetbrains.annotations.NotNull()
+    tn.esprit.labasniandroid.ui.screen.store.messaging.MessagingViewModel viewModel, @org.jetbrains.annotations.NotNull()
+    kotlin.jvm.functions.Function0<kotlin.Unit> onNavigateBack, @org.jetbrains.annotations.NotNull()
+    kotlin.jvm.functions.Function3<? super java.lang.String, ? super java.lang.String, ? super java.lang.String, kotlin.Unit> onNavigateToChat) {
+    }
+    
+    /**
+     * Normalise le texte (supprime les accents, lowercase) - comme iOS folding
+     */
+    private static final java.lang.String normalizeText(java.lang.String text) {
+        return null;
+    }
+    
+    /**
+     * Format temps relatif (comme iOS relativeTime)
+     */
+    private static final java.lang.String formatRelativeTime(java.lang.String dateString) {
+        return null;
+    }
+}

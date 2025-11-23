@@ -1484,6 +1484,8 @@ fun ProfileView(
                             scope.launch {
                                 // Supprimer le token
                                 TokenManager.clearToken(context)
+                                // Vider le panier lors du logout (comme iOS)
+                                tn.esprit.labasniandroid.utils.CartManager.handleLogout()
                                 snackbarHostState.showSnackbar(
                                     message = "Vous êtes maintenant déconnecté(e).",
                                     duration = SnackbarDuration.Short

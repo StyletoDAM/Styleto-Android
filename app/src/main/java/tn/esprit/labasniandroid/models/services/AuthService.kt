@@ -243,9 +243,11 @@ class AuthService(
     /**
      * Logique métier pour la déconnexion
      * - Supprime le token et l'ID utilisateur
+     * - Vide le panier (comme iOS)
      */
     fun logout(context: Context) {
         TokenManager.clearToken(context)
+        tn.esprit.labasniandroid.utils.CartManager.handleLogout()
     }
 }
 

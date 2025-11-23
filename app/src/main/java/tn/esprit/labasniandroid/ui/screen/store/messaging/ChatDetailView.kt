@@ -24,6 +24,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -106,13 +109,6 @@ fun ChatDetailView(
     LaunchedEffect(ownerId) {
         if (ownerId.isNotBlank()) {
             // Log détaillé pour vérifier le userId utilisé
-            android.util.Log.d("ChatDetailView", "=== INITIALIZATION ===")
-            android.util.Log.d("ChatDetailView", "userId from MainScreen: '$userId'")
-            android.util.Log.d("ChatDetailView", "userId length: ${userId.length}")
-            android.util.Log.d("ChatDetailView", "userId isEmpty: ${userId.isEmpty()}")
-            android.util.Log.d("ChatDetailView", "userId isBlank: ${userId.isBlank()}")
-            android.util.Log.d("ChatDetailView", "ownerId: '$ownerId'")
-            android.util.Log.d("ChatDetailView", "======================")
             viewModel.initializeChat(token, userId, ownerId)
         }
     }
@@ -144,14 +140,15 @@ fun ChatDetailView(
                     )
                 }
 
-                // Header avec avatar et nom (comme iOS) + Menu dropdown
+                // Header avec avatar et nom (comme iOS toolbar ligne 150-186)
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
+                    // Avatar avec badge en ligne (comme iOS ligne 152-175)
                     Box {
-                        if (ownerAvatar != null) {
+                        if (ownerAvatar != null && ownerAvatar.isNotBlank()) {
                             AsyncImage(
                                 model = ImageRequest.Builder(LocalContext.current)
                                     .data(ownerAvatar)
@@ -175,124 +172,130 @@ fun ChatDetailView(
                                     text = (ownerName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
                                     style = MaterialTheme.typography.titleMedium.copy(
                                         fontWeight = FontWeight.Bold,
+                                        fontSize = 16.sp,
                                         color = Color.White
                                     )
                                 )
                             }
                         }
-                        // Badge vert pour "en ligne" (comme iOS)
-                        if (isConnected) {
+                        // Badge vert pour "en ligne" (comme iOS ligne 171-174)
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .clip(CircleShape)
+                                .background(if (isConnected) Color.Green else Color.Gray)
+                                .align(Alignment.BottomEnd)
+                        ) {
                             Box(
                                 modifier = Modifier
-                                    .size(12.dp)
+                                    .fillMaxSize()
                                     .clip(CircleShape)
-                                    .background(Color.Green)
-                                    .align(Alignment.BottomEnd)
+                                    .background(themeBackground)
+                                    .padding(2.dp)
                             )
                         }
                     }
 
+                    // Nom et statut (comme iOS ligne 177-184)
                     Column(
                         modifier = Modifier.weight(1f),
                         verticalArrangement = Arrangement.spacedBy(2.dp)
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = ownerName ?: "Utilisateur",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = themePrimary
-                                )
+                        Text(
+                            text = ownerName ?: "Utilisateur",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 17.sp,
+                                color = themePrimary
                             )
-                            // Menu dropdown pour accéder aux autres conversations
-                            if (conversations.isNotEmpty()) {
-                                Box {
-                                    IconButton(
-                                        onClick = { showConversationsMenu = true },
-                                        modifier = Modifier.size(24.dp)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowDropDown,
-                                            contentDescription = "Conversations",
-                                            tint = themePrimary,
-                                            modifier = Modifier.size(20.dp)
-                                        )
-                                    }
-                                    DropdownMenu(
-                                        expanded = showConversationsMenu,
-                                        onDismissRequest = { showConversationsMenu = false },
-                                        modifier = Modifier
-                                            .background(themeCard)
-                                            .fillMaxWidth(0.7f)
-                                    ) {
-                                        conversations.forEach { conversation ->
-                                            val otherParticipant: String? = conversation.participants.firstOrNull { participantId: String -> participantId != userId }
-                                            val otherName: String = otherParticipant?.let { id: String -> conversation.participantNames[id] } ?: "Utilisateur"
-                                            val otherAvatar: String? = otherParticipant?.let { id: String -> conversation.participantAvatars[id] }
-                                            
-                                            DropdownMenuItem(
-                                                onClick = {
-                                                    showConversationsMenu = false
-                                                    if (otherParticipant != null && otherParticipant != ownerId) {
-                                                        onNavigateToConversation(otherParticipant, otherName, otherAvatar)
-                                                    }
-                                                },
-                                                text = {
-                                                    Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        if (otherAvatar != null) {
-                                                            AsyncImage(
-                                                                model = ImageRequest.Builder(LocalContext.current)
-                                                                    .data(otherAvatar)
-                                                                    .crossfade(true)
-                                                                    .build(),
-                                                                contentDescription = otherName,
-                                                                modifier = Modifier
-                                                                    .size(32.dp)
-                                                                    .clip(CircleShape),
-                                                                contentScale = ContentScale.Crop
-                                                            )
-                                                        } else {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(32.dp)
-                                                                    .clip(CircleShape)
-                                                                    .background(Color.Gray.copy(alpha = 0.3f)),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Text(
-                                                                    text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = Color.White
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                        Text(
-                                                            text = otherName,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = themeText
-                                                        )
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
+                        )
                         Text(
                             text = if (isConnected) "En ligne" else "Hors ligne",
                             style = MaterialTheme.typography.bodySmall.copy(
+                                fontSize = 12.sp,
                                 color = if (isConnected) Color.Green else Color.Gray
                             )
                         )
+                    }
+                    
+                    // Menu dropdown pour accéder aux autres conversations
+                    if (conversations.isNotEmpty()) {
+                        Box {
+                            IconButton(
+                                onClick = { showConversationsMenu = true },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ArrowDropDown,
+                                    contentDescription = "Conversations",
+                                    tint = themePrimary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            DropdownMenu(
+                                expanded = showConversationsMenu,
+                                onDismissRequest = { showConversationsMenu = false },
+                                modifier = Modifier
+                                    .background(themeCard)
+                                    .fillMaxWidth(0.7f)
+                            ) {
+                                conversations.forEach { conversation ->
+                                    val otherParticipant: String? = conversation.participants.firstOrNull { participantId: String -> participantId != userId }
+                                    val otherName: String = otherParticipant?.let { id: String -> conversation.participantNames[id] } ?: "Utilisateur"
+                                    val otherAvatar: String? = otherParticipant?.let { id: String -> conversation.participantAvatars[id] }
+                                    
+                                    DropdownMenuItem(
+                                        onClick = {
+                                            showConversationsMenu = false
+                                            if (otherParticipant != null && otherParticipant != ownerId) {
+                                                onNavigateToConversation(otherParticipant, otherName, otherAvatar)
+                                            }
+                                        },
+                                        text = {
+                                            Row(
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                if (otherAvatar != null) {
+                                                    AsyncImage(
+                                                        model = ImageRequest.Builder(LocalContext.current)
+                                                            .data(otherAvatar)
+                                                            .crossfade(true)
+                                                            .build(),
+                                                        contentDescription = otherName,
+                                                        modifier = Modifier
+                                                            .size(32.dp)
+                                                            .clip(CircleShape),
+                                                        contentScale = ContentScale.Crop
+                                                    )
+                                                } else {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(32.dp)
+                                                            .clip(CircleShape)
+                                                            .background(Color.Gray.copy(alpha = 0.3f)),
+                                                        contentAlignment = Alignment.Center
+                                                    ) {
+                                                        Text(
+                                                            text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                                fontWeight = FontWeight.Bold,
+                                                                color = Color.White
+                                                            )
+                                                        )
+                                                    }
+                                                }
+                                                Text(
+                                                    text = otherName,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = themeText
+                                                )
+                                            }
+                                        }
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -304,14 +307,15 @@ fun ChatDetailView(
                 .background(themeBackground)
                 .padding(innerPadding)
         ) {
-            // Messages List
+            // Messages List (comme iOS - spacing 20dp)
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
-                    .padding(top = 10.dp),
+                    .padding(top = 10.dp)
+                    .padding(bottom = 100.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
             ) {
                 items(messages, key = { it.id }) { message ->
@@ -330,7 +334,7 @@ fun ChatDetailView(
                 }
             }
 
-            // Input Bar (comme iOS)
+            // Input Bar (comme iOS ligne 108-138)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -338,8 +342,21 @@ fun ChatDetailView(
                     .imePadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.spacedBy(14.dp),
-                verticalAlignment = Alignment.Bottom
+                verticalAlignment = Alignment.CenterVertically
             ) {
+                // Paperclip icon (comme iOS ligne 110-112)
+                IconButton(
+                    onClick = { /* TODO: Attach file */ },
+                    modifier = Modifier.size(24.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.AttachFile,
+                        contentDescription = "Attach",
+                        tint = themePrimary.copy(alpha = 0.8f),
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
                 TextField(
                     value = messageText,
                     onValueChange = { messageText = it },
@@ -350,27 +367,34 @@ fun ChatDetailView(
                         unfocusedContainerColor = themeCard,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
+                        disabledIndicatorColor = Color.Transparent,
+                        focusedTextColor = themeText,
+                        unfocusedTextColor = themeText
                     ),
                     shape = RoundedCornerShape(24.dp),
-                    maxLines = 6
+                    maxLines = 6,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp)
                 )
 
+                // Send button (comme iOS ligne 120-132)
+                val isSending = false // TODO: Get from viewModel
                 IconButton(
                     onClick = {
-                        if (messageText.isNotBlank()) {
+                        if (messageText.isNotBlank() && !isSending) {
                             val textToSend = messageText
-                            messageText = "" // Vider immédiatement le champ
+                            messageText = ""
                             viewModel.sendMessage(token, userId, textToSend)
                         }
                     },
+                    enabled = messageText.isNotBlank() && !isSending,
                     modifier = Modifier
                         .size(44.dp)
                         .clip(CircleShape)
-                        .background(themePrimary)
+                        .background(if (isSending || messageText.isBlank()) Color.Gray else themePrimary)
+                        .shadow(8.dp, CircleShape, spotColor = themePrimary.copy(alpha = 0.4f))
                 ) {
                     Icon(
-                        imageVector = Icons.AutoMirrored.Filled.Send,
+                        imageVector = if (isSending) Icons.Filled.Schedule else Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
                         tint = Color.White,
                         modifier = Modifier.size(20.dp)
@@ -391,111 +415,40 @@ private fun MessageBubble(
 ) {
     val time = message.createdAt?.let {
         try {
-            // Format simple pour l'instant
-            it.substring(11, 16) // HH:mm
+            val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
+            format.timeZone = java.util.TimeZone.getTimeZone("UTC")
+            val date = format.parse(it)
+            if (date != null) {
+                val timeFormat = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault())
+                timeFormat.format(date)
+            } else {
+                it.substringOrNull(11, 16) ?: ""
+            }
         } catch (e: Exception) {
             ""
         }
     } ?: ""
 
-    // Message envoyé (à droite, bulle colorée - comme Messenger)
     if (isOwnMessage) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = 60.dp), // Espace à gauche pour pousser à droite
-            horizontalArrangement = Arrangement.End
-        ) {
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.widthIn(max = 280.dp) // Largeur max pour les bulles
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = Color.White,
-                    modifier = Modifier
-                        .background(themePrimary, RoundedCornerShape(20.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                )
-                if (time.isNotBlank()) {
-                    Text(
-                        text = time,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 10.sp
-                        ),
-                        color = Color.Gray.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(end = 4.dp)
-                    )
-                }
-            }
-        }
+        OutgoingMessage(
+            text = message.content,
+            time = time,
+            themeCard = themeCard,
+            themeText = themeText
+        )
     } else {
-        // Message reçu (à gauche, bulle claire - comme Messenger)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = 60.dp), // Espace à droite pour pousser à gauche
-            horizontalArrangement = Arrangement.Start,
-            verticalAlignment = Alignment.Bottom
-        ) {
-            // Avatar
-            if (message.senderAvatar != null) {
-                AsyncImage(
-                    model = ImageRequest.Builder(LocalContext.current)
-                        .data(message.senderAvatar)
-                        .crossfade(true)
-                        .build(),
-                    contentDescription = message.senderName,
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Color.Gray.copy(alpha = 0.3f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = (message.senderName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            Column(
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-                modifier = Modifier.widthIn(max = 280.dp) // Largeur max pour les bulles
-            ) {
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = themeText,
-                    modifier = Modifier
-                        .background(themeCard, RoundedCornerShape(20.dp))
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
-                )
-                if (time.isNotBlank()) {
-                    Text(
-                        text = time,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            fontSize = 10.sp
-                        ),
-                        color = Color.Gray.copy(alpha = 0.8f),
-                        modifier = Modifier.padding(start = 4.dp)
-                    )
-                }
-            }
-        }
+        IncomingMessage(
+            text = message.content,
+            time = time,
+            avatarLetter = (message.senderName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
+            profilePictureURL = message.senderAvatar,
+            themePrimary = themePrimary
+        )
     }
+}
+
+private fun String.substringOrNull(startIndex: Int, endIndex: Int): String? {
+    return if (startIndex >= 0 && endIndex <= this.length && startIndex < endIndex) {
+        this.substring(startIndex, endIndex)
+    } else null
 }

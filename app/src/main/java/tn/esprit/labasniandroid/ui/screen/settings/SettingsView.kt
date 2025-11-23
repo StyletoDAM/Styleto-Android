@@ -190,6 +190,9 @@ fun SettingsView(
     // State
     var expandedSections by remember { mutableStateOf<Set<String>>(emptySet()) }
     var showThemePicker by remember { mutableStateOf(false) }
+    var showColorThemePicker by remember { mutableStateOf(false) }
+    var showContactUsDialog by remember { mutableStateOf(false) }
+    var showAboutDialog by remember { mutableStateOf(false) }
     var showSaveConfirmation by remember { mutableStateOf(false) }
     var showSuccessAlert by remember { mutableStateOf(false) }
     var showErrorAlert by remember { mutableStateOf(false) }
@@ -273,6 +276,8 @@ fun SettingsView(
             
             if (accountDeleted) {
                 TokenManager.clearToken(context)
+                // Vider le panier lors de la suppression de compte (comme iOS)
+                tn.esprit.labasniandroid.utils.CartManager.handleLogout()
                 viewModel.acknowledgeAccountDeleted()
                 onLogout()
             } else {
@@ -369,8 +374,7 @@ fun SettingsView(
                 title = "App Settings",
                 options = listOf(
                     SettingsOption("notifications", Icons.Rounded.Notifications, "Notifications", hasToggle = true, toggleValue = true, hasChevron = false),
-                    SettingsOption("language", Icons.Rounded.Language, "Language", hasChevron = true),
-                    SettingsOption("font_size", Icons.Rounded.TextFields, "Font Size", hasChevron = true)
+                    SettingsOption("language", Icons.Rounded.Language, "Language", hasChevron = true)
                 )
             ),
             SettingsSection(
@@ -379,10 +383,7 @@ fun SettingsView(
                 title = "Preferences",
                 options = listOf(
                     SettingsOption("theme", Icons.Rounded.DarkMode, "Theme", hasChevron = true),
-                    SettingsOption("color_theme", Icons.Rounded.Palette, "Color Theme", hasChevron = true),
-                    SettingsOption("interface_layout", Icons.Rounded.Square, "Interface Layout", hasChevron = true),
-                    SettingsOption("animation_style", Icons.Rounded.AutoAwesome, "Animation Style", hasChevron = true),
-                    SettingsOption("favorite_styles", Icons.Rounded.Favorite, "Favorite Styles", hasChevron = true)
+                    SettingsOption("color_theme", Icons.Rounded.Palette, "Color Theme", hasChevron = true)
                 )
             ),
             SettingsSection(
@@ -400,7 +401,6 @@ fun SettingsView(
                 title = "Help & Support",
                 options = listOf(
                     SettingsOption("contact", Icons.Rounded.Email, "Contact Us", hasChevron = true),
-                    SettingsOption("faq", Icons.Rounded.Help, "FAQ", hasChevron = true),
                     SettingsOption("about", Icons.Rounded.Info, "About", hasChevron = true),
                     SettingsOption("version", Icons.Rounded.Info, "Version 1.0.0", hasChevron = false)
                 )
@@ -577,6 +577,9 @@ fun SettingsView(
                         themeText = themeText,
                         themeSecondaryText = themeSecondaryText,
                         onThemeClick = { showThemePicker = true },
+                        onColorThemeClick = { showColorThemePicker = true },
+                        onContactUsClick = { showContactUsDialog = true },
+                        onAboutClick = { showAboutDialog = true },
                         onPasswordChange = { showPasswordUpdate = true },
                         onDeleteAccount = { showDeleteConfirmation = true },
                         viewModel = viewModel,
@@ -630,6 +633,57 @@ fun SettingsView(
             themeCard = themeCard,
             themeText = themeText,
             themeBackground = themeBackground
+        )
+    }
+    
+    if (showColorThemePicker) {
+        ColorThemePickerSheet(
+            currentVariant = ThemeController.themeVariant.collectAsState().value,
+            onVariantSelected = { variant ->
+                ThemeController.setThemeVariant(variant)
+                showColorThemePicker = false
+            },
+            onDismiss = { showColorThemePicker = false },
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText,
+            themeBackground = themeBackground
+        )
+    }
+    
+    if (showContactUsDialog) {
+        ContactUsDialog(
+            onDismiss = { showContactUsDialog = false },
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
+        )
+    }
+    
+    if (showAboutDialog) {
+        AboutDialog(
+            onDismiss = { showAboutDialog = false },
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
+        )
+    }
+    
+    if (showContactUsDialog) {
+        ContactUsDialog(
+            onDismiss = { showContactUsDialog = false },
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
+        )
+    }
+    
+    if (showAboutDialog) {
+        AboutDialog(
+            onDismiss = { showAboutDialog = false },
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
         )
     }
     
@@ -722,6 +776,8 @@ fun SettingsView(
                     onClick = {
                         showLogoutConfirmation = false
                         TokenManager.clearToken(context)
+                        // Vider le panier lors du logout (comme iOS)
+                        tn.esprit.labasniandroid.utils.CartManager.handleLogout()
                         onLogout()
                     }
                 ) {

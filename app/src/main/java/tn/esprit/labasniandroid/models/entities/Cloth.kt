@@ -6,7 +6,10 @@ data class Cloth(
     val type: String,
     val colorHex: String,
     val imageUrl: String,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val season: String? = null, // Spring, Summer, Fall, Winter, All
+    val style: String? = null, // Casual, Elegant, Sport, Vintage, Modern, Bohemian
+    val color: String? = null // Color name (e.g., "Pink", "Blue")
 )
 
 

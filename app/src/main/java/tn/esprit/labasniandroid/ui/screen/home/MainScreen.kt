@@ -104,20 +104,17 @@ fun MainScreen(
         val id = TokenManager.getUserId(context)
         
         // Log pour déboguer
-        android.util.Log.d("MainScreen", "=== TokenManager Check ===")
-        android.util.Log.d("MainScreen", "Token: ${if (token.isNullOrEmpty()) "NULL/EMPTY" else "EXISTS (length=${token.length})"}")
-        android.util.Log.d("MainScreen", "UserId: ${if (id.isNullOrEmpty()) "NULL/EMPTY" else "'$id' (length=${id.length})"}")
-        android.util.Log.d("MainScreen", "========================")
         
         if (token.isNullOrEmpty() || id.isNullOrEmpty()) {
             tokenMissing = true
         } else {
             authToken = token
             userId = id
-            android.util.Log.d("MainScreen", "Setting userId for ChatDetailView: '$userId'")
             viewModel.loadProfile(token)
             // Synchroniser le thème avec le genre sauvegardé (comme iOS)
             ThemeController.syncThemeVariantWithSavedGender(context)
+            // Mettre à jour le CartManager avec l'userId (recharge le panier de l'utilisateur)
+            tn.esprit.labasniandroid.utils.CartManager.updateUserId(id, context)
         }
     }
     
@@ -137,7 +134,6 @@ fun MainScreen(
     LaunchedEffect(errorMessage) {
         errorMessage?.let {
             if (it.isNotBlank()) {
-                android.util.Log.e("LabasniMainScreen", it)
             }
         }
     }
@@ -201,36 +197,8 @@ fun MainScreen(
                         }
                     } else {
                         when {
-                            showCart -> CartView(
-                                token = authToken,
-                                userId = userId,
-                                onNavigateBack = { showCart = false }
-                            )
-                            showMessaging -> MessagingView(
-                                token = authToken,
-                                userId = userId,
-                                onNavigateBack = { showMessaging = false },
-                                onNavigateToChat = { ownerId, ownerName, ownerAvatar ->
-                                    android.util.Log.d("MainScreen", "=== NAVIGATING TO CHAT FROM MESSAGING ===")
-                                    android.util.Log.d("MainScreen", "ownerId: $ownerId")
-                                    android.util.Log.d("MainScreen", "ownerName: $ownerName")
-                                    android.util.Log.d("MainScreen", "ownerAvatar: $ownerAvatar")
-                                    
-                                    chatOwnerId = ownerId
-                                    chatOwnerName = ownerName ?: "Utilisateur"
-                                    chatOwnerAvatar = ownerAvatar
-                                    chatStoreItem = null
-                                    showMessaging = false
-                                    showChatDetail = true
-                                    
-                                    android.util.Log.d("MainScreen", "✅ Navigation set: showChatDetail=true, chatOwnerId=$chatOwnerId, chatOwnerName=$chatOwnerName")
-                                }
-                            )
+                            // ChatDetailView doit être vérifié en premier pour permettre la navigation depuis MessagingView
                             showChatDetail && chatOwnerId != null -> {
-                                android.util.Log.d("MainScreen", "=== RENDERING ChatDetailView ===")
-                                android.util.Log.d("MainScreen", "chatOwnerId: $chatOwnerId")
-                                android.util.Log.d("MainScreen", "chatOwnerName: $chatOwnerName")
-                                android.util.Log.d("MainScreen", "chatOwnerAvatar: $chatOwnerAvatar")
                                 
                                 ChatDetailView(
                                     token = authToken,
@@ -240,7 +208,6 @@ fun MainScreen(
                                     ownerAvatar = chatOwnerAvatar,
                                     storeItem = chatStoreItem,
                                     onNavigateBack = {
-                                        android.util.Log.d("MainScreen", "ChatDetailView: Navigating back")
                                         showChatDetail = false
                                         chatOwnerId = null
                                         chatOwnerName = null
@@ -248,7 +215,6 @@ fun MainScreen(
                                         chatStoreItem = null
                                     },
                                     onNavigateToConversation = { newOwnerId, newOwnerName, newOwnerAvatar ->
-                                        android.util.Log.d("MainScreen", "ChatDetailView: Navigating to new conversation")
                                         chatOwnerId = newOwnerId
                                         chatOwnerName = newOwnerName ?: "Utilisateur"
                                         chatOwnerAvatar = newOwnerAvatar
@@ -256,6 +222,33 @@ fun MainScreen(
                                     }
                                 )
                             }
+                            showCart -> CartView(
+                                token = authToken,
+                                userId = userId,
+                                onNavigateBack = { showCart = false }
+                            )
+                            showMessaging -> MessagingView(
+                                token = authToken,
+                                userId = userId,
+                                onNavigateBack = { 
+                                    showMessaging = false 
+                                },
+                                onNavigateToChat = { ownerId, ownerName, ownerAvatar ->
+                                    
+                                    // ⭐ CORRECTION : Mettre à jour les variables AVANT de changer les flags
+                                    // Cela garantit que chatOwnerId est défini avant showChatDetail
+                                    chatOwnerId = ownerId
+                                    chatOwnerName = ownerName ?: "Utilisateur"
+                                    chatOwnerAvatar = ownerAvatar
+                                    chatStoreItem = null
+                                    
+                                    // ⭐ CORRECTION : Changer les flags dans le bon ordre
+                                    // D'abord fermer MessagingView, puis ouvrir ChatDetailView
+                                    showMessaging = false
+                                    showChatDetail = true
+                                    
+                                }
+                            )
                             else -> StoreTab(
                                 token = authToken,
                                 userId = userId,
@@ -279,6 +272,8 @@ fun MainScreen(
                     onThemeChange = ThemeController::setThemeMode,
                     onLogout = {
                         TokenManager.clearToken(context)
+                        // Vider le panier lors du logout (comme iOS)
+                        tn.esprit.labasniandroid.utils.CartManager.handleLogout()
                         onLogout()
                     },
                     onUserUpdated = { updatedUser ->

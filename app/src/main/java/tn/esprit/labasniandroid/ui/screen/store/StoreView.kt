@@ -65,6 +65,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -84,10 +85,15 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.StoreItem
+import tn.esprit.labasniandroid.ui.screen.store.DiscoverItemDetailSheet
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import tn.esprit.labasniandroid.utils.TokenManager
+import tn.esprit.labasniandroid.utils.CartManager
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.animateColorAsState
 
 private val STANDARD_SIZES = listOf("XS", "S", "M", "L", "XL", "XXL", "XXXL")
 
@@ -131,6 +137,9 @@ fun StoreTab(
     val isLoadingClothes by viewModel.isLoadingClothes.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
 
+    // Observer le nombre d'articles dans le panier (comme iOS CartManager.shared.itemCount)
+    val cartItemCount by CartManager.itemCount.collectAsState(initial = 0)
+
     LaunchedEffect(token, userId) {
         if (token.isNotBlank() && userId.isNotBlank()) {
             viewModel.initialize(token, userId)
@@ -153,6 +162,10 @@ fun StoreTab(
 
     var showEditDialog by remember { mutableStateOf<StoreItem?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf<StoreItem?>(null) }
+    var showDiscoverDetail by remember { mutableStateOf<StoreItem?>(null) }
+    
+    // État pour la barre d'onglets My Items / Discover
+    var selectedTab by remember { mutableStateOf("My Items") }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -215,28 +228,75 @@ fun StoreTab(
                             )
                         }
                         
-                        // Bouton Panier
-                        IconButton(
-                            onClick = { onNavigateToCart() },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(themePrimary)
-                                .shadow(
-                                    elevation = 8.dp,
-                                    shape = CircleShape,
-                                    spotColor = Color.Black.copy(alpha = 0.2f)
-                                )
+                        // Bouton Panier avec badge rouge (comme iOS - ZStack avec badge)
+                        Box(
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.Filled.ShoppingCart,
-                                contentDescription = "Panier",
-                                tint = Color.White,
-                                modifier = Modifier.size(22.dp)
-                            )
+                            IconButton(
+                                onClick = { onNavigateToCart() },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(themePrimary)
+                                    .shadow(
+                                        elevation = 8.dp,
+                                        shape = CircleShape,
+                                        spotColor = Color.Black.copy(alpha = 0.2f)
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ShoppingCart,
+                                    contentDescription = "Panier",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+
+                            // Badge rouge – apparaît uniquement si > 0 (comme iOS)
+                            if (cartItemCount > 0) {
+                                val scale by animateFloatAsState(
+                                    targetValue = 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                        stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+                                    ),
+                                    label = "badge_scale"
+                                )
+
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .scale(scale)
+                                        .size(18.dp)
+                                        .background(
+                                            Color.Red,
+                                            shape = CircleShape
+                                        )
+                                        .padding(4.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (cartItemCount > 9) "9+" else "$cartItemCount",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 11.sp,
+                                            color = Color.White
+                                        )
+                                    )
+                                }
+                            }
                         }
                     }
                 }
+
+                // Barre d'onglets My Items / Discover
+                StoreTabBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { selectedTab = it },
+                    themePrimary = themePrimary,
+                    themeCard = themeCard,
+                    themeText = DynamicThemeColors.text(isMale)
+                )
 
                 // Search Bar (comme iOS)
                 StoreSearchBar(
@@ -246,52 +306,110 @@ fun StoreTab(
                     themeSoftPink = themeSoftPink
                 )
 
-                // My Items Section (comme iOS)
-                if (storeItems.isNotEmpty()) {
-                    SectionHeader(
-                        title = "My Items",
-                        themeTeal = themeTeal
-                    )
-                    MyItemsGrid(
-                        items = storeItems,
-                        deletingIds = deletingIds,
-                        themePrimary = themePrimary,
-                        themeCard = themeCard,
-                        themeTeal = themeTeal,
-                        themeSecondary = themeSecondary,
-                        themeAqua = themeAqua,
-                        onDelete = { }, // Plus utilisé
-                        onEdit = { showEditDialog = it }
-                    )
+                // Contenu selon l'onglet sélectionné
+                when (selectedTab) {
+                    "My Items" -> {
+                        // My Items Section
+                        if (storeItems.isNotEmpty()) {
+                            MyItemsGrid(
+                                items = storeItems,
+                                deletingIds = deletingIds,
+                                themePrimary = themePrimary,
+                                themeCard = themeCard,
+                                themeTeal = themeTeal,
+                                themeSecondary = themeSecondary,
+                                themeAqua = themeAqua,
+                                onDelete = { }, // Plus utilisé
+                                onEdit = { showEditDialog = it }
+                            )
+                        } else if (!isLoading) {
+                            // Empty state pour My Items
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = "👕",
+                                        fontSize = 48.sp
+                                    )
+                                    Text(
+                                        text = "No items for sale",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = DynamicThemeColors.secondaryText()
+                                        )
+                                    )
+                                    Text(
+                                        text = "Add items from your wardrobe",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = DynamicThemeColors.secondaryText().copy(alpha = 0.7f)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                    "Discover" -> {
+                        // Discover Section
+                        if (discoverItems.isNotEmpty()) {
+                            DiscoverGrid(
+                                items = discoverItems,
+                                userId = userId,
+                                themeCard = themeCard,
+                                themeTeal = themeTeal,
+                                themePrimary = themePrimary,
+                                themeSecondary = themeSecondary,
+                                themeAqua = themeAqua,
+                                onItemClick = { showDiscoverDetail = it },
+                                onContactOwner = onContactOwner
+                            )
+                        } else if (!isLoading) {
+                            // Empty state pour Discover
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(200.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    Text(
+                                        text = "🔍",
+                                        fontSize = 48.sp
+                                    )
+                                    Text(
+                                        text = "No items to discover",
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            color = DynamicThemeColors.secondaryText()
+                                        )
+                                    )
+                                    Text(
+                                        text = "Check back later for new items",
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            color = DynamicThemeColors.secondaryText().copy(alpha = 0.7f)
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
 
-                // Discover Section (comme iOS)
-                if (discoverItems.isNotEmpty()) {
-                    SectionHeader(
-                        title = "Discover",
-                        themeTeal = themeTeal
-                    )
-                    DiscoverGrid(
-                        items = discoverItems,
-                        userId = userId,
-                        themeCard = themeCard,
-                        themeTeal = themeTeal,
-                        themePrimary = themePrimary,
-                        themeSecondary = themeSecondary,
-                        themeAqua = themeAqua,
-                        onItemClick = { showEditDialog = it },
-                        onContactOwner = onContactOwner
-                    )
-                }
-
-                // Loading state
-                if (isLoading && storeItems.isEmpty() && discoverItems.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                // Loading state (affiché dans chaque onglet si nécessaire)
+                if (isLoading && ((selectedTab == "My Items" && storeItems.isEmpty()) || (selectedTab == "Discover" && discoverItems.isEmpty()))) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = themePrimary)
                     }
                 }
@@ -418,6 +536,20 @@ fun StoreTab(
                         fontWeight = FontWeight.Bold
                     )
                 }
+            }
+        )
+    }
+
+    // DiscoverItemDetailSheet (comme iOS - pour les items Discover)
+    showDiscoverDetail?.let { item ->
+        DiscoverItemDetailSheet(
+            storeItem = item,
+            token = token,
+            userId = userId,
+            onDismiss = { showDiscoverDetail = null },
+            onContactSeller = {
+                showDiscoverDetail = null
+                onContactOwner(item)
             }
         )
     }
@@ -593,6 +725,10 @@ private fun DiscoverGrid(
     onItemClick: (StoreItem) -> Unit,
     onContactOwner: (StoreItem) -> Unit
 ) {
+    val context = LocalContext.current
+    val cartItems by CartManager.cartItems.collectAsState(initial = emptyList())
+    val cartItemIds = remember(cartItems) { cartItems.map { it.storeItemID }.toSet() }
+
     LazyVerticalGrid(
         columns = GridCells.Fixed(2),
         modifier = Modifier.fillMaxWidth(),
@@ -605,6 +741,7 @@ private fun DiscoverGrid(
                 isDeleting = false,
                 showDeleteButton = false,
                 showContactButton = false, // Plus de bouton sur la carte
+                isInCart = cartItemIds.contains(item.id), // Vérifier si dans le panier
                 themePrimary = themePrimary,
                 themeCard = themeCard,
                 themeTeal = themeTeal,
@@ -625,6 +762,7 @@ private fun ProductCard(
     isDeleting: Boolean,
     showDeleteButton: Boolean,
     showContactButton: Boolean = false,
+    isInCart: Boolean = false, // Nouveau paramètre pour indiquer si dans le panier
     themePrimary: Color,
     themeCard: Color,
     themeTeal: Color,
@@ -709,6 +847,32 @@ private fun ProductCard(
                                     shape = RoundedCornerShape(50.dp)
                                 )
                                 .padding(horizontal = 12.dp, vertical = 6.dp)
+                                .shadow(4.dp, RoundedCornerShape(50.dp))
+                        )
+                    }
+                }
+
+                // Badge "Article déjà en panier" (si dans le panier et disponible)
+                if (isInCart && isAvailable) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Text(
+                            text = "✓ En panier",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                color = Color.White
+                            ),
+                            modifier = Modifier
+                                .background(
+                                    themeTeal,
+                                    shape = RoundedCornerShape(50.dp)
+                                )
+                                .padding(horizontal = 10.dp, vertical = 5.dp)
                                 .shadow(4.dp, RoundedCornerShape(50.dp))
                         )
                     }
@@ -1572,4 +1736,113 @@ private fun EditStoreDialog(
         },
         dismissButton = {}
     )
+}
+
+/**
+ * Barre d'onglets My Items / Discover (comme iOS SegmentedControl)
+ */
+@Composable
+private fun StoreTabBar(
+    selectedTab: String,
+    onTabSelected: (String) -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(themeCard, RoundedCornerShape(12.dp))
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        // My Items Tab
+        StoreTabButton(
+            text = "My Items",
+            isSelected = selectedTab == "My Items",
+            onClick = { onTabSelected("My Items") },
+            modifier = Modifier.weight(1f),
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
+        )
+
+        // Discover Tab
+        StoreTabButton(
+            text = "Discover",
+            isSelected = selectedTab == "Discover",
+            onClick = { onTabSelected("Discover") },
+            modifier = Modifier.weight(1f),
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
+        )
+    }
+}
+
+/**
+ * Bouton d'onglet individuel
+ */
+@Composable
+private fun StoreTabButton(
+    text: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    val backgroundColor by animateFloatAsState(
+        targetValue = if (isSelected) 1f else 0f,
+        animationSpec = spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "tabBackground"
+    )
+
+    val textColor by animateColorAsState(
+        targetValue = if (isSelected) Color.White else themeText,
+        animationSpec = spring(
+            dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+            stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+        ),
+        label = "tabTextColor"
+    )
+
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        modifier = modifier,
+        contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp),
+        colors = androidx.compose.material3.ButtonDefaults.textButtonColors(
+            contentColor = Color.Transparent
+        ),
+        shape = RoundedCornerShape(10.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(
+                    androidx.compose.ui.graphics.Brush.horizontalGradient(
+                        colors = listOf(
+                            themePrimary.copy(alpha = backgroundColor),
+                            themePrimary.copy(alpha = backgroundColor * 0.8f)
+                        )
+                    ),
+                    shape = RoundedCornerShape(10.dp)
+                )
+                .padding(vertical = 12.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.SemiBold,
+                    fontSize = 16.sp,
+                    color = textColor
+                )
+            )
+        }
+    }
 }

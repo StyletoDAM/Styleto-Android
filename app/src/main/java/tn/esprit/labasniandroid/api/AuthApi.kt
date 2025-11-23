@@ -117,4 +117,10 @@ interface AuthApi {
 
     @DELETE("/auth/profile")
     suspend fun deleteProfile(@Header("Authorization") token: String): Response<Responses.MessageResponse>
+
+    @GET("/users/{userId}")
+    suspend fun getUserById(
+        @Header("Authorization") token: String,
+        @retrofit2.http.Path("userId") userId: String
+    ): Response<User>
 }
