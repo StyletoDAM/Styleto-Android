@@ -310,18 +310,18 @@ fun StoreTab(
                 when (selectedTab) {
                     "My Items" -> {
                         // My Items Section
-                        if (storeItems.isNotEmpty()) {
-                            MyItemsGrid(
-                                items = storeItems,
-                                deletingIds = deletingIds,
-                                themePrimary = themePrimary,
-                                themeCard = themeCard,
-                                themeTeal = themeTeal,
-                                themeSecondary = themeSecondary,
-                                themeAqua = themeAqua,
-                                onDelete = { }, // Plus utilisé
-                                onEdit = { showEditDialog = it }
-                            )
+                if (storeItems.isNotEmpty()) {
+                    MyItemsGrid(
+                        items = storeItems,
+                        deletingIds = deletingIds,
+                        themePrimary = themePrimary,
+                        themeCard = themeCard,
+                        themeTeal = themeTeal,
+                        themeSecondary = themeSecondary,
+                        themeAqua = themeAqua,
+                        onDelete = { }, // Plus utilisé
+                        onEdit = { showEditDialog = it }
+                    )
                         } else if (!isLoading) {
                             // Empty state pour My Items
                             Box(
@@ -356,18 +356,18 @@ fun StoreTab(
                     }
                     "Discover" -> {
                         // Discover Section
-                        if (discoverItems.isNotEmpty()) {
-                            DiscoverGrid(
-                                items = discoverItems,
-                                userId = userId,
-                                themeCard = themeCard,
-                                themeTeal = themeTeal,
-                                themePrimary = themePrimary,
-                                themeSecondary = themeSecondary,
-                                themeAqua = themeAqua,
+                if (discoverItems.isNotEmpty()) {
+                    DiscoverGrid(
+                        items = discoverItems,
+                        userId = userId,
+                        themeCard = themeCard,
+                        themeTeal = themeTeal,
+                        themePrimary = themePrimary,
+                        themeSecondary = themeSecondary,
+                        themeAqua = themeAqua,
                                 onItemClick = { showDiscoverDetail = it },
-                                onContactOwner = onContactOwner
-                            )
+                        onContactOwner = onContactOwner
+                    )
                         } else if (!isLoading) {
                             // Empty state pour Discover
                             Box(
@@ -404,12 +404,12 @@ fun StoreTab(
 
                 // Loading state (affiché dans chaque onglet si nécessaire)
                 if (isLoading && ((selectedTab == "My Items" && storeItems.isEmpty()) || (selectedTab == "Discover" && discoverItems.isEmpty()))) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    contentAlignment = Alignment.Center
+                ) {
                         CircularProgressIndicator(color = themePrimary)
                     }
                 }

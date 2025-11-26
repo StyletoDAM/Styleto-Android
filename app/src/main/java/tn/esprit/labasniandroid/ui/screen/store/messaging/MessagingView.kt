@@ -224,23 +224,23 @@ fun MessagingView(
                 }
                 else -> {
                     LazyColumn(
-                        modifier = Modifier
+                            modifier = Modifier
                             .fillMaxSize(),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                            horizontal = 16.dp,
-                            vertical = 14.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
+                                horizontal = 16.dp,
+                                vertical = 14.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
                         items(filteredConversations, key = { it.id }) { conversation ->
                             ConversationRow(
-                                conversation = conversation,
-                                userId = userId,
+                                    conversation = conversation,
+                                    userId = userId,
                                 searchText = searchText,
-                                themePrimary = themePrimary,
-                                themeCard = themeCard,
-                                themeText = themeText,
-                                onClick = {
+                                    themePrimary = themePrimary,
+                                    themeCard = themeCard,
+                                    themeText = themeText,
+                                    onClick = {
                                     
                                     isSearchFocused = false
                                     
@@ -292,14 +292,14 @@ fun MessagingView(
                                     
                                     val finalName = if (otherName.isNullOrBlank() || otherName == "Utilisateur") {
                                         "Utilisateur"
-                                    } else {
+                                        } else {
                                         otherName
                                     }
                                     
                                     onNavigateToChat(otherParticipant, finalName, otherAvatar)
                                     
-                                }
-                            )
+                                    }
+                                )
                         }
                     }
                 }
@@ -518,7 +518,7 @@ private fun ConversationRow(
         avatar
     }
     
-
+    
     val lastMessage = conversation.lastMessage
     val messageText = lastMessage?.content ?: "Start the conversation"
     val messageTime = lastMessage?.createdAt?.let { formatRelativeTime(it) } ?: "New"
@@ -600,13 +600,13 @@ private fun ConversationRow(
             horizontalAlignment = Alignment.End,
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Text(
+                Text(
                 text = messageTime,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 12.sp,
-                    color = Color.Gray
+                    style = MaterialTheme.typography.bodySmall.copy(
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                 )
-            )
             // Badge pour messages non lus (optionnel, nil dans iOS)
         }
     }

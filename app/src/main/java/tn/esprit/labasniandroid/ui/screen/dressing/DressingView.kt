@@ -956,9 +956,9 @@ private fun ClothingCard(
                         )
                     } else if (cloth.name.isNotBlank() && cloth.name != cloth.type) {
                         // Fallback: afficher le nom si pas de saison
-                        Text(
+                Text(
                             text = cloth.name,
-                            style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy(
                                 fontSize = 13.sp,
                                 color = themeTeal.copy(alpha = 0.7f)
                             ),

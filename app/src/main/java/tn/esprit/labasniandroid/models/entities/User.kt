@@ -28,7 +28,9 @@ data class User(
     @SerializedName("appleId")
     val appleId: String? = null,
     @SerializedName("profilePicture")
-    val profilePicture: String? = null
+    val profilePicture: String? = null,
+    @SerializedName("balance")
+    val balance: Double? = 0.0
 ) {
     val userId: String
         get() = id ?: mongoId ?: ""

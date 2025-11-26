@@ -218,84 +218,84 @@ fun ChatDetailView(
                         )
                     }
                     
-                    // Menu dropdown pour accéder aux autres conversations
-                    if (conversations.isNotEmpty()) {
-                        Box {
-                            IconButton(
-                                onClick = { showConversationsMenu = true },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Filled.ArrowDropDown,
-                                    contentDescription = "Conversations",
-                                    tint = themePrimary,
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showConversationsMenu,
-                                onDismissRequest = { showConversationsMenu = false },
-                                modifier = Modifier
-                                    .background(themeCard)
-                                    .fillMaxWidth(0.7f)
-                            ) {
-                                conversations.forEach { conversation ->
-                                    val otherParticipant: String? = conversation.participants.firstOrNull { participantId: String -> participantId != userId }
-                                    val otherName: String = otherParticipant?.let { id: String -> conversation.participantNames[id] } ?: "Utilisateur"
-                                    val otherAvatar: String? = otherParticipant?.let { id: String -> conversation.participantAvatars[id] }
-                                    
-                                    DropdownMenuItem(
-                                        onClick = {
-                                            showConversationsMenu = false
-                                            if (otherParticipant != null && otherParticipant != ownerId) {
-                                                onNavigateToConversation(otherParticipant, otherName, otherAvatar)
-                                            }
-                                        },
-                                        text = {
-                                            Row(
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                if (otherAvatar != null) {
-                                                    AsyncImage(
-                                                        model = ImageRequest.Builder(LocalContext.current)
-                                                            .data(otherAvatar)
-                                                            .crossfade(true)
-                                                            .build(),
-                                                        contentDescription = otherName,
-                                                        modifier = Modifier
-                                                            .size(32.dp)
-                                                            .clip(CircleShape),
-                                                        contentScale = ContentScale.Crop
-                                                    )
-                                                } else {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(32.dp)
-                                                            .clip(CircleShape)
-                                                            .background(Color.Gray.copy(alpha = 0.3f)),
-                                                        contentAlignment = Alignment.Center
+                            // Menu dropdown pour accéder aux autres conversations
+                            if (conversations.isNotEmpty()) {
+                                Box {
+                                    IconButton(
+                                        onClick = { showConversationsMenu = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Filled.ArrowDropDown,
+                                            contentDescription = "Conversations",
+                                            tint = themePrimary,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                    DropdownMenu(
+                                        expanded = showConversationsMenu,
+                                        onDismissRequest = { showConversationsMenu = false },
+                                        modifier = Modifier
+                                            .background(themeCard)
+                                            .fillMaxWidth(0.7f)
+                                    ) {
+                                        conversations.forEach { conversation ->
+                                            val otherParticipant: String? = conversation.participants.firstOrNull { participantId: String -> participantId != userId }
+                                            val otherName: String = otherParticipant?.let { id: String -> conversation.participantNames[id] } ?: "Utilisateur"
+                                            val otherAvatar: String? = otherParticipant?.let { id: String -> conversation.participantAvatars[id] }
+                                            
+                                            DropdownMenuItem(
+                                                onClick = {
+                                                    showConversationsMenu = false
+                                                    if (otherParticipant != null && otherParticipant != ownerId) {
+                                                        onNavigateToConversation(otherParticipant, otherName, otherAvatar)
+                                                    }
+                                                },
+                                                text = {
+                                                    Row(
+                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                        verticalAlignment = Alignment.CenterVertically
                                                     ) {
-                                                        Text(
-                                                            text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                                                            style = MaterialTheme.typography.bodySmall.copy(
-                                                                fontWeight = FontWeight.Bold,
-                                                                color = Color.White
+                                                        if (otherAvatar != null) {
+                                                            AsyncImage(
+                                                                model = ImageRequest.Builder(LocalContext.current)
+                                                                    .data(otherAvatar)
+                                                                    .crossfade(true)
+                                                                    .build(),
+                                                                contentDescription = otherName,
+                                                                modifier = Modifier
+                                                                    .size(32.dp)
+                                                                    .clip(CircleShape),
+                                                                contentScale = ContentScale.Crop
                                                             )
+                                                        } else {
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .size(32.dp)
+                                                                    .clip(CircleShape)
+                                                                    .background(Color.Gray.copy(alpha = 0.3f)),
+                                                                contentAlignment = Alignment.Center
+                                                            ) {
+                                                                Text(
+                                                                    text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                                        fontWeight = FontWeight.Bold,
+                                                                        color = Color.White
+                                                                    )
+                                                                )
+                                                            }
+                                                        }
+                                                        Text(
+                                                            text = otherName,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = themeText
                                                         )
                                                     }
                                                 }
-                                                Text(
-                                                    text = otherName,
-                                                    style = MaterialTheme.typography.bodyMedium,
-                                                    color = themeText
-                                                )
-                                            }
+                                            )
                                         }
-                                    )
+                                    }
                                 }
-                            }
-                        }
                     }
                 }
             }
