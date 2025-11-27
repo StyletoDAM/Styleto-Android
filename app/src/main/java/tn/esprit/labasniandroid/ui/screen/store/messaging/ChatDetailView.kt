@@ -304,19 +304,19 @@ fun ChatDetailView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(themeBackground)
+                .background(Color(0xFFF5F5F5)) // Même fond clair que MessagingView
                 .padding(innerPadding)
         ) {
-            // Messages List (comme iOS - spacing 20dp)
+            // Messages List moderne avec plus d'espace
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-                    .padding(top = 10.dp)
+                    .padding(horizontal = 20.dp)
+                    .padding(top = 16.dp)
                     .padding(bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp) // Espacement moderne
             ) {
                 items(messages, key = { it.id }) { message ->
                     // Normaliser les IDs pour la comparaison
@@ -334,49 +334,78 @@ fun ChatDetailView(
                 }
             }
 
-            // Input Bar (comme iOS ligne 108-138)
+            // Input Bar moderne iOS-like
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(themeBackground)
+                    .background(Color(0xFFF5F5F5)) // Même fond clair
                     .imePadding()
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(14.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Paperclip icon (comme iOS ligne 110-112)
+                // Bouton attach moderne
                 IconButton(
                     onClick = { /* TODO: Attach file */ },
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.9f),
+                            shape = CircleShape
+                        )
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color.Black.copy(alpha = 0.06f)
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.Filled.AttachFile,
                         contentDescription = "Attach",
-                        tint = themePrimary.copy(alpha = 0.8f),
-                        modifier = Modifier.size(20.dp)
+                        tint = Color(0xFF4AA3A2),
+                        modifier = Modifier.size(18.dp)
                     )
                 }
                 
+                // TextField moderne avec style iOS
                 TextField(
                     value = messageText,
                     onValueChange = { messageText = it },
-                    modifier = Modifier.weight(1f),
-                    placeholder = { Text("Écrivez un message...") },
+                    modifier = Modifier
+                        .weight(1f)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = RoundedCornerShape(26.dp),
+                            ambientColor = Color.Black.copy(alpha = 0.04f)
+                        ),
+                    placeholder = { 
+                        Text(
+                            "Écrivez un message…",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = Color.Gray.copy(alpha = 0.6f),
+                                fontSize = 16.sp
+                            )
+                        ) 
+                    },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = themeCard,
-                        unfocusedContainerColor = themeCard,
+                        focusedContainerColor = Color.White.copy(alpha = 0.95f),
+                        unfocusedContainerColor = Color.White.copy(alpha = 0.95f),
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
-                        focusedTextColor = themeText,
-                        unfocusedTextColor = themeText
+                        focusedTextColor = Color(0xFF4AA3A2),
+                        unfocusedTextColor = Color(0xFF4AA3A2),
+                        cursorColor = Color(0xFF4AA3A2)
                     ),
-                    shape = RoundedCornerShape(24.dp),
-                    maxLines = 6,
-                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp)
+                    shape = RoundedCornerShape(26.dp),
+                    maxLines = 4,
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Medium
+                    )
                 )
 
-                // Send button (comme iOS ligne 120-132)
+                // Bouton send moderne avec gradient
                 val isSending = false // TODO: Get from viewModel
                 IconButton(
                     onClick = {
@@ -389,9 +418,26 @@ fun ChatDetailView(
                     enabled = messageText.isNotBlank() && !isSending,
                     modifier = Modifier
                         .size(44.dp)
-                        .clip(CircleShape)
-                        .background(if (isSending || messageText.isBlank()) Color.Gray else themePrimary)
-                        .shadow(8.dp, CircleShape, spotColor = themePrimary.copy(alpha = 0.4f))
+                        .shadow(
+                            elevation = 8.dp,
+                            shape = CircleShape,
+                            ambientColor = if (messageText.isNotBlank()) Color(0xFFCA3C66).copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.2f)
+                        )
+                        .background(
+                            brush = if (messageText.isNotBlank()) {
+                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(
+                                        Color(0xFFCA3C66), // Rose primaire
+                                        Color(0xFFE8AABE)  // Rose doux
+                                    )
+                                )
+                            } else {
+                                androidx.compose.ui.graphics.Brush.linearGradient(
+                                    colors = listOf(Color.Gray, Color.Gray)
+                                )
+                            },
+                            shape = CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = if (isSending) Icons.Filled.Schedule else Icons.AutoMirrored.Filled.Send,

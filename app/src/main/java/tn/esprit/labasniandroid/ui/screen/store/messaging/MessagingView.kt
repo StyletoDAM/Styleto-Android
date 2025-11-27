@@ -47,6 +47,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
@@ -152,31 +154,45 @@ fun MessagingView(
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
-        containerColor = Color.Transparent,
+        containerColor = Color(0xFFF5F5F5), // Fond très clair comme demandé
         topBar = {
-            // Header avec titre et bouton retour (comme iOS NavigationStack)
+            // 📌 Barre supérieure moderne iOS-like
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .padding(horizontal = 20.dp, vertical = 16.dp),
                 horizontalArrangement = Arrangement.Start,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onNavigateBack) {
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier
+                        .size(44.dp)
+                        .background(
+                            Color.White.copy(alpha = 0.9f),
+                            shape = CircleShape
+                        )
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color.Black.copy(alpha = 0.06f),
+                            spotColor = Color.Black.copy(alpha = 0.06f)
+                        )
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Back",
-                        tint = themePrimary,
-                        modifier = Modifier.size(24.dp)
+                        tint = Color(0xFF4AA3A2), // Teal foncé
+                        modifier = Modifier.size(20.dp)
                     )
                 }
-                Spacer(modifier = Modifier.width(8.dp))
+                Spacer(modifier = Modifier.width(16.dp))
                 Text(
                     text = "Messages",
-                    style = MaterialTheme.typography.titleLarge.copy(
+                    style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = themePrimary
+                        fontSize = 28.sp,
+                        color = Color(0xFF4AA3A2) // Teal foncé
                     )
                 )
             }
@@ -185,12 +201,12 @@ fun MessagingView(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .background(themeBackground)
+                .background(Color(0xFFF5F5F5)) // Fond très clair
                 .padding(innerPadding),
             verticalArrangement = Arrangement.spacedBy(0.dp)
         ) {
-            // Search Bar (comme iOS)
-            MessagingSearchBar(
+            // 🔍 Barre de recherche moderne iOS-like
+            ModernSearchBar(
                 value = searchText,
                 onValueChange = { searchText = it },
                 isFocused = isSearchFocused,
@@ -198,9 +214,7 @@ fun MessagingView(
                 onClear = { 
                     searchText = ""
                     isSearchFocused = false
-                },
-                themePrimary = themePrimary,
-                themeAqua = themeAqua
+                }
             )
 
             // Conversations List ou Empty State
@@ -227,19 +241,16 @@ fun MessagingView(
                             modifier = Modifier
                             .fillMaxSize(),
                             contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 16.dp,
-                                vertical = 14.dp
+                                horizontal = 20.dp,
+                                vertical = 8.dp
                             ),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                            verticalArrangement = Arrangement.spacedBy(16.dp) // Plus d'espace entre cartes
                         ) {
                         items(filteredConversations, key = { it.id }) { conversation ->
-                            ConversationRow(
+                            ModernConversationCard(
                                     conversation = conversation,
                                     userId = userId,
                                 searchText = searchText,
-                                    themePrimary = themePrimary,
-                                    themeCard = themeCard,
-                                    themeText = themeText,
                                     onClick = {
                                     
                                     isSearchFocused = false
@@ -255,7 +266,7 @@ fun MessagingView(
                                     
                                     
                                     if (otherParticipant == null) {
-                                        return@ConversationRow
+                                        return@ModernConversationCard
                                     }
                                     
                                     // Chercher le nom
@@ -309,17 +320,15 @@ fun MessagingView(
 }
 
 /**
- * Barre de recherche (comme iOS)
+ * 🔍 Barre de recherche moderne iOS-like
  */
 @Composable
-private fun MessagingSearchBar(
+private fun ModernSearchBar(
     value: String,
     onValueChange: (String) -> Unit,
     isFocused: Boolean,
     onFocusChange: (Boolean) -> Unit,
-    onClear: () -> Unit,
-    themePrimary: Color,
-    themeAqua: Color
+    onClear: () -> Unit
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val isTextFieldFocused by interactionSource.collectIsFocusedAsState()
@@ -331,19 +340,25 @@ private fun MessagingSearchBar(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-            .padding(top = 10.dp, bottom = 14.dp)
-            .height(55.dp)
+            .padding(horizontal = 20.dp)
+            .padding(top = 8.dp, bottom = 20.dp)
+            .height(56.dp)
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Color.Black.copy(alpha = 0.04f),
+                spotColor = Color.Black.copy(alpha = 0.04f)
+            )
             .background(
-                color = themeAqua.copy(alpha = 0.25f),
-                shape = RoundedCornerShape(16.dp)
+                color = Color(0xFFA7E0E0).copy(alpha = 0.15f), // Aqua pastel translucide
+                shape = RoundedCornerShape(28.dp)
             )
             .then(
                 if (isTextFieldFocused) {
                     Modifier.border(
-                        width = 2.dp,
-                        color = themePrimary.copy(alpha = 0.4f),
-                        shape = RoundedCornerShape(16.dp)
+                        width = 1.5.dp,
+                        color = Color(0xFF4AA3A2).copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(28.dp)
                     )
                 } else {
                     Modifier
@@ -353,15 +368,15 @@ private fun MessagingSearchBar(
         Row(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
             Icon(
                 imageVector = Icons.Filled.Search,
                 contentDescription = null,
-                tint = if (isTextFieldFocused) themePrimary else Color.Gray.copy(alpha = 0.6f),
-                modifier = Modifier.size(16.dp)
+                tint = if (isTextFieldFocused) Color(0xFF4AA3A2) else Color.Gray.copy(alpha = 0.5f),
+                modifier = Modifier.size(18.dp)
             )
 
             TextField(
@@ -371,9 +386,10 @@ private fun MessagingSearchBar(
                 interactionSource = interactionSource,
                 placeholder = {
                     Text(
-                        text = "Search conversation...",
+                        text = "Search conversation…",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            color = Color.Gray.copy(alpha = 0.6f)
+                            color = Color.Gray.copy(alpha = 0.5f),
+                            fontSize = 16.sp
                         )
                     )
                 },
@@ -383,22 +399,28 @@ private fun MessagingSearchBar(
                     focusedIndicatorColor = Color.Transparent,
                     unfocusedIndicatorColor = Color.Transparent,
                     disabledIndicatorColor = Color.Transparent,
-                    focusedTextColor = themePrimary,
-                    unfocusedTextColor = themePrimary,
-                    cursorColor = themePrimary
+                    focusedTextColor = Color(0xFF4AA3A2),
+                    unfocusedTextColor = Color(0xFF4AA3A2),
+                    cursorColor = Color(0xFF4AA3A2)
                 ),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(
-                    fontSize = 14.sp
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Medium
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
             )
 
-            // Clear button (comme iOS)
+            // Clear button moderne
             if (value.isNotEmpty()) {
                 IconButton(
                     onClick = onClear,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier
+                        .size(32.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.1f),
+                            shape = CircleShape
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.Filled.Close,
@@ -463,16 +485,13 @@ private fun EmptyStateView(
 }
 
 /**
- * Conversation Row (comme iOS ChatRow)
+ * 💬 Carte de conversation moderne iOS-like
  */
 @Composable
-private fun ConversationRow(
+private fun ModernConversationCard(
     conversation: Conversation,
     userId: String,
     searchText: String,
-    themePrimary: Color,
-    themeCard: Color,
-    themeText: Color,
     onClick: () -> Unit
 ) {
     val context = LocalContext.current
@@ -523,21 +542,33 @@ private fun ConversationRow(
     val messageText = lastMessage?.content ?: "Start the conversation"
     val messageTime = lastMessage?.createdAt?.let { formatRelativeTime(it) } ?: "New"
 
+    // 💬 Carte très arrondie avec dégradé rose → blanc
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .background(themeCard, RoundedCornerShape(20.dp))
             .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(20.dp),
-                spotColor = Color.Black.copy(alpha = 0.04f)
+                elevation = 8.dp,
+                shape = RoundedCornerShape(28.dp),
+                ambientColor = Color.Black.copy(alpha = 0.03f),
+                spotColor = Color.Black.copy(alpha = 0.03f)
             )
-            .padding(16.dp),
-        horizontalArrangement = Arrangement.spacedBy(14.dp),
+            .background(
+                brush = Brush.horizontalGradient(
+                    colors = listOf(
+                        Color(0xFFE8AABE).copy(alpha = 0.25f), // Rose doux gauche
+                        Color.White.copy(alpha = 0.95f)        // Blanc droite
+                    ),
+                    startX = 0f,
+                    endX = 1000f
+                ),
+                shape = RoundedCornerShape(28.dp)
+            )
+            .padding(20.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Avatar (56x56 comme iOS)
+        // Avatar rond moderne (48dp) en teal pastel
         Box {
             if (otherAvatar != null && otherAvatar.isNotBlank()) {
                 AsyncImage(
@@ -547,68 +578,73 @@ private fun ConversationRow(
                         .build(),
                     contentDescription = otherName,
                     modifier = Modifier
-                        .size(56.dp)
-                        .clip(CircleShape),
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color.Black.copy(alpha = 0.06f)
+                        ),
                     contentScale = ContentScale.Crop
                 )
             } else {
                 Box(
                     modifier = Modifier
-                        .size(56.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
-                        .background(Color.Gray.copy(alpha = 0.3f)),
+                        .shadow(
+                            elevation = 4.dp,
+                            shape = CircleShape,
+                            ambientColor = Color.Black.copy(alpha = 0.06f)
+                        )
+                        .background(Color(0xFFA7E0E0).copy(alpha = 0.8f)), // Teal pastel
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 22.sp,
+                            fontSize = 20.sp,
                             color = Color.White
                         )
                     )
                 }
             }
-            // Online indicator (optionnel, toujours false pour l'instant)
         }
 
-        // Name and Message (comme iOS)
+        // Nom et message avec typographie moderne
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
+            verticalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             Text(
                 text = otherName,
                 style = MaterialTheme.typography.bodyLarge.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 17.sp,
-                    color = themePrimary
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFFCA3C66) // Rose primaire
                 )
             )
             Text(
                 text = messageText,
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 15.sp,
-                    color = Color.Gray
+                    color = Color(0xFF6B7280), // Gris foncé
+                    fontWeight = FontWeight.Medium
                 ),
                 maxLines = 1
             )
         }
 
-        // Time and Badge (comme iOS)
-        Column(
-            horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-                Text(
-                text = messageTime,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontSize = 12.sp,
-                        color = Color.Gray
-                    )
-                )
-            // Badge pour messages non lus (optionnel, nil dans iOS)
-        }
+        // Heure alignée finement à droite
+        Text(
+            text = messageTime,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontSize = 13.sp,
+                color = Color.Gray.copy(alpha = 0.7f), // Gris doux
+                fontWeight = FontWeight.Medium
+            )
+        )
     }
 }
 
