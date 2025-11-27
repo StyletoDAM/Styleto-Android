@@ -673,6 +673,9 @@ fun SettingsView(
                 }
             }
             
+            // Pack Profile Cards (comme iOS)
+            PackProfileCard()
+            
             // Logout Button (comme iOS)
             Button(
                 onClick = { showLogoutConfirmation = true },
