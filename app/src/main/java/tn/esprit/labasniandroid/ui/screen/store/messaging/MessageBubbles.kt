@@ -19,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -29,8 +30,8 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 
 /**
- * Message entrant (comme iOS IncomingMessage ligne 209-249)
- * Avatar 36x36 à gauche, bulle themePrimary avec cornerRadius 20dp sauf topLeft 4dp, texte blanc
+ * 💬 Message reçu PREMIUM (rose premium)
+ * Forme arrondie 22-26dp, couleur rose premium, texte blanc pur, ombre douce iOS
  */
 @Composable
 fun IncomingMessage(
@@ -45,7 +46,7 @@ fun IncomingMessage(
         horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.Bottom
     ) {
-        // Avatar (36x36 comme iOS ligne 225-226)
+        // Avatar premium avec ombre
         if (profilePictureURL != null && profilePictureURL.isNotBlank()) {
             AsyncImage(
                 model = ImageRequest.Builder(LocalContext.current)
@@ -55,7 +56,12 @@ fun IncomingMessage(
                 contentDescription = null,
                 modifier = Modifier
                     .size(36.dp)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .shadow(
+                        elevation = 3.dp,
+                        shape = CircleShape,
+                        ambientColor = Color.Black.copy(alpha = 0.1f)
+                    ),
                 contentScale = ContentScale.Crop
             )
         } else {
@@ -63,7 +69,12 @@ fun IncomingMessage(
                 modifier = Modifier
                     .size(36.dp)
                     .clip(CircleShape)
-                    .background(Color.Gray.copy(alpha = 0.3f)),
+                    .shadow(
+                        elevation = 3.dp,
+                        shape = CircleShape,
+                        ambientColor = Color.Black.copy(alpha = 0.1f)
+                    )
+                    .background(Color(0xFFA7E0E0).copy(alpha = 0.8f)), // Teal pastel
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -77,43 +88,45 @@ fun IncomingMessage(
             }
         }
         
-        Spacer(modifier = Modifier.width(8.dp))
+        Spacer(modifier = Modifier.width(10.dp))
         
-        // Bulle et temps (comme iOS ligne 234-245)
+        // Bulle premium rose
         Column(
             modifier = Modifier.widthIn(max = 280.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
             horizontalAlignment = Alignment.Start
         ) {
-            // Bulle avec cornerRadius spécial (20dp partout sauf topLeft 4dp comme iOS ligne 238-240)
+            // 🎨 BubbleIncoming - Style exact du code fourni
             Box(
                 modifier = Modifier
-                    .background(
-                        color = themePrimary,
-                        shape = RoundedCornerShape(
-                            topStart = 4.dp,
-                            topEnd = 20.dp,
-                            bottomStart = 20.dp,
-                            bottomEnd = 20.dp
-                        )
+                    .shadow(
+                        elevation = 18.dp,  // SoftShadow blur
+                        shape = RoundedCornerShape(26.dp), // cornerRadius exact
+                        ambientColor = Color(0x33000000) // SoftShadow color
                     )
-                    .padding(14.dp)
+                    .background(
+                        color = Color(0xFFCA3C66), // rose primaire exact
+                        shape = RoundedCornerShape(26.dp) // cornerRadius exact
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 15.sp,
-                        color = Color.White
+                        fontWeight = FontWeight.Medium,
+                        color = Color.White, // Texte blanc pur
+                        lineHeight = 20.sp
                     )
                 )
             }
             
-            // Temps (caption2 comme iOS ligne 242-244)
+            // Temps discret
             Text(
                 text = time,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 11.sp,
-                    color = Color.Gray.copy(alpha = 0.8f)
+                    color = Color.Gray.copy(alpha = 0.6f)
                 )
             )
         }
@@ -123,8 +136,8 @@ fun IncomingMessage(
 }
 
 /**
- * Message sortant (comme iOS OutgoingMessage ligne 251-272)
- * Aligné à droite, bulle avec themeCard, texte primary, cornerRadius 20dp sauf topRight 4dp
+ * 💬 Message envoyé PREMIUM (teal premium)
+ * Forme arrondie 22-26dp, couleur teal premium, texte teal foncé, ombre légère
  */
 @Composable
 fun OutgoingMessage(
@@ -139,44 +152,45 @@ fun OutgoingMessage(
     ) {
         Spacer(modifier = Modifier.weight(1f))
         
-        // Bulle et temps (comme iOS ligne 258-269)
+        // Bulle premium teal
         Column(
             modifier = Modifier.widthIn(max = 280.dp),
             horizontalAlignment = Alignment.End,
-            verticalArrangement = Arrangement.spacedBy(6.dp)
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            // Bulle avec cornerRadius spécial (20dp partout sauf topRight 4dp comme iOS ligne 262-264)
+            // 🎨 BubbleOutgoing - Style exact du code fourni
             Box(
                 modifier = Modifier
-                    .background(
-                        color = themeCard,
-                        shape = RoundedCornerShape(
-                            topStart = 20.dp,
-                            topEnd = 4.dp,
-                            bottomStart = 20.dp,
-                            bottomEnd = 20.dp
-                        )
+                    .shadow(
+                        elevation = 18.dp,  // SoftShadow blur
+                        shape = RoundedCornerShape(26.dp), // cornerRadius exact
+                        ambientColor = Color(0x33000000) // SoftShadow color
                     )
-                    .padding(14.dp)
+                    .background(
+                        color = Color(0xFF4AA3A2), // teal/aqua exact
+                        shape = RoundedCornerShape(26.dp) // cornerRadius exact
+                    )
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
                     text = text,
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 15.sp,
-                        color = themeText
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF043F3D), // teal foncé pour lisibilité (style exact)
+                        lineHeight = 20.sp
                     )
                 )
             }
             
-            // Temps (caption2 comme iOS ligne 266-268)
+            // Temps discret
             Text(
                 text = time,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 11.sp,
-                    color = Color.Gray.copy(alpha = 0.8f)
+                    color = Color.Gray.copy(alpha = 0.6f)
                 )
             )
         }
     }
 }
-

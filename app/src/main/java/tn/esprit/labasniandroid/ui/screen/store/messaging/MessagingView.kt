@@ -198,13 +198,25 @@ fun MessagingView(
             }
         }
     ) { innerPadding ->
-        Column(
+        // 🎨 BackgroundGradient - Style premium exact (cohérence totale)
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5)) // Fond très clair
-                .padding(innerPadding),
-            verticalArrangement = Arrangement.spacedBy(0.dp)
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0x10E8AABE),   // rose pastel très léger, 6% opacité
+                            Color.White,         // centre lumineux
+                            Color(0x10A7E0E0)    // aqua pastel très léger, 6% opacité
+                        )
+                    )
+                )
+                .padding(innerPadding)
         ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
             // 🔍 Barre de recherche moderne iOS-like
             ModernSearchBar(
                 value = searchText,
@@ -314,6 +326,7 @@ fun MessagingView(
                         }
                     }
                 }
+            }
             }
         }
     }

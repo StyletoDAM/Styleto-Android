@@ -1,6 +1,8 @@
 package tn.esprit.labasniandroid.ui.screen.store.messaging
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +27,7 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.AttachFile
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -123,200 +126,223 @@ fun ChatDetailView(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
         topBar = {
+            // 🧍‍♂️ Header compact moderne (WhatsApp + iMessage style)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(themeBackground)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
+                    .background(Color.Transparent)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = onNavigateBack) {
+                // Flèche retour petite et élégante
+                IconButton(
+                    onClick = onNavigateBack,
+                    modifier = Modifier.size(32.dp)
+                ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
                         contentDescription = "Back",
-                        tint = themePrimary,
-                        modifier = Modifier.size(24.dp)
+                        tint = Color(0xFF4AA3A2), // Teal
+                        modifier = Modifier.size(20.dp)
                     )
                 }
 
-                // Header avec avatar et nom (comme iOS toolbar ligne 150-186)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    // Avatar avec badge en ligne (comme iOS ligne 152-175)
-                    Box {
-                        if (ownerAvatar != null && ownerAvatar.isNotBlank()) {
-                            AsyncImage(
-                                model = ImageRequest.Builder(LocalContext.current)
-                                    .data(ownerAvatar)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = ownerName,
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape),
-                                contentScale = ContentScale.Crop
-                            )
-                        } else {
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(Color.Gray.copy(alpha = 0.3f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = (ownerName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 16.sp,
-                                        color = Color.White
-                                    )
-                                )
-                            }
-                        }
-                        // Badge vert pour "en ligne" (comme iOS ligne 171-174)
+                // Avatar rond 48dp premium
+                Box {
+                    if (ownerAvatar != null && ownerAvatar.isNotBlank()) {
+                        AsyncImage(
+                            model = ImageRequest.Builder(LocalContext.current)
+                                .data(ownerAvatar)
+                                .crossfade(true)
+                                .build(),
+                            contentDescription = ownerName,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = CircleShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.1f)
+                                ),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
                         Box(
                             modifier = Modifier
-                                .size(12.dp)
+                                .size(48.dp)
                                 .clip(CircleShape)
-                                .background(if (isConnected) Color.Green else Color.Gray)
-                                .align(Alignment.BottomEnd)
+                                .shadow(
+                                    elevation = 4.dp,
+                                    shape = CircleShape,
+                                    ambientColor = Color.Black.copy(alpha = 0.1f)
+                                )
+                                .background(Color(0xFFA7E0E0).copy(alpha = 0.8f)), // Teal pastel
+                            contentAlignment = Alignment.Center
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .clip(CircleShape)
-                                    .background(themeBackground)
-                                    .padding(2.dp)
+                            Text(
+                                text = (ownerName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 20.sp,
+                                    color = Color.White
+                                )
                             )
                         }
                     }
-
-                    // Nom et statut (comme iOS ligne 177-184)
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(2.dp)
-                    ) {
-                        Text(
-                            text = ownerName ?: "Utilisateur",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                fontSize = 17.sp,
-                                color = themePrimary
-                            )
+                    
+                    // Badge "En ligne" vert doux
+                    if (isConnected) {
+                        Box(
+                            modifier = Modifier
+                                .size(14.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF00D97E)) // Vert doux
+                                .border(2.dp, Color.White, CircleShape)
+                                .align(Alignment.BottomEnd)
                         )
+                    }
+                }
+
+                // Nom et statut compacts
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                Text(
+                    text = ownerName ?: "Utilisateur",
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp, // HeaderStyle.titleSize exact
+                        color = Color(0xFF4AA3A2) // HeaderStyle.titleColor exact
+                    )
+                )
+                    if (isConnected) {
                         Text(
-                            text = if (isConnected) "En ligne" else "Hors ligne",
+                            text = "En ligne",
                             style = MaterialTheme.typography.bodySmall.copy(
-                                fontSize = 12.sp,
-                                color = if (isConnected) Color.Green else Color.Gray
+                                fontSize = 13.sp,
+                                color = Color(0xFF00D97E), // HeaderStyle.onlineColor exact
+                                fontWeight = FontWeight.Medium
                             )
                         )
                     }
-                    
-                            // Menu dropdown pour accéder aux autres conversations
-                            if (conversations.isNotEmpty()) {
-                                Box {
-                                    IconButton(
-                                        onClick = { showConversationsMenu = true },
-                                        modifier = Modifier.size(24.dp)
+                }
+                
+                // Bouton menu 3 points sobre
+                IconButton(
+                    onClick = { showConversationsMenu = true },
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.MoreVert,
+                        contentDescription = "Menu",
+                        tint = Color(0xFF4AA3A2), // Teal
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+                
+                // Menu dropdown simplifié
+                if (conversations.isNotEmpty()) {
+                    DropdownMenu(
+                        expanded = showConversationsMenu,
+                        onDismissRequest = { showConversationsMenu = false },
+                        modifier = Modifier
+                            .background(
+                                Color.White,
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .shadow(8.dp, RoundedCornerShape(16.dp))
+                            .fillMaxWidth(0.7f)
+                    ) {
+                        conversations.forEach { conversation ->
+                            val otherParticipant = conversation.participants.firstOrNull { it != userId }
+                            val otherName = otherParticipant?.let { conversation.participantNames[it] } ?: "Utilisateur"
+                            val otherAvatar = otherParticipant?.let { conversation.participantAvatars[it] }
+                            
+                            DropdownMenuItem(
+                                onClick = {
+                                    showConversationsMenu = false
+                                    if (otherParticipant != null && otherParticipant != ownerId) {
+                                        onNavigateToConversation(otherParticipant, otherName, otherAvatar)
+                                    }
+                                },
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Filled.ArrowDropDown,
-                                            contentDescription = "Conversations",
-                                            tint = themePrimary,
-                                            modifier = Modifier.size(20.dp)
+                                        // Avatar mini
+                                        if (otherAvatar != null) {
+                                            AsyncImage(
+                                                model = otherAvatar,
+                                                contentDescription = otherName,
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape),
+                                                contentScale = ContentScale.Crop
+                                            )
+                                        } else {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(32.dp)
+                                                    .clip(CircleShape)
+                                                    .background(Color(0xFFA7E0E0).copy(alpha = 0.6f)),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
+                                                    style = MaterialTheme.typography.bodySmall.copy(
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = Color.White
+                                                    )
+                                                )
+                                            }
+                                        }
+                                        Text(
+                                            text = otherName,
+                                            style = MaterialTheme.typography.bodyMedium.copy(
+                                                fontWeight = FontWeight.Medium,
+                                                color = Color(0xFF4AA3A2)
+                                            )
                                         )
                                     }
-                                    DropdownMenu(
-                                        expanded = showConversationsMenu,
-                                        onDismissRequest = { showConversationsMenu = false },
-                                        modifier = Modifier
-                                            .background(themeCard)
-                                            .fillMaxWidth(0.7f)
-                                    ) {
-                                        conversations.forEach { conversation ->
-                                            val otherParticipant: String? = conversation.participants.firstOrNull { participantId: String -> participantId != userId }
-                                            val otherName: String = otherParticipant?.let { id: String -> conversation.participantNames[id] } ?: "Utilisateur"
-                                            val otherAvatar: String? = otherParticipant?.let { id: String -> conversation.participantAvatars[id] }
-                                            
-                                            DropdownMenuItem(
-                                                onClick = {
-                                                    showConversationsMenu = false
-                                                    if (otherParticipant != null && otherParticipant != ownerId) {
-                                                        onNavigateToConversation(otherParticipant, otherName, otherAvatar)
-                                                    }
-                                                },
-                                                text = {
-                                                    Row(
-                                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                                        verticalAlignment = Alignment.CenterVertically
-                                                    ) {
-                                                        if (otherAvatar != null) {
-                                                            AsyncImage(
-                                                                model = ImageRequest.Builder(LocalContext.current)
-                                                                    .data(otherAvatar)
-                                                                    .crossfade(true)
-                                                                    .build(),
-                                                                contentDescription = otherName,
-                                                                modifier = Modifier
-                                                                    .size(32.dp)
-                                                                    .clip(CircleShape),
-                                                                contentScale = ContentScale.Crop
-                                                            )
-                                                        } else {
-                                                            Box(
-                                                                modifier = Modifier
-                                                                    .size(32.dp)
-                                                                    .clip(CircleShape)
-                                                                    .background(Color.Gray.copy(alpha = 0.3f)),
-                                                                contentAlignment = Alignment.Center
-                                                            ) {
-                                                                Text(
-                                                                    text = otherName.firstOrNull()?.uppercaseChar()?.toString() ?: "U",
-                                                                    style = MaterialTheme.typography.bodySmall.copy(
-                                                                        fontWeight = FontWeight.Bold,
-                                                                        color = Color.White
-                                                                    )
-                                                                )
-                                                            }
-                                                        }
-                                                        Text(
-                                                            text = otherName,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = themeText
-                                                        )
-                                                    }
-                                                }
-                                            )
-                                        }
-                                    }
                                 }
+                            )
+                        }
                     }
                 }
             }
         }
     ) { innerPadding ->
-        Column(
+        // 🎨 Fond coloré plus visible et gras
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color(0xFFF5F5F5)) // Même fond clair que MessagingView
+                .background(
+                    brush = androidx.compose.ui.graphics.Brush.verticalGradient(
+                        colors = listOf(
+                            Color(0xFFE8AABE).copy(alpha = 0.20f), // Rose doux plus gras et visible
+                            Color.White.copy(alpha = 0.95f),       // Blanc avec légère teinte
+                            Color(0xFFA7E0E0).copy(alpha = 0.15f)  // Aqua doux plus visible
+                        )
+                    )
+                )
                 .padding(innerPadding)
         ) {
-            // Messages List moderne avec plus d'espace
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
+            // 💬 Messages avec ChatSpacing exact
             LazyColumn(
                 state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp)
-                    .padding(top = 16.dp)
-                    .padding(bottom = 100.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp) // Espacement moderne
+                    .padding(horizontal = 16.dp) // ChatSpacing.horizontal
+                    .padding(top = 4.dp) // Commence juste après header
+                    .padding(bottom = 80.dp), // Espace pour footer compact
+                verticalArrangement = Arrangement.spacedBy(8.dp) // ChatSpacing.betweenMessages
             ) {
                 items(messages, key = { it.id }) { message ->
                     // Normaliser les IDs pour la comparaison
@@ -334,118 +360,113 @@ fun ChatDetailView(
                 }
             }
 
-            // Input Bar moderne iOS-like
+            // 📝 Footer compact 68dp max (WhatsApp + iMessage style)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFF5F5F5)) // Même fond clair
+                    .height(68.dp) // Hauteur fixe compacte
+                    .background(Color.Transparent)
                     .imePadding()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Bouton attach moderne
+                // 📎 AttachButtonStyle exact
                 IconButton(
                     onClick = { /* TODO: Attach file */ },
                     modifier = Modifier
-                        .size(40.dp)
+                        .size(40.dp) // AttachButtonStyle.size
                         .background(
-                            Color.White.copy(alpha = 0.9f),
-                            shape = CircleShape
+                            Color(0x1A4AA3A2), // aqua clair transparent exact
+                            shape = CircleShape // cornerRadius 50 = CircleShape
                         )
                         .shadow(
-                            elevation = 4.dp,
+                            elevation = 18.dp, // SoftShadow
                             shape = CircleShape,
-                            ambientColor = Color.Black.copy(alpha = 0.06f)
+                            ambientColor = Color(0x33000000) // SoftShadow color
                         )
                 ) {
                     Icon(
                         imageVector = Icons.Filled.AttachFile,
                         contentDescription = "Attach",
-                        tint = Color(0xFF4AA3A2),
-                        modifier = Modifier.size(18.dp)
+                        tint = Color(0xFF4AA3A2), // AttachButtonStyle.iconTint exact
+                        modifier = Modifier.size(16.dp)
                     )
                 }
                 
-                // TextField moderne avec style iOS
+                // ChatInputField - Style exact
                 TextField(
                     value = messageText,
                     onValueChange = { messageText = it },
                     modifier = Modifier
                         .weight(1f)
+                        .height(48.dp) // Hauteur fixe
                         .shadow(
-                            elevation = 4.dp,
-                            shape = RoundedCornerShape(26.dp),
-                            ambientColor = Color.Black.copy(alpha = 0.04f)
+                            elevation = 18.dp, // SoftShadow
+                            shape = RoundedCornerShape(28.dp), // ChatInputField.cornerRadius
+                            ambientColor = Color(0x33000000) // SoftShadow color
                         ),
                     placeholder = { 
                         Text(
                             "Écrivez un message…",
                             style = MaterialTheme.typography.bodyMedium.copy(
-                                color = Color.Gray.copy(alpha = 0.6f),
-                                fontSize = 16.sp
+                                color = Color(0xFF6B7280), // ChatInputField.placeholderColor exact
+                                fontSize = 15.sp
                             )
                         ) 
                     },
                     colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White.copy(alpha = 0.95f),
-                        unfocusedContainerColor = Color.White.copy(alpha = 0.95f),
+                        focusedContainerColor = Color.White, // ChatInputField.background
+                        unfocusedContainerColor = Color.White,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                         disabledIndicatorColor = Color.Transparent,
-                        focusedTextColor = Color(0xFF4AA3A2),
-                        unfocusedTextColor = Color(0xFF4AA3A2),
+                        focusedTextColor = Color.Black, // ChatInputField.textColor
+                        unfocusedTextColor = Color.Black,
                         cursorColor = Color(0xFF4AA3A2)
                     ),
-                    shape = RoundedCornerShape(26.dp),
-                    maxLines = 4,
+                    shape = RoundedCornerShape(28.dp), // ChatInputField.cornerRadius
+                    maxLines = 1, // Une seule ligne pour compacité
+                    singleLine = true,
                     textStyle = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 16.sp,
+                        fontSize = 15.sp,
                         fontWeight = FontWeight.Medium
                     )
                 )
 
-                // Bouton send moderne avec gradient
+                // SendButtonStyle exact
                 val isSending = false // TODO: Get from viewModel
-                IconButton(
-                    onClick = {
-                        if (messageText.isNotBlank() && !isSending) {
-                            val textToSend = messageText
-                            messageText = ""
-                            viewModel.sendMessage(token, userId, textToSend)
-                        }
-                    },
-                    enabled = messageText.isNotBlank() && !isSending,
+                val isEnabled = messageText.isNotBlank() && !isSending
+                
+                Box(
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp) // SendButtonStyle.size exact
                         .shadow(
-                            elevation = 8.dp,
-                            shape = CircleShape,
-                            ambientColor = if (messageText.isNotBlank()) Color(0xFFCA3C66).copy(alpha = 0.3f) else Color.Gray.copy(alpha = 0.2f)
+                            elevation = 18.dp, // SoftShadow
+                            shape = CircleShape, // cornerRadius 50 = CircleShape
+                            ambientColor = Color(0x33000000) // SoftShadow color
                         )
                         .background(
-                            brush = if (messageText.isNotBlank()) {
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    colors = listOf(
-                                        Color(0xFFCA3C66), // Rose primaire
-                                        Color(0xFFE8AABE)  // Rose doux
-                                    )
-                                )
-                            } else {
-                                androidx.compose.ui.graphics.Brush.linearGradient(
-                                    colors = listOf(Color.Gray, Color.Gray)
-                                )
-                            },
+                            color = if (isEnabled) Color(0xFF4AA3A2) else Color.Gray.copy(alpha = 0.5f), // SendButtonStyle.background
                             shape = CircleShape
                         )
+                        .clickable(enabled = isEnabled) {
+                            if (isEnabled) {
+                                val textToSend = messageText
+                                messageText = ""
+                                viewModel.sendMessage(token, userId, textToSend)
+                            }
+                        },
+                    contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = if (isSending) Icons.Filled.Schedule else Icons.AutoMirrored.Filled.Send,
                         contentDescription = "Send",
-                        tint = Color.White,
+                        tint = Color.White, // SendButtonStyle.iconTint exact
                         modifier = Modifier.size(20.dp)
                     )
                 }
+            }
             }
         }
     }
