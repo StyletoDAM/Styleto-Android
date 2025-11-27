@@ -206,6 +206,7 @@ fun SettingsView(
     var showImageSourcePicker by remember { mutableStateOf(false) }
     var showPasswordUpdate by remember { mutableStateOf(false) }
     var showDeletePhotoConfirmation by remember { mutableStateOf(false) }
+    var showBalanceTopUp by remember { mutableStateOf(false) }
     
     // Edit Profile State
     var fullName by rememberSaveable { mutableStateOf(activeUser?.fullName ?: "") }
@@ -460,6 +461,7 @@ fun SettingsView(
                             ),
                             shape = RoundedCornerShape(20.dp)
                         )
+                        .clickable { showBalanceTopUp = true }
                         .padding(20.dp)
                 ) {
                     Row(
@@ -480,7 +482,7 @@ fun SettingsView(
                             )
                             
                             Text(
-                                text = "${String.format("%.2f", (activeUser?.balance ?: 0.0) / 100)} TND",
+                                text = "${String.format("%.2f", activeUser?.balance ?: 0.0)} TND",
                                 style = MaterialTheme.typography.headlineMedium.copy(
                                     fontSize = 28.sp,
                                     fontWeight = FontWeight.Bold
@@ -1080,6 +1082,21 @@ fun SettingsView(
     LaunchedEffect(errorMessage) {
         if (errorMessage != null) {
             showErrorAlert = true
+        }
+    }
+    
+    // Balance Top Up Sheet
+    if (showBalanceTopUp) {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            BalanceTopUpSheet(
+                onDismiss = { showBalanceTopUp = false },
+                viewModel = viewModel,
+                token = token
+            )
+        } else {
+            // Si pas de token, fermer le popup
+            showBalanceTopUp = false
         }
     }
 }

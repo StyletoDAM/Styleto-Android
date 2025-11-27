@@ -179,5 +179,39 @@ class ProfileViewModel(
             _isPhotoUpdating.value = false
         }
     }
+
+    fun topUpBalance(token: String, amount: Double) {
+        viewModelScope.launch {
+            try {
+                Log.d("ProfileViewModel", "=== START TOP UP BALANCE ===")
+                Log.d("ProfileViewModel", "Amount: $amount TND")
+                
+                _isLoading.value = true
+                _errorMessage.value = null
+                _successMessage.value = null
+
+                val result = profileRepository.topUpBalance(token = token, amount = amount)
+                
+                result.fold(
+                    onSuccess = { updatedUser ->
+                        Log.d("ProfileViewModel", "Top up SUCCESS - New balance: ${updatedUser.balance}")
+                        _user.value = updatedUser
+                        _successMessage.value = "Solde rechargé avec succès ! +${String.format("%.2f", amount)} TND"
+                        Log.d("ProfileViewModel", "Success message set: ${_successMessage.value}")
+                    },
+                    onFailure = { error ->
+                        Log.e("ProfileViewModel", "Top up FAILED: ${error.message}")
+                        _errorMessage.value = "Échec de la recharge. Veuillez réessayer."
+                    }
+                )
+            } catch (e: Exception) {
+                Log.e("ProfileViewModel", "Exception in topUpBalance: ${e.message}", e)
+                _errorMessage.value = "Erreur inattendue: ${e.message}"
+            } finally {
+                _isLoading.value = false
+                Log.d("ProfileViewModel", "=== END TOP UP BALANCE ===")
+            }
+        }
+    }
 }
 

@@ -2,6 +2,7 @@ package tn.esprit.labasniandroid.models.repositories
 
 import android.util.Log
 import tn.esprit.labasniandroid.api.RetrofitClient
+import tn.esprit.labasniandroid.api.TopUpBalanceRequest
 import tn.esprit.labasniandroid.api.UpdateProfileRequest
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.Responses
@@ -156,6 +157,51 @@ class ProfileRepository {
                 Result.failure(NetworkError.ServerMessage(errorMessage))
             }
         } catch (e: Exception) {
+            Result.failure(NetworkError.Transport(e))
+        }
+    }
+
+    suspend fun topUpBalance(token: String, amount: Double): Result<User> {
+        return try {
+            // Convertir le montant en centimes (comme dans iOS)
+            val amountInCents = (amount * 100).toInt()
+            val request = TopUpBalanceRequest(amount = amountInCents)
+            
+            Log.d("ProfileRepository", "=== TOP UP BALANCE REQUEST ===")
+            Log.d("ProfileRepository", "Amount TND: $amount")
+            Log.d("ProfileRepository", "Amount in cents: $amountInCents")
+            
+            val response = authApi.topUpBalance("Bearer $token", request)
+            
+            Log.d("ProfileRepository", "Response code: ${response.code()}")
+            Log.d("ProfileRepository", "Response isSuccessful: ${response.isSuccessful}")
+
+            if (response.isSuccessful) {
+                val topUpResponse = response.body()
+                if (topUpResponse != null) {
+                    Log.d("ProfileRepository", "✅ Balance topped up successfully!")
+                    Log.d("ProfileRepository", "Message: ${topUpResponse.message}")
+                    Log.d("ProfileRepository", "New balance: ${topUpResponse.newBalance}")
+                    Log.d("ProfileRepository", "Updated user balance: ${topUpResponse.user.balance}")
+                    Result.success(topUpResponse.user)
+                } else {
+                    Log.e("ProfileRepository", "❌ Response body is null!")
+                    Result.failure(NetworkError.ServerMessage("Réponse vide du serveur."))
+                }
+            } else {
+                val errorBody = response.errorBody()?.string()
+                Log.e("ProfileRepository", "❌ Top up failed!")
+                Log.e("ProfileRepository", "Status code: ${response.code()}")
+                Log.e("ProfileRepository", "Error body: $errorBody")
+                val errorMessage = when (response.code()) {
+                    401 -> "Token invalide ou expiré."
+                    400 -> "Montant invalide."
+                    else -> errorBody ?: "Une erreur est survenue lors de la recharge (code: ${response.code()})."
+                }
+                Result.failure(NetworkError.ServerMessage(errorMessage))
+            }
+        } catch (e: Exception) {
+            Log.e("ProfileRepository", "Exception in topUpBalance: ${e.message}", e)
             Result.failure(NetworkError.Transport(e))
         }
     }

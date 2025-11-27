@@ -74,6 +74,16 @@ data class UpdateProfileRequest(
     @SerializedName("profilePicture") val profilePicture: String? = null
 )
 
+data class TopUpBalanceRequest(
+    @SerializedName("amount") val amount: Int // Montant en centimes
+)
+
+data class TopUpBalanceResponse(
+    @SerializedName("message") val message: String,
+    @SerializedName("newBalance") val newBalance: String,
+    @SerializedName("user") val user: User
+)
+
 interface AuthApi {
     @POST("/auth/signup")
     suspend fun signup(@Body request: SignupRequest): Response<Responses.SignupResponse>
@@ -123,4 +133,10 @@ interface AuthApi {
         @Header("Authorization") token: String,
         @retrofit2.http.Path("userId") userId: String
     ): Response<User>
+
+    @POST("/auth/balance/topup")
+    suspend fun topUpBalance(
+        @Header("Authorization") token: String,
+        @Body request: TopUpBalanceRequest
+    ): Response<TopUpBalanceResponse>
 }
