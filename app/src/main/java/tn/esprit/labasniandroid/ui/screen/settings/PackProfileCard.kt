@@ -16,20 +16,97 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 import tn.esprit.labasniandroid.ui.components.ViewPackages
+import tn.esprit.labasniandroid.ui.components.PremiumPackDetails
+import tn.esprit.labasniandroid.ui.components.ProPackDetails
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
+import tn.esprit.labasniandroid.utils.TokenManager
 
 @Composable
 fun PackProfileCard(
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val subscriptionRepository = remember { SubscriptionRepository() }
+    
     var showPlans by remember { mutableStateOf(false) }
+    var showPremiumDetails by remember { mutableStateOf(false) }
+    var showProDetails by remember { mutableStateOf(false) }
+    
+    // État pour le pack actuel
+    var currentPlan by remember { mutableStateOf("FREE") }
+    var isLoading by remember { mutableStateOf(true) }
+    
+    // État pour les stats d'usage
+    var clothesDetectionUsed by remember { mutableStateOf(0) }
+    var clothesDetectionLimit by remember { mutableStateOf(5) }
+    var outfitSuggestionsUsed by remember { mutableStateOf(0) }
+    var outfitSuggestionsLimit by remember { mutableStateOf(3) }
+    var itemsSoldUsed by remember { mutableStateOf(0) }
+    var itemsSoldLimit by remember { mutableStateOf(3) }
+    
+    // État pour forcer le rafraîchissement
+    var refreshKey by remember { mutableStateOf(0) }
+    
+    // Fonction pour charger/rafraîchir les données
+    fun refreshSubscriptionData() {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            scope.launch {
+                subscriptionRepository.getMyStats(token).fold(
+                    onSuccess = { stats ->
+                        currentPlan = stats.plan
+                        
+                        // Extraire les valeurs numériques ou "unlimited"
+                        clothesDetectionUsed = stats.clothesDetection.used
+                        clothesDetectionLimit = when (val limit = stats.clothesDetection.limit) {
+                            is Int -> limit
+                            "unlimited" -> Int.MAX_VALUE
+                            else -> 5
+                        }
+                        
+                        outfitSuggestionsUsed = stats.outfitSuggestions.used
+                        outfitSuggestionsLimit = when (val limit = stats.outfitSuggestions.limit) {
+                            is Int -> limit
+                            "unlimited" -> Int.MAX_VALUE
+                            else -> 3
+                        }
+                        
+                        itemsSoldUsed = stats.storeSelling.used
+                        itemsSoldLimit = when (val limit = stats.storeSelling.limit) {
+                            is Int -> limit
+                            "unlimited" -> Int.MAX_VALUE
+                            else -> 3
+                        }
+                        
+                        isLoading = false
+                    },
+                    onFailure = {
+                        // En cas d'erreur, utiliser les valeurs par défaut (FREE)
+                        currentPlan = "FREE"
+                        isLoading = false
+                    }
+                )
+            }
+        } else {
+            isLoading = false
+        }
+    }
+    
+    // Charger le pack actuel et les stats au démarrage et quand refreshKey change
+    LaunchedEffect(refreshKey) {
+        refreshSubscriptionData()
+    }
     
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
@@ -39,6 +116,20 @@ fun PackProfileCard(
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
     val themeSoftPink = DynamicThemeColors.softPink(isMale)
+    
+    // Fonction pour obtenir le nom du pack
+    val packName = when (currentPlan) {
+        "PREMIUM" -> "Premium"
+        "PRO_SELLER" -> "Pro Seller"
+        else -> "Free Pack"
+    }
+    
+    // Icône selon le pack
+    val packIcon = when (currentPlan) {
+        "PREMIUM" -> "👑"
+        "PRO_SELLER" -> "💼"
+        else -> "⭐"
+    }
 
     Column(
         modifier = modifier.padding(horizontal = 16.dp),
@@ -65,12 +156,18 @@ fun PackProfileCard(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Icon(
-                        imageVector = Icons.Rounded.Star,
-                        contentDescription = "Current pack",
-                        tint = themePrimary.copy(alpha = 0.8f),
-                        modifier = Modifier.size(28.dp)
-                    )
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(28.dp),
+                            color = themePrimary
+                        )
+                    } else {
+                        Text(
+                            text = packIcon,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontSize = 28.sp),
+                            modifier = Modifier.size(28.dp)
+                        )
+                    }
                     
                     Spacer(modifier = Modifier.width(12.dp))
                     
@@ -85,7 +182,7 @@ fun PackProfileCard(
                         )
                         
                         Text(
-                            text = "Free Pack",
+                            text = if (isLoading) "Loading..." else packName,
                             style = MaterialTheme.typography.headlineSmall.copy(
                                 fontSize = 20.sp,
                                 fontWeight = FontWeight.Bold
@@ -114,39 +211,53 @@ fun PackProfileCard(
                 )
                 
                 // Progress bars
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    ProgressRow(
-                        icon = "👕",
-                        title = "Clothing scans",
-                        current = 3,
-                        max = 5,
-                        themeTeal = themeTeal,
-                        themeText = themeText,
-                        themePrimary = themePrimary,
-                        themeSoftPink = themeSoftPink
-                    )
-                    ProgressRow(
-                        icon = "✨",
-                        title = "Outfit suggestions",
-                        current = 2,
-                        max = 3,
-                        themeTeal = themeTeal,
-                        themeText = themeText,
-                        themePrimary = themePrimary,
-                        themeSoftPink = themeSoftPink
-                    )
-                    ProgressRow(
-                        icon = "🛍️",
-                        title = "Items for sale",
-                        current = 1,
-                        max = 3,
-                        themeTeal = themeTeal,
-                        themeText = themeText,
-                        themePrimary = themePrimary,
-                        themeSoftPink = themeSoftPink
-                    )
+                if (isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(100.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = themePrimary)
+                    }
+                } else {
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        ProgressRow(
+                            icon = "👕",
+                            title = "Clothing scans",
+                            current = clothesDetectionUsed,
+                            max = if (clothesDetectionLimit == Int.MAX_VALUE) "∞" else clothesDetectionLimit.toString(),
+                            isUnlimited = clothesDetectionLimit == Int.MAX_VALUE,
+                            themeTeal = themeTeal,
+                            themeText = themeText,
+                            themePrimary = themePrimary,
+                            themeSoftPink = themeSoftPink
+                        )
+                        ProgressRow(
+                            icon = "✨",
+                            title = "Outfit suggestions",
+                            current = outfitSuggestionsUsed,
+                            max = if (outfitSuggestionsLimit == Int.MAX_VALUE) "∞" else outfitSuggestionsLimit.toString(),
+                            isUnlimited = outfitSuggestionsLimit == Int.MAX_VALUE,
+                            themeTeal = themeTeal,
+                            themeText = themeText,
+                            themePrimary = themePrimary,
+                            themeSoftPink = themeSoftPink
+                        )
+                        ProgressRow(
+                            icon = "🛍️",
+                            title = "Items for sale",
+                            current = itemsSoldUsed,
+                            max = if (itemsSoldLimit == Int.MAX_VALUE) "∞" else itemsSoldLimit.toString(),
+                            isUnlimited = itemsSoldLimit == Int.MAX_VALUE,
+                            themeTeal = themeTeal,
+                            themeText = themeText,
+                            themePrimary = themePrimary,
+                            themeSoftPink = themeSoftPink
+                        )
+                    }
                 }
             }
         }
@@ -194,14 +305,18 @@ fun PackProfileCard(
                             modifier = Modifier.size(28.dp)
                         )
                         
-                        Text(
-                            text = "Upgrade to Premium",
-                            style = MaterialTheme.typography.headlineSmall.copy(
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = Color.White
-                        )
+                    Text(
+                        text = when (currentPlan) {
+                            "PREMIUM" -> "Manage Subscription"
+                            "PRO_SELLER" -> "You're on Pro Seller!"
+                            else -> "Upgrade to Premium"
+                        },
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
                     }
                     
                     Text(
@@ -246,7 +361,57 @@ fun PackProfileCard(
     // Sheet pour les plans
     if (showPlans) {
         ViewPackages(
-            onDismiss = { showPlans = false }
+            onDismiss = { showPlans = false },
+            onPremiumClick = {
+                showPlans = false
+                showPremiumDetails = true
+            },
+            onProClick = {
+                showPlans = false
+                showProDetails = true
+            }
+        )
+    }
+    
+    // Sheet pour les détails Premium
+    if (showPremiumDetails) {
+        PremiumPackDetails(
+            onDismiss = { 
+                showPremiumDetails = false
+                // Rafraîchir les données après fermeture (au cas où un achat aurait été effectué)
+                scope.launch {
+                    kotlinx.coroutines.delay(500) // Petit délai avant rafraîchissement
+                    refreshKey++
+                }
+            },
+            onSubscribe = { isAnnual ->
+                // Le paiement est géré dans PremiumPackDetails
+            },
+            onSubscriptionSuccess = {
+                // Rafraîchir immédiatement après achat réussi
+                refreshSubscriptionData()
+            }
+        )
+    }
+    
+    // Sheet pour les détails Pro Seller
+    if (showProDetails) {
+        ProPackDetails(
+            onDismiss = { 
+                showProDetails = false
+                // Rafraîchir les données après fermeture (au cas où un achat aurait été effectué)
+                scope.launch {
+                    kotlinx.coroutines.delay(500) // Petit délai avant rafraîchissement
+                    refreshKey++
+                }
+            },
+            onSubscribe = { isAnnual ->
+                // Le paiement est géré dans ProPackDetails
+            },
+            onSubscriptionSuccess = {
+                // Rafraîchir immédiatement après achat réussi
+                refreshSubscriptionData()
+            }
         )
     }
 }
@@ -256,7 +421,8 @@ private fun ProgressRow(
     icon: String,
     title: String,
     current: Int,
-    max: Int,
+    max: String,
+    isUnlimited: Boolean,
     themeTeal: Color,
     themeText: Color,
     themePrimary: Color,
@@ -286,7 +452,7 @@ private fun ProgressRow(
             )
             
             Text(
-                text = "$current/$max",
+                text = if (isUnlimited) "Unlimited" else "$current/$max",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold
@@ -295,21 +461,24 @@ private fun ProgressRow(
             )
         }
         
-        // Progress bar
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(9.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(themeSoftPink.copy(alpha = 0.25f))
-        ) {
+        // Progress bar (seulement si limité)
+        if (!isUnlimited) {
+            val maxInt = max.toIntOrNull() ?: 1
             Box(
                 modifier = Modifier
-                    .fillMaxHeight()
-                    .fillMaxWidth(fraction = current.toFloat() / max.toFloat())
+                    .fillMaxWidth()
+                    .height(9.dp)
                     .clip(RoundedCornerShape(6.dp))
-                    .background(themeTeal)
-            )
+                    .background(themeSoftPink.copy(alpha = 0.25f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxHeight()
+                        .fillMaxWidth(fraction = (current.toFloat() / maxInt.toFloat()).coerceIn(0f, 1f))
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(themeTeal)
+                )
+            }
         }
     }
 }

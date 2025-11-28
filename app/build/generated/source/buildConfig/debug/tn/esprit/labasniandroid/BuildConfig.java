@@ -10,7 +10,7 @@ public final class BuildConfig {
   public static final int VERSION_CODE = 1;
   public static final String VERSION_NAME = "1.0";
   // Field from default config.
-  public static final String BASE_URL = "http://10.181.249.169:3000";
+  public static final String BASE_URL = "http://192.168.216.254:3000";
   // Field from default config.
-  public static final String STRIPE_PUBLISHABLE_KEY = "pk_test_51QBL9mEOQ2zoH7hqMcpOsBmH5S8xhG8VZ4lbiyv4rvHmFsgfFI13HHSTCnYOQoZV7BvRNSkx1HUIAhwBgoItbHJR00SEK7vFqI";
+  public static final String STRIPE_PUBLISHABLE_KEY = "pk_test_51SWOK4FzjKYZqBoAhQtwRTUV8P1YSYxFi0uYoconGBDthaZsgCGJIcSWNgcCNLRs3OPEp9Kjaqzc6Z9OtLUMJDVF00jvhzluWY";
 }

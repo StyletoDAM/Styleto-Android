@@ -39,6 +39,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.rounded.AutoAwesome
 import androidx.compose.material.icons.rounded.CameraAlt
 import androidx.compose.material.icons.rounded.Delete
@@ -118,6 +119,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import tn.esprit.labasniandroid.models.entities.User
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
+import tn.esprit.labasniandroid.ui.screen.orders.OrdersHistoryView
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeMode
@@ -199,6 +201,7 @@ fun SettingsView(
     var showSuccessAlert by remember { mutableStateOf(false) }
     var showErrorAlert by remember { mutableStateOf(false) }
     var showLogoutConfirmation by remember { mutableStateOf(false) }
+    var showOrdersHistory by remember { mutableStateOf(false) }
     var showPhotoConfirmation by remember { mutableStateOf(false) }
     var pendingPhotoBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var pendingPhotoBytes by remember { mutableStateOf<ByteArray?>(null) }
@@ -673,6 +676,16 @@ fun SettingsView(
                 }
             }
             
+            // Order History Card - En haut des packages
+            OrderHistoryCard(
+                themePrimary = themePrimary,
+                themeCard = themeCard,
+                themeText = themeText,
+                themeSecondaryText = themeSecondaryText,
+                themeBackground = themeBackground,
+                onNavigateToOrders = { showOrdersHistory = true }
+            )
+            
             // Pack Profile Cards (comme iOS)
             PackProfileCard()
             
@@ -1100,6 +1113,111 @@ fun SettingsView(
         } else {
             // Si pas de token, fermer le popup
             showBalanceTopUp = false
+        }
+    }
+    
+    // Orders History View - Full screen overlay
+    if (showOrdersHistory) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(themeBackground)
+        ) {
+            OrdersHistoryView(
+                onBackClick = { showOrdersHistory = false }
+            )
+        }
+    }
+}
+
+// MARK: - Order History Card
+@Composable
+fun OrderHistoryCard(
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color,
+    themeSecondaryText: Color,
+    themeBackground: Color,
+    onNavigateToOrders: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .shadow(
+                elevation = 8.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = themePrimary.copy(alpha = 0.3f)
+            ),
+        colors = CardDefaults.cardColors(containerColor = themeCard),
+        shape = RoundedCornerShape(20.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onNavigateToOrders() }
+                .padding(20.dp)
+        ) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Icône avec gradient
+                Box(
+                    modifier = Modifier
+                        .size(56.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(
+                            brush = Brush.linearGradient(
+                                colors = listOf(
+                                    themePrimary.copy(alpha = 0.9f),
+                                    themePrimary.copy(alpha = 0.7f)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.ShoppingBag,
+                        contentDescription = "Order History",
+                        tint = Color.White,
+                        modifier = Modifier.size(28.dp)
+                    )
+                }
+                
+                // Texte
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Text(
+                        text = "Order History",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = themeText
+                    )
+                    
+                    Text(
+                        text = "View all your past orders",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 14.sp
+                        ),
+                        color = themeSecondaryText
+                    )
+                }
+                
+                // Chevron
+                Icon(
+                    imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
+                    contentDescription = "View orders",
+                    tint = themePrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

@@ -1,4 +1,4 @@
-package tn.esprit.labasniandroid.ui.components
+ package tn.esprit.labasniandroid.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -51,6 +51,8 @@ data class SubscriptionPlan(
 @Composable
 fun ViewPackages(
     onDismiss: () -> Unit,
+    onPremiumClick: () -> Unit = {},
+    onProClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var selectedPlan by remember { mutableStateOf(PlanType.FREE) }
@@ -178,11 +180,19 @@ fun ViewPackages(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(plans) { plan ->
-                    PlanCard(
-                        plan = plan,
-                        isSelected = selectedPlan == plan.type,
-                        isCurrentPlan = currentUserPlan == plan.type,
-                        onSelect = { selectedPlan = plan.type },
+                        PlanCard(
+                            plan = plan,
+                            isSelected = selectedPlan == plan.type,
+                            isCurrentPlan = currentUserPlan == plan.type,
+                            onSelect = { 
+                                selectedPlan = plan.type
+                                // Si c'est Premium ou Pro, ouvrir la page de détails correspondante
+                                when (plan.type) {
+                                    PlanType.PREMIUM -> onPremiumClick()
+                                    PlanType.PRO -> onProClick()
+                                    else -> {}
+                                }
+                            },
                         themePrimary = themePrimary,
                         themeTeal = themeTeal,
                         themeCard = themeCard,

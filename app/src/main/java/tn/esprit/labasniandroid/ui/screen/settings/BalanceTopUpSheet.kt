@@ -1,5 +1,6 @@
 package tn.esprit.labasniandroid.ui.screen.settings
 
+import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -24,16 +25,19 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.stripe.android.paymentsheet.PaymentSheetResult
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.ui.screen.profile.ProfileViewModel
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
+import tn.esprit.labasniandroid.utils.PaymentService
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,6 +47,8 @@ fun BalanceTopUpSheet(
     token: String,
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val activity = context as? ComponentActivity
     val scope = rememberCoroutineScope()
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
@@ -52,6 +58,12 @@ fun BalanceTopUpSheet(
     var selectedAmount by remember { mutableDoubleStateOf(0.0) }
     var customAmount by remember { mutableStateOf("") }
     var isCustomSelected by remember { mutableStateOf(false) }
+    
+    // Variable pour stocker le clientSecret à présenter
+    var pendingClientSecret by remember { mutableStateOf<String?>(null) }
+    
+    // État pour les erreurs de paiement
+    var paymentError by remember { mutableStateOf<String?>(null) }
     
     // Montants prédéfinis (comme dans iOS)
     val presetAmounts = listOf(50.0, 100.0, 200.0, 500.0, 1000.0)
@@ -67,8 +79,46 @@ fun BalanceTopUpSheet(
     
     // États du ViewModel
     val isLoading by viewModel.isLoading.collectAsState()
+    val isProcessingPayment by viewModel.isProcessingPayment.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
+    
+    // Présenter PaymentSheet quand le clientSecret est disponible
+    LaunchedEffect(pendingClientSecret) {
+        if (pendingClientSecret != null && activity != null) {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                try {
+                    PaymentService.presentPaymentSheet(
+                        activity = activity,
+                        clientSecret = pendingClientSecret!!,
+                        onResult = { paymentResult ->
+                            when (paymentResult) {
+                                is PaymentSheetResult.Completed -> {
+                                    scope.launch {
+                                        // Paiement réussi, confirmer le top-up avec le backend
+                                        viewModel.confirmTopUpWithBackend(token)
+                                    }
+                                }
+                                is PaymentSheetResult.Canceled -> {
+                                    viewModel.resetPaymentState()
+                                    // Ne pas afficher d'erreur pour une annulation
+                                }
+                                is PaymentSheetResult.Failed -> {
+                                    val errorMsg = paymentResult.error?.message ?: "Erreur inconnue"
+                                    paymentError = "Erreur de paiement: $errorMsg"
+                                    viewModel.resetPaymentState()
+                                }
+                            }
+                            pendingClientSecret = null
+                        }
+                    )
+                } catch (e: Exception) {
+                    paymentError = "Erreur: ${e.message ?: "Impossible d'ouvrir le paiement"}"
+                    pendingClientSecret = null
+                }
+            }
+        }
+    }
     
     // Gérer les messages de succès/erreur
     LaunchedEffect(successMessage) {
@@ -271,7 +321,7 @@ fun BalanceTopUpSheet(
                     )
                 }
                 
-                // Bouton Top Up
+                // Bouton Top Up (avec Stripe)
                 Button(
                     onClick = {
                         val finalAmount = if (isCustomSelected && customAmount.isNotEmpty()) {
@@ -280,13 +330,20 @@ fun BalanceTopUpSheet(
                             selectedAmount
                         }
                         
-                        if (finalAmount > 0) {
+                        if (finalAmount > 0 && activity != null) {
                             scope.launch {
-                                viewModel.topUpBalance(token, finalAmount)
+                                // Créer le Payment Intent via Stripe
+                                val result = viewModel.initiateTopUp(token, finalAmount)
+                                result.onSuccess { clientSecret ->
+                                    // Stocker le clientSecret pour que LaunchedEffect le présente
+                                    pendingClientSecret = clientSecret
+                                }.onFailure { error ->
+                                    paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
+                                }
                             }
                         }
                     },
-                    enabled = !isLoading && (
+                    enabled = !isLoading && !isProcessingPayment && (
                         (isCustomSelected && customAmount.isNotEmpty() && (customAmount.replace(",", ".").toDoubleOrNull() ?: 0.0) > 0) ||
                         (!isCustomSelected && selectedAmount > 0)
                     ),
@@ -307,14 +364,14 @@ fun BalanceTopUpSheet(
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    if (isLoading) {
+                    if (isLoading || isProcessingPayment) {
                         CircularProgressIndicator(
                             color = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                     } else {
                         Text(
-                            text = "Top Up",
+                            text = "Continue",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold
                             )
@@ -327,15 +384,45 @@ fun BalanceTopUpSheet(
         }
     }
     
-    // AlertDialog pour les erreurs
+    // AlertDialog pour les erreurs du ViewModel
     errorMessage?.let { message ->
         AlertDialog(
             onDismissRequest = { viewModel.clearMessages() },
-            title = { Text("Error") },
+            title = { 
+                Text(
+                    text = "Erreur",
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
             text = { Text(message) },
             confirmButton = {
                 TextButton(onClick = { viewModel.clearMessages() }) {
-                    Text("OK")
+                    Text(
+                        text = "OK",
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+        )
+    }
+    
+    // AlertDialog pour les erreurs de paiement
+    paymentError?.let { error ->
+        AlertDialog(
+            onDismissRequest = { paymentError = null },
+            title = { 
+                Text(
+                    text = "Erreur de paiement",
+                    fontWeight = FontWeight.Bold
+                ) 
+            },
+            text = { Text(error) },
+            confirmButton = {
+                TextButton(onClick = { paymentError = null }) {
+                    Text(
+                        text = "OK",
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
         )

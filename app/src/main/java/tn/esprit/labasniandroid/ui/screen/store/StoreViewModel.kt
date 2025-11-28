@@ -12,10 +12,12 @@ import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.StoreItem
 import tn.esprit.labasniandroid.models.repositories.DressingRepository
 import tn.esprit.labasniandroid.models.repositories.StoreRepository
+import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 
 class StoreViewModel(
     private val storeRepository: StoreRepository = StoreRepository(),
-    private val dressingRepository: DressingRepository = DressingRepository()
+    private val dressingRepository: DressingRepository = DressingRepository(),
+    private val subscriptionRepository: SubscriptionRepository = SubscriptionRepository()
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -58,6 +60,9 @@ class StoreViewModel(
 
     private val _showToast = MutableStateFlow(false)
     val showToast: StateFlow<Boolean> = _showToast.asStateFlow()
+
+    private val _showUpgradeToPro = MutableStateFlow(false)
+    val showUpgradeToPro: StateFlow<Boolean> = _showUpgradeToPro.asStateFlow()
 
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText.asStateFlow()
@@ -199,6 +204,22 @@ class StoreViewModel(
             _isSubmitting.value = true
             _errorMessage.value = null
 
+            // Vérifier le quota avant d'ajouter l'article
+            subscriptionRepository.checkStoreSellingQuota(token).fold(
+                onSuccess = { quota ->
+                    if (!quota.allowed) {
+                        // Limite atteinte, afficher le dialog d'upgrade
+                        _showUpgradeToPro.value = true
+                        _isSubmitting.value = false
+                        return@launch
+                    }
+                },
+                onFailure = {
+                    // En cas d'erreur de quota, continuer quand même (peut être temporaire)
+                }
+            )
+
+            // Si le quota est OK, ajouter l'article
             storeRepository.addStoreItem(
                 token = token,
                 clothesId = selectedCloth.id,
@@ -212,15 +233,27 @@ class StoreViewModel(
                     _successMessage.value = "Article ajouté à la boutique."
                 },
                 onFailure = { error ->
-                    // Même en cas d'erreur de parsing, l'item peut avoir été créé
-                    // Donc on recharge quand même la liste
-                    loadMyStore(token)
-                    _errorMessage.value = error.message
+                    // Vérifier si l'erreur vient du backend (limite atteinte)
+                    val errorMsg = error.message ?: ""
+                    if (errorMsg.contains("limit", ignoreCase = true) || 
+                        errorMsg.contains("quota", ignoreCase = true) ||
+                        errorMsg.contains("exceeded", ignoreCase = true)) {
+                        _showUpgradeToPro.value = true
+                    } else {
+                        // Même en cas d'erreur de parsing, l'item peut avoir été créé
+                        // Donc on recharge quand même la liste
+                        loadMyStore(token)
+                        _errorMessage.value = error.message
+                    }
                 }
             )
 
             _isSubmitting.value = false
         }
+    }
+    
+    fun hideUpgradeToPro() {
+        _showUpgradeToPro.value = false
     }
 
     fun showAddToStore() {

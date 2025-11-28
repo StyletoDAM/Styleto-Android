@@ -85,6 +85,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.entities.StoreItem
+import tn.esprit.labasniandroid.ui.components.UpgradeToProDialog
+import tn.esprit.labasniandroid.ui.components.ProPackDetails
 import tn.esprit.labasniandroid.ui.screen.store.DiscoverItemDetailSheet
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
@@ -132,10 +134,13 @@ fun StoreTab(
     val deletingIds by viewModel.deletingIds.collectAsState()
     val showAddToStore by viewModel.showAddToStore.collectAsState()
     val showToast by viewModel.showToast.collectAsState()
+    val showUpgradeToPro by viewModel.showUpgradeToPro.collectAsState()
     val searchText by viewModel.searchText.collectAsState()
     val availableClothes by viewModel.availableClothes.collectAsState()
     val isLoadingClothes by viewModel.isLoadingClothes.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
+    
+    var showProDetails by remember { mutableStateOf(false) }
 
     // Observer le nombre d'articles dans le panier (comme iOS CartManager.shared.itemCount)
     val cartItemCount by CartManager.itemCount.collectAsState(initial = 0)
@@ -452,6 +457,33 @@ fun StoreTab(
         }
     }
 
+    // Upgrade to Pro Dialog
+    if (showUpgradeToPro) {
+        UpgradeToProDialog(
+            onDismiss = { viewModel.hideUpgradeToPro() },
+            onUpgrade = {
+                showProDetails = true
+            }
+        )
+    }
+    
+        // Pro Pack Details Sheet
+        if (showProDetails) {
+            ProPackDetails(
+                onDismiss = { 
+                    showProDetails = false
+                    viewModel.hideUpgradeToPro()
+                },
+                onSubscribe = { isAnnual ->
+                    // Le paiement est géré dans ProPackDetails
+                },
+                onSubscriptionSuccess = {
+                    // Rafraîchir le store après achat réussi pour mettre à jour les quotas
+                    viewModel.loadMyStore(token)
+                }
+            )
+        }
+    
     // AddToStoreSheet (comme iOS)
     if (showAddToStore) {
         AddToStoreSheet(
