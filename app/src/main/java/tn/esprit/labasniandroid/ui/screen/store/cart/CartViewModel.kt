@@ -7,11 +7,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.repositories.StoreRepository
+import tn.esprit.labasniandroid.models.repositories.OrdersRepository
 import tn.esprit.labasniandroid.utils.CartManager
 import tn.esprit.labasniandroid.data.local.entities.CartItem
 
 class CartViewModel(
-    private val storeRepository: StoreRepository = StoreRepository()
+    private val storeRepository: StoreRepository = StoreRepository(),
+    private val ordersRepository: OrdersRepository = OrdersRepository()
 ) : ViewModel() {
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -68,6 +70,7 @@ class CartViewModel(
         return try {
             var allSuccess = true
             var lastError: Exception? = null
+            val purchasedItems = mutableListOf<tn.esprit.labasniandroid.models.entities.StoreItem>()
 
             // Confirmer l'achat pour chaque article du panier
             for (item in cartItems) {
@@ -83,7 +86,10 @@ class CartViewModel(
                         paymentIntentId = fullPaymentIntentId
                     )
 
-                    result.onFailure { error ->
+                    result.onSuccess { storeItem ->
+                        // Stocker l'article acheté pour créer la commande après
+                        purchasedItems.add(storeItem)
+                    }.onFailure { error ->
                         allSuccess = false
                         lastError = when (error) {
                             is tn.esprit.labasniandroid.models.NetworkError.ServerMessage -> 
@@ -97,6 +103,25 @@ class CartViewModel(
             }
 
             if (allSuccess) {
+                // Créer une commande dans l'historique pour chaque article acheté
+                for (storeItem in purchasedItems) {
+                    val clothId = storeItem.cloth?.id
+                    if (clothId != null && storeItem.price > 0) {
+                        // Créer la commande dans l'historique
+                        ordersRepository.createOrder(
+                            token = token,
+                            clothesId = clothId,
+                            price = storeItem.price
+                        ).onFailure { error ->
+                            // Log l'erreur mais ne bloque pas le processus
+                            android.util.Log.e(
+                                "CartViewModel",
+                                "Erreur lors de la création de la commande pour $clothId: ${error.message}"
+                            )
+                        }
+                    }
+                }
+                
                 // Vider le panier après paiement réussi
                 // Note: clearCart nécessite un context, sera appelé depuis la vue
                 _paymentSuccess.value = true
