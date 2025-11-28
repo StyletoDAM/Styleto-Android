@@ -1,9 +1,11 @@
 package tn.esprit.labasniandroid.ui.screen.dressing;
 
-@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000^\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0010 \n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\"\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0010\u000b\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\b\f\n\u0002\u0018\u0002\n\u0002\b\u000b\n\u0002\u0018\u0002\n\u0002\b\b\b\u0007\u0018\u00002\u00020\u0001B\u000f\u0012\b\b\u0002\u0010\u0002\u001a\u00020\u0003\u00a2\u0006\u0002\u0010\u0004J\u0006\u0010*\u001a\u00020\u0015J\u0006\u0010+\u001a\u00020\u0015J\u0016\u0010,\u001a\u00020\u00152\u0006\u0010-\u001a\u00020\u000b2\u0006\u0010.\u001a\u00020\u000bJ\u000e\u0010/\u001a\u00020\u00152\u0006\u00100\u001a\u000201J\u000e\u00102\u001a\u00020\u00152\u0006\u0010-\u001a\u00020\u000bJ6\u00103\u001a\u00020\u00152\u0006\u0010-\u001a\u00020\u000b2\u0006\u00104\u001a\u00020\u000b2\u0006\u00105\u001a\u00020\u000b2\u0006\u00106\u001a\u00020\u000b2\u0006\u00107\u001a\u00020\u000b2\u0006\u00108\u001a\u00020\u000bR\u001a\u0010\u0005\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\b0\u00070\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u001a\u0010\t\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\u000b0\n0\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\"\u0010\f\u001a\u0016\u0012\u0012\u0012\u0010\u0012\u0004\u0012\u00020\u000e\u0012\u0004\u0012\u00020\u000b\u0018\u00010\r0\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0016\u0010\u000f\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\u000b0\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0010\u001a\b\u0012\u0004\u0012\u00020\u00110\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0012\u001a\b\u0012\u0004\u0012\u00020\u00110\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0013\u001a\b\u0012\u0004\u0012\u00020\u00110\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0014\u001a\b\u0012\u0004\u0012\u00020\u00150\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0016\u0010\u0016\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\u000b0\u0006X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u001d\u0010\u0017\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\b0\u00070\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0019\u0010\u001aR\u001d\u0010\u001b\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\u000b0\n0\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001c\u0010\u001aR%\u0010\u001d\u001a\u0016\u0012\u0012\u0012\u0010\u0012\u0004\u0012\u00020\u000e\u0012\u0004\u0012\u00020\u000b\u0018\u00010\r0\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001e\u0010\u001aR\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0019\u0010\u001f\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\u000b0\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b \u0010\u001aR\u0017\u0010!\u001a\b\u0012\u0004\u0012\u00020\u00110\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b!\u0010\u001aR\u0017\u0010\"\u001a\b\u0012\u0004\u0012\u00020\u00110\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b\"\u0010\u001aR\u0017\u0010#\u001a\b\u0012\u0004\u0012\u00020\u00110\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b#\u0010\u001aR\u0017\u0010$\u001a\b\u0012\u0004\u0012\u00020\u00150%\u00a2\u0006\b\n\u0000\u001a\u0004\b&\u0010\'R\u0019\u0010(\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\u000b0\u0018\u00a2\u0006\b\n\u0000\u001a\u0004\b)\u0010\u001a\u00a8\u00069"}, d2 = {"Ltn/esprit/labasniandroid/ui/screen/dressing/DressingViewModel;", "Landroidx/lifecycle/ViewModel;", "dressingRepository", "Ltn/esprit/labasniandroid/models/repositories/DressingRepository;", "(Ltn/esprit/labasniandroid/models/repositories/DressingRepository;)V", "_clothes", "Lkotlinx/coroutines/flow/MutableStateFlow;", "", "Ltn/esprit/labasniandroid/models/entities/Cloth;", "_deletingIds", "", "", "_detectionResult", "Lkotlin/Pair;", "Ltn/esprit/labasniandroid/models/DetectionResult;", "_errorMessage", "_isDetecting", "", "_isLoading", "_isSaving", "_refreshEvent", "", "_successMessage", "clothes", "Lkotlinx/coroutines/flow/StateFlow;", "getClothes", "()Lkotlinx/coroutines/flow/StateFlow;", "deletingIds", "getDeletingIds", "detectionResult", "getDetectionResult", "errorMessage", "getErrorMessage", "isDetecting", "isLoading", "isSaving", "refreshEvent", "Lkotlinx/coroutines/flow/SharedFlow;", "getRefreshEvent", "()Lkotlinx/coroutines/flow/SharedFlow;", "successMessage", "getSuccessMessage", "clearDetectionResult", "clearMessages", "deleteCloth", "token", "clothId", "detectCloth", "bitmap", "Landroid/graphics/Bitmap;", "loadClothes", "saveDetectedCloth", "imageURL", "category", "color", "style", "season", "app_debug"})
+@kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000d\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0018\u0002\n\u0002\u0010 \n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\"\n\u0002\u0010\u000e\n\u0000\n\u0002\u0018\u0002\n\u0002\u0018\u0002\n\u0002\b\u0002\n\u0002\u0010\u000b\n\u0002\b\u0003\n\u0002\u0010\u0002\n\u0002\b\u0003\n\u0002\u0018\u0002\n\u0002\b\f\n\u0002\u0018\u0002\n\u0002\b\u000f\n\u0002\u0018\u0002\n\u0002\b\t\b\u0007\u0018\u00002\u00020\u0001B\u0019\u0012\b\b\u0002\u0010\u0002\u001a\u00020\u0003\u0012\b\b\u0002\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\u0002\u0010\u0006J\u0016\u0010/\u001a\u00020\u00132\u0006\u00100\u001a\u00020\rH\u0086@\u00a2\u0006\u0002\u00101J\u0006\u00102\u001a\u00020\u0017J\u0006\u00103\u001a\u00020\u0017J\u0016\u00104\u001a\u00020\u00172\u0006\u00100\u001a\u00020\r2\u0006\u00105\u001a\u00020\rJ\u000e\u00106\u001a\u00020\u00172\u0006\u00107\u001a\u000208J\u0006\u00109\u001a\u00020\u0017J\u000e\u0010:\u001a\u00020\u00172\u0006\u00100\u001a\u00020\rJ6\u0010;\u001a\u00020\u00172\u0006\u00100\u001a\u00020\r2\u0006\u0010<\u001a\u00020\r2\u0006\u0010=\u001a\u00020\r2\u0006\u0010>\u001a\u00020\r2\u0006\u0010?\u001a\u00020\r2\u0006\u0010@\u001a\u00020\rR\u001a\u0010\u0007\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\n0\t0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u001a\u0010\u000b\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\r0\f0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\"\u0010\u000e\u001a\u0016\u0012\u0012\u0012\u0010\u0012\u0004\u0012\u00020\u0010\u0012\u0004\u0012\u00020\r\u0018\u00010\u000f0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0016\u0010\u0011\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\r0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0012\u001a\b\u0012\u0004\u0012\u00020\u00130\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0014\u001a\b\u0012\u0004\u0012\u00020\u00130\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0015\u001a\b\u0012\u0004\u0012\u00020\u00130\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0016\u001a\b\u0012\u0004\u0012\u00020\u00170\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0014\u0010\u0018\u001a\b\u0012\u0004\u0012\u00020\u00130\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0016\u0010\u0019\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\r0\bX\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u001d\u0010\u001a\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\n0\t0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001c\u0010\u001dR\u001d\u0010\u001e\u001a\u000e\u0012\n\u0012\b\u0012\u0004\u0012\u00020\r0\f0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b\u001f\u0010\u001dR%\u0010 \u001a\u0016\u0012\u0012\u0012\u0010\u0012\u0004\u0012\u00020\u0010\u0012\u0004\u0012\u00020\r\u0018\u00010\u000f0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b!\u0010\u001dR\u000e\u0010\u0002\u001a\u00020\u0003X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0019\u0010\"\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\r0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b#\u0010\u001dR\u0017\u0010$\u001a\b\u0012\u0004\u0012\u00020\u00130\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b$\u0010\u001dR\u0017\u0010%\u001a\b\u0012\u0004\u0012\u00020\u00130\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b%\u0010\u001dR\u0017\u0010&\u001a\b\u0012\u0004\u0012\u00020\u00130\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b&\u0010\u001dR\u0017\u0010\'\u001a\b\u0012\u0004\u0012\u00020\u00170(\u00a2\u0006\b\n\u0000\u001a\u0004\b)\u0010*R\u0017\u0010+\u001a\b\u0012\u0004\u0012\u00020\u00130\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b,\u0010\u001dR\u000e\u0010\u0004\u001a\u00020\u0005X\u0082\u0004\u00a2\u0006\u0002\n\u0000R\u0019\u0010-\u001a\n\u0012\u0006\u0012\u0004\u0018\u00010\r0\u001b\u00a2\u0006\b\n\u0000\u001a\u0004\b.\u0010\u001d\u00a8\u0006A"}, d2 = {"Ltn/esprit/labasniandroid/ui/screen/dressing/DressingViewModel;", "Landroidx/lifecycle/ViewModel;", "dressingRepository", "Ltn/esprit/labasniandroid/models/repositories/DressingRepository;", "subscriptionRepository", "Ltn/esprit/labasniandroid/models/repositories/SubscriptionRepository;", "(Ltn/esprit/labasniandroid/models/repositories/DressingRepository;Ltn/esprit/labasniandroid/models/repositories/SubscriptionRepository;)V", "_clothes", "Lkotlinx/coroutines/flow/MutableStateFlow;", "", "Ltn/esprit/labasniandroid/models/entities/Cloth;", "_deletingIds", "", "", "_detectionResult", "Lkotlin/Pair;", "Ltn/esprit/labasniandroid/models/DetectionResult;", "_errorMessage", "_isDetecting", "", "_isLoading", "_isSaving", "_refreshEvent", "", "_showUpgradeDialog", "_successMessage", "clothes", "Lkotlinx/coroutines/flow/StateFlow;", "getClothes", "()Lkotlinx/coroutines/flow/StateFlow;", "deletingIds", "getDeletingIds", "detectionResult", "getDetectionResult", "errorMessage", "getErrorMessage", "isDetecting", "isLoading", "isSaving", "refreshEvent", "Lkotlinx/coroutines/flow/SharedFlow;", "getRefreshEvent", "()Lkotlinx/coroutines/flow/SharedFlow;", "showUpgradeDialog", "getShowUpgradeDialog", "successMessage", "getSuccessMessage", "checkDetectionQuota", "token", "(Ljava/lang/String;Lkotlin/coroutines/Continuation;)Ljava/lang/Object;", "clearDetectionResult", "clearMessages", "deleteCloth", "clothId", "detectCloth", "bitmap", "Landroid/graphics/Bitmap;", "hideUpgradeDialog", "loadClothes", "saveDetectedCloth", "imageURL", "category", "color", "style", "season", "app_debug"})
 public final class DressingViewModel extends androidx.lifecycle.ViewModel {
     @org.jetbrains.annotations.NotNull()
     private final tn.esprit.labasniandroid.models.repositories.DressingRepository dressingRepository = null;
+    @org.jetbrains.annotations.NotNull()
+    private final tn.esprit.labasniandroid.models.repositories.SubscriptionRepository subscriptionRepository = null;
     @org.jetbrains.annotations.NotNull()
     private final kotlinx.coroutines.flow.MutableStateFlow<java.lang.Boolean> _isLoading = null;
     @org.jetbrains.annotations.NotNull()
@@ -37,12 +39,17 @@ public final class DressingViewModel extends androidx.lifecycle.ViewModel {
     @org.jetbrains.annotations.NotNull()
     private final kotlinx.coroutines.flow.StateFlow<java.lang.Boolean> isSaving = null;
     @org.jetbrains.annotations.NotNull()
+    private final kotlinx.coroutines.flow.MutableStateFlow<java.lang.Boolean> _showUpgradeDialog = null;
+    @org.jetbrains.annotations.NotNull()
+    private final kotlinx.coroutines.flow.StateFlow<java.lang.Boolean> showUpgradeDialog = null;
+    @org.jetbrains.annotations.NotNull()
     private final kotlinx.coroutines.flow.MutableStateFlow<kotlin.Unit> _refreshEvent = null;
     @org.jetbrains.annotations.NotNull()
     private final kotlinx.coroutines.flow.SharedFlow<kotlin.Unit> refreshEvent = null;
     
     public DressingViewModel(@org.jetbrains.annotations.NotNull()
-    tn.esprit.labasniandroid.models.repositories.DressingRepository dressingRepository) {
+    tn.esprit.labasniandroid.models.repositories.DressingRepository dressingRepository, @org.jetbrains.annotations.NotNull()
+    tn.esprit.labasniandroid.models.repositories.SubscriptionRepository subscriptionRepository) {
         super();
     }
     
@@ -87,6 +94,11 @@ public final class DressingViewModel extends androidx.lifecycle.ViewModel {
     }
     
     @org.jetbrains.annotations.NotNull()
+    public final kotlinx.coroutines.flow.StateFlow<java.lang.Boolean> getShowUpgradeDialog() {
+        return null;
+    }
+    
+    @org.jetbrains.annotations.NotNull()
     public final kotlinx.coroutines.flow.SharedFlow<kotlin.Unit> getRefreshEvent() {
         return null;
     }
@@ -126,6 +138,22 @@ public final class DressingViewModel extends androidx.lifecycle.ViewModel {
      * Réinitialise le résultat de détection
      */
     public final void clearDetectionResult() {
+    }
+    
+    /**
+     * Cache le dialog d'upgrade
+     */
+    public final void hideUpgradeDialog() {
+    }
+    
+    /**
+     * Vérifie le quota de détection avant de permettre la détection
+     */
+    @org.jetbrains.annotations.Nullable()
+    public final java.lang.Object checkDetectionQuota(@org.jetbrains.annotations.NotNull()
+    java.lang.String token, @org.jetbrains.annotations.NotNull()
+    kotlin.coroutines.Continuation<? super java.lang.Boolean> $completion) {
+        return null;
     }
     
     public DressingViewModel() {

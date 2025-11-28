@@ -92,6 +92,9 @@ import tn.esprit.labasniandroid.ui.theme.CategoryColors
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
+import tn.esprit.labasniandroid.ui.components.ViewPackages
+import tn.esprit.labasniandroid.ui.components.PremiumPackDetails
+import tn.esprit.labasniandroid.ui.components.ProPackDetails
 import tn.esprit.labasniandroid.utils.TokenManager
 import tn.esprit.labasniandroid.utils.findActivity
 
@@ -121,6 +124,10 @@ fun DressingTab(
 
     // États pour la détection (workflow comme iOS: PhotoGuide → Camera)
     var showPhotoGuide by remember { mutableStateOf(false) }
+    var showViewPackages by remember { mutableStateOf(false) }
+    
+    // Observer l'état d'upgrade depuis le ViewModel
+    val showUpgradeDialog by viewModel.showUpgradeDialog.collectAsState()
     var showImageSourceDialog by remember { mutableStateOf(false) }
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var selectedCloth by remember { mutableStateOf<Cloth?>(null) } // Pour ClothingDetailSheet
@@ -651,7 +658,20 @@ fun DressingTab(
             onDismiss = { showPhotoGuide = false },
             onContinue = { 
                 showPhotoGuide = false
-                showImageSourceDialog = true // Après PhotoGuide, ouvrir ImageSourceDialog
+                // Vérifier le quota avant d'ouvrir ImageSourceDialog
+                scope.launch {
+                    val token = authToken
+                    if (token != null) {
+                        val hasQuota = viewModel.checkDetectionQuota(token)
+                        if (hasQuota) {
+                            showImageSourceDialog = true
+                        } else {
+                            showViewPackages = true
+                        }
+                    } else {
+                        showImageSourceDialog = true
+                    }
+                }
             },
             themePrimary = themePrimary,
             themeTeal = themeTeal,
@@ -727,6 +747,62 @@ fun DressingTab(
                     themeText = themeText,
                     themeSecondaryText = themeSecondaryText
                 )
+            }
+        }
+
+        // ViewPackages - Afficher quand quota dépassé ou showUpgradeDialog
+        var showPremiumDetails by remember { mutableStateOf(false) }
+        var showProDetails by remember { mutableStateOf(false) }
+        
+        if (showViewPackages || showUpgradeDialog) {
+            ViewPackages(
+                onDismiss = { 
+                    showViewPackages = false
+                    viewModel.hideUpgradeDialog()
+                },
+                onPremiumClick = {
+                    showViewPackages = false
+                    showPremiumDetails = true
+                },
+                onProClick = {
+                    showViewPackages = false
+                    showProDetails = true
+                }
+            )
+        }
+
+        // PremiumPackDetails
+        if (showPremiumDetails) {
+            PremiumPackDetails(
+                onDismiss = { showPremiumDetails = false },
+                onSubscriptionSuccess = {
+                    // Rafraîchir après upgrade
+                    val token = authToken
+                    if (token != null) {
+                        viewModel.loadClothes(token)
+                    }
+                }
+            )
+        }
+
+        // ProPackDetails
+        if (showProDetails) {
+            ProPackDetails(
+                onDismiss = { showProDetails = false },
+                onSubscriptionSuccess = {
+                    // Rafraîchir après upgrade
+                    val token = authToken
+                    if (token != null) {
+                        viewModel.loadClothes(token)
+                    }
+                }
+            )
+        }
+
+        // LaunchedEffect pour gérer showUpgradeDialog depuis le ViewModel
+        LaunchedEffect(showUpgradeDialog) {
+            if (showUpgradeDialog) {
+                showViewPackages = true
             }
         }
     }

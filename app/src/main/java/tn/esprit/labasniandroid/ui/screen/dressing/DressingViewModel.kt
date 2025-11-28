@@ -13,9 +13,11 @@ import tn.esprit.labasniandroid.models.DetectionResult
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.models.repositories.DressingRepository
+import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 
 class DressingViewModel(
-    private val dressingRepository: DressingRepository = DressingRepository()
+    private val dressingRepository: DressingRepository = DressingRepository(),
+    private val subscriptionRepository: SubscriptionRepository = SubscriptionRepository()
 ) : ViewModel() {
 
     private val _isLoading = MutableStateFlow(false)
@@ -42,6 +44,10 @@ class DressingViewModel(
 
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
+
+    // État pour afficher ViewPackages si quota dépassé
+    private val _showUpgradeDialog = MutableStateFlow(false)
+    val showUpgradeDialog: StateFlow<Boolean> = _showUpgradeDialog.asStateFlow()
 
     // SharedFlow pour notifier le refresh (comme NotificationCenter dans iOS)
     private val _refreshEvent = MutableStateFlow<Unit>(Unit)
@@ -180,7 +186,19 @@ class DressingViewModel(
                             is NetworkError.ServerMessage -> error.serverMessage
                             else -> error.message ?: "Erreur inconnue"
                         }
-                        _errorMessage.value = message
+                        
+                        // Vérifier si l'erreur est liée au quota
+                        val errorMsg = message.lowercase()
+                        if (errorMsg.contains("limite") || 
+                            errorMsg.contains("quota") || 
+                            errorMsg.contains("limit") || 
+                            errorMsg.contains("exceeded") ||
+                            errorMsg.contains("premium") ||
+                            errorMsg.contains("403")) {
+                            _showUpgradeDialog.value = true
+                        } else {
+                            _errorMessage.value = message
+                        }
                     }
                 )
             } catch (e: Exception) {
@@ -197,5 +215,43 @@ class DressingViewModel(
      */
     fun clearDetectionResult() {
         _detectionResult.value = null
+    }
+
+    /**
+     * Cache le dialog d'upgrade
+     */
+    fun hideUpgradeDialog() {
+        _showUpgradeDialog.value = false
+    }
+
+    /**
+     * Vérifie le quota de détection avant de permettre la détection
+     */
+    suspend fun checkDetectionQuota(token: String): Boolean {
+        return try {
+            subscriptionRepository.getMyStats(token).fold(
+                onSuccess = { stats ->
+                    val used = stats.clothesDetection.used
+                    val limit = stats.clothesDetection.limit
+                    
+                    // Si limit est "unlimited" (String) ou Int.MAX_VALUE, toujours autorisé
+                    val isUnlimited = limit == "unlimited" || (limit is Int && limit == Int.MAX_VALUE)
+                    
+                    if (isUnlimited) {
+                        true
+                    } else {
+                        val limitInt = if (limit is Int) limit else 0
+                        used < limitInt
+                    }
+                },
+                onFailure = { 
+                    // En cas d'erreur, autoriser quand même (peut être temporaire)
+                    true
+                }
+            )
+        } catch (e: Exception) {
+            // En cas d'exception, autoriser quand même
+            true
+        }
     }
 }
