@@ -443,7 +443,7 @@ fun AvatarTab(modifier: Modifier = Modifier) {
                 )
             )
             Text(
-                text = "Bientôt disponible",
+                text = "Coming soon",
                 style = MaterialTheme.typography.bodyLarge.copy(
                     color = Color.White.copy(alpha = 0.85f)
                 )
@@ -887,13 +887,13 @@ fun SettingsTab(
         Spacer(modifier = Modifier.height(12.dp))
 
         LabasniPillButton(
-            text = "Se déconnecter",
+            text = "Sign out",
             onClick = { showLogoutDialog = true },
             modifier = Modifier.fillMaxWidth()
         )
 
         Text(
-            text = "Vous serez redirigé vers l'écran de connexion.",
+            text = "You will be redirected to the sign-in screen.",
             style = MaterialTheme.typography.bodySmall.copy(
                 color = TealAccent.copy(alpha = 0.7f)
             ),
@@ -931,7 +931,7 @@ fun SettingsTab(
             onDismissRequest = { showLogoutDialog = false },
             title = {
                 Text(
-                    text = "Confirmer la déconnexion",
+                    text = "Confirm sign out",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.primary
@@ -940,7 +940,7 @@ fun SettingsTab(
             },
             text = {
                 Text(
-                    text = "Voulez-vous vraiment vous déconnecter de votre compte Labasni ?",
+                    text = "Do you really want to sign out of your Styleto account?",
                     color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
                 )
             },
@@ -1002,7 +1002,7 @@ fun SettingsTab(
             },
             text = {
                 Text(
-                    text = "Cette action est définitive. Voulez-vous vraiment supprimer votre compte Labasni ?",
+                    text = "This action is permanent. Do you really want to delete your Styleto account?",
                     color = TealAccent
                 )
             },
@@ -1632,7 +1632,7 @@ private fun ThemePickerDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Choisir un thème",
+                text = "Choose a theme",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -1643,9 +1643,9 @@ private fun ThemePickerDialog(
             Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
                 ThemeMode.values().forEach { mode ->
                     val label = when (mode) {
-                        ThemeMode.LIGHT -> "Clair"
-                        ThemeMode.DARK -> "Sombre"
-                        ThemeMode.SYSTEM -> "Système"
+                        ThemeMode.LIGHT -> "Light"
+                        ThemeMode.DARK -> "Dark"
+                        ThemeMode.SYSTEM -> "System"
                     }
                     Row(
                         modifier = Modifier
@@ -1701,7 +1701,7 @@ private fun StyleThemeDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Style préféré",
+                text = "Preferred style",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
@@ -1775,14 +1775,14 @@ private fun LogoutCard(onLogout: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = "Déconnexion",
+                text = "Sign out",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontWeight = FontWeight.Bold,
                     color = PinkPrimary
                 )
             )
             Text(
-                text = "Vous pouvez vous déconnecter de votre compte Labasni en toute sécurité.",
+                text = "You can safely sign out of your Styleto account.",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = TealAccent.copy(alpha = 0.8f),
                     textAlign = TextAlign.Center
@@ -1796,7 +1796,7 @@ private fun LogoutCard(onLogout: () -> Unit) {
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text(text = "Se déconnecter", fontWeight = FontWeight.SemiBold)
+                Text(text = "Sign out", fontWeight = FontWeight.SemiBold)
             }
         }
     }

@@ -82,7 +82,8 @@ data class PaymentIntentResponse(
 )
 
 data class ConfirmPurchaseRequest(
-    @SerializedName("paymentIntentId") val paymentIntentId: String
+    @SerializedName("paymentMethod") val paymentMethod: String, // "balance" ou "card"
+    @SerializedName("paymentIntentId") val paymentIntentId: String? = null // Requis seulement pour "card"
 )
 
 data class UpdateStoreItemRequest(

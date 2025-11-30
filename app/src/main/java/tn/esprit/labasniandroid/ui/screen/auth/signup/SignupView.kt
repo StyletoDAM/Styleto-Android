@@ -152,14 +152,14 @@ fun SignupView(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    text = "Créer un compte",
+                    text = "Create an account",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.ExtraBold,
                         color = PinkPrimary
                     )
                 )
                 Text(
-                    text = "Rejoignez Labasni et découvrez votre style",
+                    text = "Join Styleto and discover your style",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = TealAccent,
                         fontWeight = FontWeight.Medium
@@ -169,14 +169,14 @@ fun SignupView(
 
             Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                 Text(
-                    text = "Nom complet",
+                    text = "Full name",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = TealAccent
                 )
                 LabasniOutlinedField(
                     value = fullName,
                     onValueChange = { viewModel.setFullName(it) },
-                    placeholder = "Entrez votre nom",
+                    placeholder = "Enter your name",
                     leading = {
                         Icon(
                             imageVector = Icons.Rounded.Person,
@@ -194,7 +194,7 @@ fun SignupView(
                 LabasniOutlinedField(
                     value = email,
                     onValueChange = { viewModel.setEmail(it) },
-                    placeholder = "votre@email.com",
+                    placeholder = "your@email.com",
                     leading = {
                         Icon(
                             imageVector = Icons.Rounded.Email,
@@ -206,7 +206,7 @@ fun SignupView(
                 )
 
                 Text(
-                    text = "Numéro de téléphone",
+                    text = "Phone number",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = TealAccent
                 )
@@ -216,7 +216,7 @@ fun SignupView(
                 )
 
                 Text(
-                    text = "Mot de passe",
+                    text = "Password",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = TealAccent
                 )
@@ -238,7 +238,7 @@ fun SignupView(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Sexe",
+                    text = "Gender",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = TealAccent
                 )
@@ -247,10 +247,10 @@ fun SignupView(
                     horizontalArrangement = Arrangement.SpaceEvenly,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    listOf("Femme", "Homme").forEach { option ->
+                    listOf("Female", "Male").forEach { option ->
                         val genderValue = when (option) {
-                            "Femme" -> User.Gender.FEMALE
-                            "Homme" -> User.Gender.MALE
+                            "Female" -> User.Gender.FEMALE
+                            "Male" -> User.Gender.MALE
                             else -> null
                         }
                         GenderChip(
@@ -266,7 +266,7 @@ fun SignupView(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 LabasniPillButton(
-                    text = if (isLoading) "" else "Créer mon compte",
+                    text = if (isLoading) "" else "Create my account",
                     onClick = { viewModel.attemptSignup() },
                     modifier = Modifier.fillMaxWidth(),
                     background = PinkPrimary,
@@ -293,7 +293,7 @@ fun SignupView(
                 modifier = Modifier.align(Alignment.CenterHorizontally)
             ) {
                 Text(
-                    text = "Déjà un compte ? Se connecter",
+                    text = "Already have an account? Sign in",
                     color = TealAccent,
                     fontWeight = FontWeight.SemiBold
                 )
@@ -311,7 +311,7 @@ fun SignupView(
                 },
                 onDecline = {
                     // Refuser les termes
-                    viewModel.pushBlockingError("Vous devez accepter les conditions pour créer un compte.")
+                    viewModel.pushBlockingError("You must accept the terms to create an account.")
                 }
             )
         }
@@ -348,7 +348,7 @@ private fun TermsAndConditionsDialog(
         onDismissRequest = onDecline,
         title = {
             Text(
-                text = "Conditions d'utilisation",
+                text = "Terms of Use",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = PinkPrimary
@@ -364,15 +364,15 @@ private fun TermsAndConditionsDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(
-                    text = "En créant un compte Labasni, vous acceptez :",
+                    text = "By creating a Styleto account, you agree to:",
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = PinkPrimary
                     )
                 )
-                TermsBullet("Le traitement de vos données afin de personnaliser vos recommandations de style.")
-                TermsBullet("La réception éventuelle de notifications liées à votre activité et à nos nouveautés.")
-                TermsBullet("L'utilisation sécurisée de vos informations conformément à notre politique de confidentialité.")
+                TermsBullet("The processing of your data to personalize your style recommendations.")
+                TermsBullet("The possible receipt of notifications related to your activity and our news.")
+                TermsBullet("The secure use of your information in accordance with our privacy policy.")
             }
         },
         confirmButton = {
@@ -387,7 +387,7 @@ private fun TermsAndConditionsDialog(
                 )
             ) {
                 Text(
-                    text = "Accepter et créer mon compte",
+                    text = "Accept and create my account",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold
                     )
@@ -400,7 +400,7 @@ private fun TermsAndConditionsDialog(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "Refuser",
+                    text = "Decline",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontWeight = FontWeight.SemiBold,
                         color = TealAccent

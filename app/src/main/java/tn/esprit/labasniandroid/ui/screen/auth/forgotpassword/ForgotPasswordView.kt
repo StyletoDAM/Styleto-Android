@@ -135,14 +135,14 @@ fun ForgotPasswordView(
 
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "Mot de passe oublié ?",
+                    text = "Forgot password?",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.ExtraBold,
                         color = PinkPrimary
                     )
                 )
                 Text(
-                    text = "Entrez votre email et nous vous enverrons un code\npour réinitialiser votre mot de passe",
+                    text = "Enter your email and we'll send you a code\nto reset your password",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = TealAccent,
                         fontWeight = FontWeight.Medium
@@ -154,14 +154,14 @@ fun ForgotPasswordView(
 
             Column(verticalArrangement = Arrangement.spacedBy(12.dp), modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    text = "Email de récupération",
+                    text = "Recovery email",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = TealAccent
                 )
                 LabasniOutlinedField(
                     value = email,
                     onValueChange = { viewModel.setEmail(it) },
-                    placeholder = "votre@email.com",
+                    placeholder = "your@email.com",
                     leading = {
                         Icon(
                             imageVector = Icons.Rounded.Email,
@@ -175,7 +175,7 @@ fun ForgotPasswordView(
 
             Box(modifier = Modifier.fillMaxWidth()) {
             LabasniPillButton(
-                    text = if (isLoading) "" else "Envoyer le code de réinitialisation",
+                    text = if (isLoading) "" else "Send reset code",
                     onClick = { viewModel.requestOtp() },
                 modifier = Modifier.fillMaxWidth(),
                 background = PinkPrimary,

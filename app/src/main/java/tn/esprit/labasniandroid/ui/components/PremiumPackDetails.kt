@@ -60,8 +60,35 @@ fun PremiumPackDetails(
     var paymentError by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     
+    // État pour vérifier si l'utilisateur a déjà le pack Premium
+    var currentPlan by remember { mutableStateOf<String?>(null) }
+    var isLoadingPlan by remember { mutableStateOf(true) }
+    val hasPremiumPlan = remember(currentPlan) { currentPlan == "PREMIUM" }
+    
     // Variable pour stocker le clientSecret à présenter
     var pendingClientSecret by remember { mutableStateOf<String?>(null) }
+    
+    // Récupérer le plan actuel de l'utilisateur
+    LaunchedEffect(Unit) {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            scope.launch {
+                subscriptionRepository.getMyStats(token).fold(
+                    onSuccess = { stats ->
+                        currentPlan = stats.plan
+                        isLoadingPlan = false
+                    },
+                    onFailure = {
+                        currentPlan = "FREE"
+                        isLoadingPlan = false
+                    }
+                )
+            }
+        } else {
+            currentPlan = "FREE"
+            isLoadingPlan = false
+        }
+    }
     
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
@@ -239,7 +266,12 @@ fun PremiumPackDetails(
             // Zone 4 - Bouton CTA sticky (fixe en bas)
             PremiumPackCTAButton(
                 isProcessing = isProcessing,
+                hasPremiumPlan = hasPremiumPlan,
+                isLoadingPlan = isLoadingPlan,
                 onClick = {
+                    if (hasPremiumPlan) {
+                        return@PremiumPackCTAButton
+                    }
                     val token = TokenManager.getToken(context)
                     if (token == null) {
                         paymentError = "Vous devez être connecté pour souscrire"
@@ -289,7 +321,7 @@ fun PremiumPackDetails(
             },
             title = {
                 Text(
-                    text = "✅ Abonnement réussi",
+                    text = "✅ Subscription successful",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF4CAF50)
@@ -298,7 +330,7 @@ fun PremiumPackDetails(
             },
             text = {
                 Text(
-                    text = "Votre abonnement Premium a été activé avec succès !",
+                    text = "Your Premium subscription has been activated successfully!",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -370,7 +402,7 @@ private fun PremiumPackHeader(
         Spacer(modifier = Modifier.weight(1f))
         
         Text(
-            text = "Détails du Pack",
+            text = "Pack Details",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -432,7 +464,7 @@ private fun PremiumPackVisualHeader(
         )
         
         Text(
-            text = "Pour les passionnés de mode qui veulent aller plus loin",
+            text = "For fashion enthusiasts who want to go further",
             style = MaterialTheme.typography.bodyMedium.copy(
                 fontSize = 15.sp,
                 lineHeight = 20.sp
@@ -754,7 +786,7 @@ private fun PremiumPackInfoBlockContent(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "Bon à savoir",
+            text = "Good to know",
             style = MaterialTheme.typography.titleMedium.copy(
                 fontSize = 16.sp,
                 fontWeight = FontWeight.Bold
@@ -764,10 +796,10 @@ private fun PremiumPackInfoBlockContent(
         )
         
         val infoItems = listOf(
-            "Annulez à tout moment, sans engagement",
-            "Changez de pack quand vous voulez",
-            "Paiement sécurisé",
-            "Support client disponible 7j/7"
+            "Cancel anytime, no commitment",
+            "Change pack whenever you want",
+            "Secure payment",
+            "Customer support available 24/7"
         )
         
         infoItems.forEach { item ->
@@ -803,6 +835,8 @@ private fun PremiumPackInfoBlockContent(
 @Composable
 private fun PremiumPackCTAButton(
     isProcessing: Boolean,
+    hasPremiumPlan: Boolean = false,
+    isLoadingPlan: Boolean = false,
     onClick: () -> Unit,
     themePrimary: Color,
     themeBackground: Color,
@@ -826,30 +860,53 @@ private fun PremiumPackCTAButton(
         ) {
             Button(
                 onClick = onClick,
-                enabled = !isProcessing,
+                enabled = !isProcessing && !hasPremiumPlan && !isLoadingPlan,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = themePrimary,
                     contentColor = Color.White,
-                    disabledContainerColor = themePrimary.copy(alpha = 0.6f)
+                    disabledContainerColor = if (hasPremiumPlan) Color.Gray.copy(alpha = 0.3f) else themePrimary.copy(alpha = 0.6f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                if (isProcessing) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text(
-                        text = "Passer à Premium Access",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
+                when {
+                    isProcessing -> {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
-                    )
+                    }
+                    hasPremiumPlan -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "You already have Premium Access",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    else -> {
+                        Text(
+                            text = "Upgrade to Premium Access",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
             }
             

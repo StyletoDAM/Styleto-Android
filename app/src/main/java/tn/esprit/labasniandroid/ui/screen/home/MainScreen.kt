@@ -238,7 +238,7 @@ fun MainScreen(
                                     // ⭐ CORRECTION : Mettre à jour les variables AVANT de changer les flags
                                     // Cela garantit que chatOwnerId est défini avant showChatDetail
                                     chatOwnerId = ownerId
-                                    chatOwnerName = ownerName ?: "Utilisateur"
+                                    chatOwnerName = ownerName ?: "User"
                                     chatOwnerAvatar = ownerAvatar
                                     chatStoreItem = null
                                     

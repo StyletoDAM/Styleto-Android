@@ -744,7 +744,7 @@ fun ProfileView(
 
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
-                            text = "Styles préférés",
+                            text = "Favorite styles",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                             color = TealAccent
                         )
@@ -774,7 +774,7 @@ fun ProfileView(
                     // Style préféré (thème) : PINKTheme / BLEUTheme
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text(
-                            text = "Style préféré (thème)",
+                            text = "Preferred style (theme)",
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                             color = TealAccent
                         )
@@ -865,7 +865,7 @@ fun ProfileView(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = "Mes tenues récentes",
+                                    text = "My recent outfits",
                                     style = MaterialTheme.typography.titleLarge.copy(
                                         fontWeight = FontWeight.ExtraBold,
                                         color = PinkPrimary
@@ -950,11 +950,11 @@ fun ProfileView(
                             )
                             SuggestionRow(
                                 icon = Icons.Rounded.ShoppingCart,
-                                text = "Nouveautés dans votre style favori : découvrez les articles Vintage sélectionnés pour vous."
+                                text = "New in your favorite style: discover Vintage items selected for you."
                             )
                             SuggestionRow(
                                 icon = Icons.Rounded.Notifications,
-                                text = "Pensez à mettre à jour votre avatar pour essayer les derniers accessoires tendances."
+                                text = "Remember to update your avatar to try the latest trendy accessories."
                             )
                         }
                     }
@@ -974,7 +974,7 @@ fun ProfileView(
                                 )
                             )
                             Text(
-                                text = "Cumulez des points à chaque interaction et débloquez des avantages exclusifs.",
+                                text = "Earn points with each interaction and unlock exclusive benefits.",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     color = TealAccent
                                 )
@@ -1009,7 +1009,7 @@ fun ProfileView(
                             contentColor = Color.White
                         )
                         LabasniPillButton(
-                            text = "Créer une tenue",
+                            text = "Create an outfit",
                             onClick = { /* TODO */ },
                             modifier = Modifier.weight(1f),
                             background = AquaSoft,
@@ -1072,7 +1072,7 @@ fun ProfileView(
                     }
 
                     LabasniPillButton(
-                        text = "Se déconnecter",
+                        text = "Sign out",
                         onClick = {
                             // Afficher la boîte de dialogue de confirmation
                             showLogoutDialog = true
@@ -1350,7 +1350,7 @@ fun ProfileView(
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             Text(
-                                text = "Sélectionnez une photo Cloudinary",
+                                text = "Select a Cloudinary photo",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = PinkPrimary
@@ -1361,7 +1361,7 @@ fun ProfileView(
                                 enabled = !isCloudinaryLoading
                             ) {
                                 Text(
-                                    text = if (isCloudinaryLoading) "Chargement..." else "Rafraîchir",
+                                    text = if (isCloudinaryLoading) "Loading..." else "Refresh",
                                     color = TealAccent,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -1393,7 +1393,7 @@ fun ProfileView(
                                         textAlign = TextAlign.Center
                                     )
                                     LabasniPillButton(
-                                        text = "Réessayer",
+                                        text = "Try again",
                                         onClick = { fetchCloudinaryGallery(force = true) },
                                         background = PinkPrimary,
                                         contentColor = Color.White
@@ -1462,7 +1462,7 @@ fun ProfileView(
                 onDismissRequest = { showLogoutDialog = false },
                 title = {
                     Text(
-                        text = "Déconnexion",
+                        text = "Sign out",
                         style = MaterialTheme.typography.titleLarge.copy(
                             fontWeight = FontWeight.Bold,
                             color = PinkPrimary
@@ -1471,7 +1471,7 @@ fun ProfileView(
                 },
                 text = {
                     Text(
-                        text = "Voulez-vous vous déconnecter ? Vous serez redirigé vers la page de connexion.",
+                        text = "Do you want to sign out? You will be redirected to the sign-in page.",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = TealAccent
                         )
@@ -1496,7 +1496,7 @@ fun ProfileView(
                         }
                     ) {
                         Text(
-                            text = "Déconnecter",
+                            text = "Sign out",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = PinkPrimary

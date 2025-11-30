@@ -23,13 +23,17 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
+import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
+import tn.esprit.labasniandroid.utils.TokenManager
 
 enum class PlanType(val displayName: String) {
     FREE("Free Pack"),
@@ -47,6 +51,38 @@ data class SubscriptionPlan(
     val backgroundGradient: Brush? = null
 )
 
+/**
+ * Convertit le plan du backend (FREE, PREMIUM, PRO_SELLER) vers PlanType
+ */
+private fun mapBackendPlanToPlanType(backendPlan: String?): PlanType {
+    if (backendPlan == null) {
+        android.util.Log.w("ViewPackages", "⚠️ Plan null, utilisation FREE par défaut")
+        return PlanType.FREE
+    }
+    
+    val normalizedPlan = backendPlan.trim().uppercase()
+    android.util.Log.d("ViewPackages", "🔄 Normalisation plan: '$backendPlan' -> '$normalizedPlan'")
+    
+    return when (normalizedPlan) {
+        "PREMIUM" -> {
+            android.util.Log.d("ViewPackages", "✅ Plan mappé vers PREMIUM")
+            PlanType.PREMIUM
+        }
+        "PRO_SELLER", "PRO" -> {
+            android.util.Log.d("ViewPackages", "✅ Plan mappé vers PRO")
+            PlanType.PRO
+        }
+        "FREE" -> {
+            android.util.Log.d("ViewPackages", "✅ Plan mappé vers FREE")
+            PlanType.FREE
+        }
+        else -> {
+            android.util.Log.w("ViewPackages", "⚠️ Plan inconnu '$normalizedPlan', utilisation FREE par défaut")
+            PlanType.FREE
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ViewPackages(
@@ -55,8 +91,55 @@ fun ViewPackages(
     onProClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val subscriptionRepository = remember { SubscriptionRepository() }
+    
     var selectedPlan by remember { mutableStateOf(PlanType.FREE) }
-    val currentUserPlan = PlanType.FREE
+    var currentUserPlan by remember { mutableStateOf<PlanType?>(null) }
+    var isLoadingPlan by remember { mutableStateOf(true) }
+    
+    // Récupérer le plan actuel de l'utilisateur
+    LaunchedEffect(Unit) {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            scope.launch {
+                // Essayer d'abord getMySubscription (plus fiable pour le plan)
+                subscriptionRepository.getMySubscription(token).fold(
+                    onSuccess = { subscription ->
+                        android.util.Log.d("ViewPackages", "📊 Plan reçu du backend (getMySubscription): ${subscription.plan}")
+                        val mappedPlan = mapBackendPlanToPlanType(subscription.plan)
+                        android.util.Log.d("ViewPackages", "✅ Plan mappé: ${mappedPlan.displayName}")
+                        currentUserPlan = mappedPlan
+                        isLoadingPlan = false
+                    },
+                    onFailure = { error ->
+                        android.util.Log.w("ViewPackages", "⚠️ Erreur getMySubscription, essai avec getMyStats: ${error.message}")
+                        // Fallback sur getMyStats
+                        subscriptionRepository.getMyStats(token).fold(
+                            onSuccess = { stats ->
+                                android.util.Log.d("ViewPackages", "📊 Plan reçu du backend (getMyStats): ${stats.plan}")
+                                val mappedPlan = mapBackendPlanToPlanType(stats.plan)
+                                android.util.Log.d("ViewPackages", "✅ Plan mappé: ${mappedPlan.displayName}")
+                                currentUserPlan = mappedPlan
+                                isLoadingPlan = false
+                            },
+                            onFailure = { statsError ->
+                                android.util.Log.e("ViewPackages", "❌ Erreur récupération plan: ${statsError.message}")
+                                // En cas d'erreur, ne pas définir de plan (null) pour ne pas afficher "Current Pack" par erreur
+                                currentUserPlan = null
+                                isLoadingPlan = false
+                            }
+                        )
+                    }
+                )
+            }
+        } else {
+            android.util.Log.w("ViewPackages", "⚠️ Pas de token, pas de plan défini")
+            currentUserPlan = null
+            isLoadingPlan = false
+        }
+    }
     
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
@@ -180,11 +263,14 @@ fun ViewPackages(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 items(plans) { plan ->
-                        PlanCard(
-                            plan = plan,
-                            isSelected = selectedPlan == plan.type,
-                            isCurrentPlan = currentUserPlan == plan.type,
-                            onSelect = { 
+                    PlanCard(
+                        plan = plan,
+                        isSelected = selectedPlan == plan.type,
+                        isCurrentPlan = currentUserPlan == plan.type,
+                        isLoading = isLoadingPlan,
+                        onSelect = { 
+                            // Ne pas ouvrir les détails si c'est le pack actuel
+                            if (currentUserPlan != plan.type) {
                                 selectedPlan = plan.type
                                 // Si c'est Premium ou Pro, ouvrir la page de détails correspondante
                                 when (plan.type) {
@@ -192,7 +278,8 @@ fun ViewPackages(
                                     PlanType.PRO -> onProClick()
                                     else -> {}
                                 }
-                            },
+                            }
+                        },
                         themePrimary = themePrimary,
                         themeTeal = themeTeal,
                         themeCard = themeCard,
@@ -244,6 +331,7 @@ private fun PlanCard(
     plan: SubscriptionPlan,
     isSelected: Boolean,
     isCurrentPlan: Boolean,
+    isLoading: Boolean = false,
     onSelect: () -> Unit,
     themePrimary: Color,
     themeTeal: Color,
@@ -275,7 +363,11 @@ private fun PlanCard(
                 brush = plan.backgroundGradient!!,
                 shape = RoundedCornerShape(24.dp)
             )
-            .clickable { if (!isCurrentPlan) onSelect() }
+            .clickable(enabled = !isCurrentPlan) { 
+                if (!isCurrentPlan) {
+                    onSelect()
+                }
+            }
     ) {
         // Overlay pour bordure (comme iOS .overlay())
         if (isSelected) {
@@ -324,12 +416,13 @@ private fun PlanCard(
                         Spacer(modifier = Modifier.width(8.dp))
                     }
                     
-                    // Badge "Current Pack"
-                    if (isCurrentPlan) {
+                    // Badge "Current Pack" (seulement si pas en chargement)
+                    if (!isLoading && isCurrentPlan) {
                         Text(
                             text = "Current Pack",
                             style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 11.sp
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.Bold
                             ),
                             color = themeTeal,
                             modifier = Modifier
@@ -417,10 +510,44 @@ private fun PlanCard(
             }
             
             // Action button
-            if (!isCurrentPlan) {
+            if (isCurrentPlan) {
+                // Pack actuel - Afficher message et désactiver
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Rounded.CheckCircle,
+                            contentDescription = null,
+                            tint = themeTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "You are currently using this pack",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = themeTeal,
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+            } else {
+                // Pack non actuel - Bouton d'upgrade
                 Button(
                     onClick = {
-                        println("Upgrade to ${plan.type.displayName}")
+                        onSelect()
                     },
                     modifier = Modifier
                         .fillMaxWidth()
@@ -436,21 +563,17 @@ private fun PlanCard(
                     shape = RoundedCornerShape(16.dp)
                 ) {
                     Text(
-                        text = "Upgrade to this pack",
+                        text = when (plan.type) {
+                            PlanType.FREE -> "Select Free Pack"
+                            PlanType.PREMIUM -> "Upgrade to Premium"
+                            PlanType.PRO -> "Upgrade to Pro Seller"
+                        },
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 17.sp,
                             fontWeight = FontWeight.SemiBold
                         )
                     )
                 }
-            } else {
-                Text(
-                    text = "You are currently using this pack",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = themeSecondaryText,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.fillMaxWidth()
-                )
             }
         }
     }

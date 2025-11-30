@@ -64,7 +64,7 @@ fun OtpEntryDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Vérifiez votre identité",
+                text = "Verify your identity",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = PinkPrimary
@@ -78,7 +78,7 @@ fun OtpEntryDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Un code à 6 chiffres a été envoyé au numéro $maskedPhone.",
+                    text = "A 6-digit code has been sent to number $maskedPhone.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = TealAccent,
                         textAlign = TextAlign.Center
@@ -199,7 +199,7 @@ fun ResetPasswordDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Définir un nouveau mot de passe",
+                text = "Set a new password",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = PinkPrimary
@@ -212,7 +212,7 @@ fun ResetPasswordDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Veuillez entrer votre nouveau mot de passe.",
+                    text = "Please enter your new password.",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = TealAccent,
                         textAlign = TextAlign.Center
@@ -360,7 +360,7 @@ fun PinEntryDialog(
         onDismissRequest = onDismiss,
         title = {
             Text(
-                text = "Vérification requise",
+                text = "Verification required",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontWeight = FontWeight.Bold,
                     color = PinkPrimary
@@ -374,7 +374,7 @@ fun PinEntryDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 Text(
-                    text = "Un code à 6 chiffres a été envoyé à",
+                    text = "A 6-digit code has been sent to",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = TealAccent,
                         textAlign = TextAlign.Center

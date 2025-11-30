@@ -59,14 +59,14 @@ fun IntroView(
 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "Labasni",
+                        text = "Styleto",
                         style = MaterialTheme.typography.headlineMedium.copy(
                             fontWeight = FontWeight.ExtraBold,
                             color = Color.White
                         )
                     )
                     Text(
-                        text = "Votre styliste intelligent",
+                        text = "Your intelligent stylist",
                         style = MaterialTheme.typography.bodyMedium.copy(
                             color = Color.White.copy(alpha = 0.85f),
                             fontWeight = FontWeight.Medium
@@ -79,7 +79,7 @@ fun IntroView(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 LabasniPillButton(
-                    text = "Se connecter",
+                    text = "Sign in",
                     onClick = onLogin,
                     modifier = Modifier.fillMaxWidth(),
                     background = PinkPrimary,
@@ -87,7 +87,7 @@ fun IntroView(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 LabasniPillButton(
-                    text = "Créer un compte",
+                    text = "Create an account",
                     onClick = onSignup,
                     modifier = Modifier.fillMaxWidth(),
                     background = AquaSoft.copy(alpha = 0.9f),

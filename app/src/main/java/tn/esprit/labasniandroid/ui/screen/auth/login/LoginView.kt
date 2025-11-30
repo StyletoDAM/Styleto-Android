@@ -108,34 +108,34 @@ fun LoginView(
                 } catch (e: Exception) {
                     Log.e("GoogleSignIn", "Error processing result", e)
                     scope.launch {
-                        snackbarHostState.showSnackbar(
-                            message = "Erreur lors du traitement de la connexion Google: ${e.message}",
-                            duration = SnackbarDuration.Short
-                        )
+                    snackbarHostState.showSnackbar(
+                        message = "Error processing Google sign-in: ${e.message}",
+                        duration = SnackbarDuration.Short
+                    )
                     }
                 }
             } ?: run {
                 Log.w("GoogleSignIn", "No data received from Google")
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message = "Aucune donnée reçue de Google.",
+                        message = "No data received from Google.",
                         duration = SnackbarDuration.Short
                     )
                 }
             }
         } else {
-            // L'utilisateur a annulé ou une erreur s'est produite
+            // User cancelled or an error occurred
             Log.w("GoogleSignIn", "Sign-in failed or cancelled. Result code: ${result.resultCode}")
             
-            // Vérifier si c'est une annulation ou une erreur
+            // Check if it's a cancellation or an error
             val errorMessage = when (result.resultCode) {
                 Activity.RESULT_CANCELED -> 
-                    "Connexion Google annulée. Si le problème persiste, vérifiez la configuration Google Cloud Console (SHA-1 et Client ID)."
+                    "Google sign-in cancelled. If the problem persists, check your Google Cloud Console configuration (SHA-1 and Client ID)."
                 else -> 
-                    "Connexion Google échouée (Code: ${result.resultCode}). Vérifiez la configuration Google Cloud Console:\n" +
-                    "1. Créez un OAuth 2.0 Client ID pour Android\n" +
-                    "2. Ajoutez le SHA-1 de votre clé de signature\n" +
-                    "3. Vérifiez que le package name correspond"
+                    "Google sign-in failed (Code: ${result.resultCode}). Check your Google Cloud Console configuration:\n" +
+                    "1. Create an OAuth 2.0 Client ID for Android\n" +
+                    "2. Add the SHA-1 of your signing key\n" +
+                    "3. Verify that the package name matches"
             }
             
             scope.launch {
@@ -207,14 +207,14 @@ fun LoginView(
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
-                    text = "Labasni",
+                    text = "Styleto",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontWeight = FontWeight.Bold,
                         color = PinkPrimary
                     )
                 )
                 Text(
-                    text = "Bienvenue ! Connectez-vous",
+                    text = "Welcome! Sign in",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         color = if (isDark) colorScheme.onBackground.copy(alpha = 0.8f) else TealAccent,
                         fontWeight = FontWeight.Medium
@@ -234,7 +234,7 @@ fun LoginView(
                 LabasniOutlinedField(
                     value = email,
                     onValueChange = { viewModel.setEmail(it) },
-                    placeholder = "votre@email.com",
+                    placeholder = "your@email.com",
                     leading = {
                         Icon(
                             imageVector = Icons.Rounded.Email,
@@ -246,7 +246,7 @@ fun LoginView(
                 )
 
                 Text(
-                    text = "Mot de passe",
+                    text = "Password",
                     style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                     color = if (isDark) colorScheme.onBackground else TealAccent
                 )
@@ -274,7 +274,7 @@ fun LoginView(
                         onClick = onCreateAccount
                     ) {
                         Text(
-                            text = "Créer un compte",
+                            text = "Create an account",
                             color = if (isDark) colorScheme.primary else TealAccent,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -283,7 +283,7 @@ fun LoginView(
                         onClick = onForgotPassword
                     ) {
                         Text(
-                            text = "Mot de passe oublié ?",
+                            text = "Forgot password?",
                             color = if (isDark) colorScheme.primary else TealAccent,
                             fontWeight = FontWeight.SemiBold
                         )
@@ -295,7 +295,7 @@ fun LoginView(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 LabasniPillButton(
-                    text = if (isLoading) "" else "Se connecter",
+                    text = if (isLoading) "" else "Sign in",
                     onClick = { viewModel.signin(context) },
                     modifier = Modifier.fillMaxWidth(),
                     background = PinkPrimary,
@@ -312,7 +312,7 @@ fun LoginView(
                 }
             }
 
-            // Séparateur OU
+            // Separator OR
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -325,7 +325,7 @@ fun LoginView(
                         .background(TealAccent.copy(alpha = 0.3f))
                 )
                 Text(
-                    text = "OU",
+                    text = "OR",
                     modifier = Modifier.padding(horizontal = 12.dp),
                     style = MaterialTheme.typography.bodySmall.copy(
                         fontWeight = FontWeight.SemiBold,
@@ -384,7 +384,7 @@ private fun GoogleSignInButton(
                 modifier = Modifier.padding(end = 8.dp)
             )
             Text(
-                text = "Continuer avec Google",
+                text = "Continue with Google",
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
             )
         }
@@ -429,37 +429,37 @@ private fun handleGoogleSignInResult(
                 Log.w("GoogleSignIn", "Missing Google ID or email. ID: $googleId, Email: $email")
                 scope.launch {
                     snackbarHostState.showSnackbar(
-                        message = "Impossible de récupérer les informations Google (ID ou email manquant).",
+                        message = "Unable to retrieve Google information (missing ID or email).",
                         duration = SnackbarDuration.Short
                     )
                 }
             }
         } ?: run {
             scope.launch {
-                snackbarHostState.showSnackbar(
-                    message = "Aucun compte Google trouvé.",
-                    duration = SnackbarDuration.Short
-                )
+                    snackbarHostState.showSnackbar(
+                        message = "No Google account found.",
+                        duration = SnackbarDuration.Short
+                    )
             }
         }
     } catch (e: ApiException) {
         Log.e("GoogleSignIn", "ApiException: Status code ${e.statusCode}, Message: ${e.message}", e)
         val errorMessage = when (e.statusCode) {
             12501 -> // SIGN_IN_CANCELLED
-                "Connexion Google annulée."
+                "Google sign-in cancelled."
             7 -> // NETWORK_ERROR
-                "Erreur réseau lors de la connexion Google."
+                "Network error during Google sign-in."
             8 -> // INTERNAL_ERROR
-                "Erreur interne Google Sign-In."
+                "Internal Google Sign-In error."
             5 -> // INVALID_ACCOUNT
-                "Compte Google invalide."
+                "Invalid Google account."
             4 -> // SIGN_IN_REQUIRED
-                "Connexion Google requise. Veuillez réessayer."
+                "Google sign-in required. Please try again."
             17 -> // API_NOT_CONNECTED
-                "API Google non connectée. Vérifiez votre configuration."
+                "Google API not connected. Check your configuration."
             10 -> // DEVELOPER_ERROR
-                "Erreur de configuration Google Sign-In. Vérifiez le SHA-1 et le Client ID."
-            else -> "Erreur lors de la connexion Google: ${e.message ?: "Code d'erreur: ${e.statusCode}"}"
+                "Google Sign-In configuration error. Check SHA-1 and Client ID."
+            else -> "Error during Google sign-in: ${e.message ?: "Error code: ${e.statusCode}"}"
         }
         scope.launch {
             snackbarHostState.showSnackbar(
@@ -469,10 +469,10 @@ private fun handleGoogleSignInResult(
         }
     } catch (e: Exception) {
         scope.launch {
-            snackbarHostState.showSnackbar(
-                message = "Erreur inattendue: ${e.message}",
-                duration = SnackbarDuration.Short
-            )
+                    snackbarHostState.showSnackbar(
+                        message = "Unexpected error: ${e.message}",
+                        duration = SnackbarDuration.Short
+                    )
         }
     }
 }

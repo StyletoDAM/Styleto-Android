@@ -339,7 +339,7 @@ fun DiscoverItemDetailSheet(
                                 color = themeTeal
                             )
                             Text(
-                                text = "Article déjà en panier",
+                                text = "Item already in cart",
                                 style = MaterialTheme.typography.bodyMedium.copy(
                                     fontWeight = FontWeight.SemiBold,
                                     color = themeTeal

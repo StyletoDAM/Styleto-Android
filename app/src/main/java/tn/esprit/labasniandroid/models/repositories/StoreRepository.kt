@@ -26,8 +26,8 @@ class StoreRepository(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
-                    401 -> "Session expirée. Veuillez vous reconnecter."
-                    else -> errorBody ?: "Impossible de récupérer la boutique."
+                    401 -> "Session expired. Please sign in again."
+                    else -> errorBody ?: "Unable to retrieve store."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -45,8 +45,8 @@ class StoreRepository(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
-                    401 -> "Session expirée. Veuillez vous reconnecter."
-                    else -> errorBody ?: "Impossible de récupérer la boutique."
+                    401 -> "Session expired. Please sign in again."
+                    else -> errorBody ?: "Unable to retrieve store."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -74,9 +74,9 @@ class StoreRepository(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
-                    400 -> "Impossible d'ajouter cet article. Vérifiez les informations."
-                    401 -> "Session expirée. Veuillez vous reconnecter."
-                    else -> errorBody ?: "Ajout impossible pour le moment."
+                    400 -> "Unable to add this item. Check the information."
+                    401 -> "Session expired. Please sign in again."
+                    else -> errorBody ?: "Unable to add at this time."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -94,8 +94,8 @@ class StoreRepository(
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
                     401 -> "Session expirée. Veuillez vous reconnecter."
-                    404 -> "Article introuvable."
-                    else -> errorBody ?: "Suppression impossible pour le moment."
+                    404 -> "Item not found."
+                    else -> errorBody ?: "Unable to delete at this time."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -122,8 +122,8 @@ class StoreRepository(
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
                     401 -> "Session expirée. Veuillez vous reconnecter."
-                    404 -> "Article introuvable."
-                    else -> errorBody ?: "Mise à jour impossible pour le moment."
+                    404 -> "Item not found."
+                    else -> errorBody ?: "Unable to update at this time."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -142,8 +142,8 @@ class StoreRepository(
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
                     401 -> "Session expirée. Veuillez vous reconnecter."
-                    404 -> "Article introuvable."
-                    else -> errorBody ?: "Mise à jour impossible pour le moment."
+                    404 -> "Item not found."
+                    else -> errorBody ?: "Unable to update at this time."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -161,9 +161,9 @@ class StoreRepository(
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
-                    400 -> "Montant invalide."
-                    401 -> "Session expirée. Veuillez vous reconnecter."
-                    else -> errorBody ?: "Impossible de créer le paiement."
+                    400 -> "Invalid amount."
+                    401 -> "Session expired. Please sign in again."
+                    else -> errorBody ?: "Unable to create payment."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }
@@ -172,19 +172,45 @@ class StoreRepository(
         }
     }
 
-    suspend fun confirmPurchase(token: String, storeItemId: String, paymentIntentId: String): Result<StoreItem> {
+    suspend fun confirmPurchase(
+        token: String, 
+        storeItemId: String, 
+        paymentMethod: String,
+        paymentIntentId: String? = null
+    ): Result<StoreItem> {
         return try {
-            val request = ConfirmPurchaseRequest(paymentIntentId = paymentIntentId)
+            val request = ConfirmPurchaseRequest(
+                paymentMethod = paymentMethod,
+                paymentIntentId = paymentIntentId
+            )
             val response = storeApi.confirmPurchase("Bearer $token", storeItemId, request)
             if (response.isSuccessful && response.body() != null) {
                 Result.success(response.body()!!.toEntity())
             } else {
                 val errorBody = response.errorBody()?.string()
                 val message = when (response.code()) {
-                    400 -> "Paiement échoué ou article déjà vendu."
-                    401 -> "Session expirée. Veuillez vous reconnecter."
-                    404 -> "Article introuvable."
-                    else -> errorBody ?: "Impossible de confirmer l'achat."
+                    400 -> {
+                        // Vérifier si c'est un problème de solde insuffisant
+                        // Le backend envoie "Solde insuffisant" (exactement)
+                        if (errorBody?.contains("Solde insuffisant", ignoreCase = true) == true ||
+                            errorBody?.contains("insuffisant", ignoreCase = true) == true ||
+                            errorBody?.contains("insufficient", ignoreCase = true) == true ||
+                            errorBody?.contains("Solde insuffisant") == true) {
+                            "Insufficient balance. Please top up your account."
+                        } else if (errorBody?.contains("déjà vendu", ignoreCase = true) == true ||
+                                   errorBody?.contains("already sold", ignoreCase = true) == true) {
+                            "This item is already sold."
+                        } else if (errorBody?.contains("propre article", ignoreCase = true) == true) {
+                            "You cannot buy your own item."
+                        } else {
+                            // Try to parse the error message from backend
+                            val errorMessage = errorBody ?: "Payment failed."
+                            errorMessage
+                        }
+                    }
+                    401 -> "Session expired. Please sign in again."
+                    404 -> "Item not found."
+                    else -> errorBody ?: "Unable to confirm purchase."
                 }
                 Result.failure(NetworkError.ServerMessage(message))
             }

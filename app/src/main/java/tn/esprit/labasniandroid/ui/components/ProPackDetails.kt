@@ -60,8 +60,35 @@ fun ProPackDetails(
     var paymentError by remember { mutableStateOf<String?>(null) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     
+    // État pour vérifier si l'utilisateur a déjà le pack Pro Seller
+    var currentPlan by remember { mutableStateOf<String?>(null) }
+    var isLoadingPlan by remember { mutableStateOf(true) }
+    val hasProPlan = remember(currentPlan) { currentPlan == "PRO_SELLER" }
+    
     // Variable pour stocker le clientSecret à présenter
     var pendingClientSecret by remember { mutableStateOf<String?>(null) }
+    
+    // Récupérer le plan actuel de l'utilisateur
+    LaunchedEffect(Unit) {
+        val token = TokenManager.getToken(context)
+        if (token != null) {
+            scope.launch {
+                subscriptionRepository.getMyStats(token).fold(
+                    onSuccess = { stats ->
+                        currentPlan = stats.plan
+                        isLoadingPlan = false
+                    },
+                    onFailure = {
+                        currentPlan = "FREE"
+                        isLoadingPlan = false
+                    }
+                )
+            }
+        } else {
+            currentPlan = "FREE"
+            isLoadingPlan = false
+        }
+    }
     
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
@@ -238,7 +265,12 @@ fun ProPackDetails(
             // Zone 4 - Bouton CTA sticky (fixe en bas)
             ProPackCTAButton(
                 isProcessing = isProcessing,
+                hasProPlan = hasProPlan,
+                isLoadingPlan = isLoadingPlan,
                 onClick = {
+                    if (hasProPlan) {
+                        return@ProPackCTAButton
+                    }
                     val token = TokenManager.getToken(context)
                     if (token == null) {
                         paymentError = "Vous devez être connecté pour souscrire"
@@ -288,7 +320,7 @@ fun ProPackDetails(
             },
             title = {
                 Text(
-                    text = "✅ Abonnement réussi",
+                    text = "✅ Subscription successful",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color(0xFF4CAF50)
@@ -297,7 +329,7 @@ fun ProPackDetails(
             },
             text = {
                 Text(
-                    text = "Votre abonnement Pro Seller a été activé avec succès !",
+                    text = "Your Pro Seller subscription has been activated successfully!",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -371,7 +403,7 @@ private fun ProPackHeader(
         Spacer(modifier = Modifier.weight(1f))
         
         Text(
-            text = "Détails du Pack",
+            text = "Pack Details",
             style = MaterialTheme.typography.headlineSmall.copy(
                 fontSize = 20.sp,
                 fontWeight = FontWeight.Bold
@@ -774,7 +806,7 @@ private fun ProPackInfoBlockContent(
             )
             
             Text(
-                text = "Bon à savoir",
+                text = "Good to know",
                 style = MaterialTheme.typography.titleMedium.copy(
                     fontSize = 16.sp,
                     fontWeight = FontWeight.Bold
@@ -784,10 +816,10 @@ private fun ProPackInfoBlockContent(
         }
         
         val infoItems = listOf(
-            "Annulez à tout moment, sans engagement",
-            "Changez de pack quand vous voulez",
-            "Paiement sécurisé",
-            "Support client disponible 7j/7"
+            "Cancel anytime, no commitment",
+            "Change pack whenever you want",
+            "Secure payment",
+            "Customer support available 24/7"
         )
         
         infoItems.forEach { item ->
@@ -823,6 +855,8 @@ private fun ProPackInfoBlockContent(
 @Composable
 private fun ProPackCTAButton(
     isProcessing: Boolean,
+    hasProPlan: Boolean = false,
+    isLoadingPlan: Boolean = false,
     onClick: () -> Unit,
     themePrimary: Color,
     themeBackground: Color,
@@ -846,30 +880,53 @@ private fun ProPackCTAButton(
         ) {
             Button(
                 onClick = onClick,
-                enabled = !isProcessing,
+                enabled = !isProcessing && !hasProPlan && !isLoadingPlan,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = themePrimary,
+                    containerColor = Color(0xFF4AA3A2),
                     contentColor = Color.White,
-                    disabledContainerColor = themePrimary.copy(alpha = 0.6f)
+                    disabledContainerColor = if (hasProPlan) Color.Gray.copy(alpha = 0.3f) else Color(0xFF4AA3A2).copy(alpha = 0.6f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
-                if (isProcessing) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(24.dp)
-                    )
-                } else {
-                    Text(
-                        text = "S'abonner à Pro Seller",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 17.sp,
-                            fontWeight = FontWeight.Bold
+                when {
+                    isProcessing -> {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(24.dp)
                         )
-                    )
+                    }
+                    hasProPlan -> {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CheckCircle,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "You already have Pro Seller",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontSize = 17.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
+                    else -> {
+                        Text(
+                            text = "Subscribe to Pro Seller",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
+                    }
                 }
             }
             

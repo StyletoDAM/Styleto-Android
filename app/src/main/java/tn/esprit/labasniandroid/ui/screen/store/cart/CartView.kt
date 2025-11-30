@@ -23,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.RadioButtonChecked
+import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -83,6 +85,7 @@ fun CartView(
     userId: String,
     modifier: Modifier = Modifier,
     viewModel: CartViewModel = viewModel(),
+    paymentViewModel: PaymentViewModel = viewModel(),
     onNavigateBack: () -> Unit
 ) {
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
@@ -109,20 +112,32 @@ fun CartView(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val paymentSuccess by viewModel.paymentSuccess.collectAsState()
     val clientSecret by viewModel.clientSecret.collectAsState()
+    
+    // PaymentViewModel states
+    val isProcessingPayment by paymentViewModel.isProcessing.collectAsState()
+    val paymentErrorMessage by paymentViewModel.errorMessage.collectAsState()
+    val showPaymentSuccess by paymentViewModel.showSuccess.collectAsState()
+    val userBalance by paymentViewModel.userBalance.collectAsState()
+    val useBalance by paymentViewModel.useBalance.collectAsState()
+    val paymentClientSecret by paymentViewModel.clientSecret.collectAsState()
 
     var itemToDelete by remember { mutableStateOf<CartItem?>(null) }
     var showDeleteAlert by remember { mutableStateOf(false) }
     var showSuccessDialog by remember { mutableStateOf(false) }
     
-    // Variable pour stocker le clientSecret à présenter
+    // Variable pour stocker le clientSecret à présenter (depuis PaymentViewModel)
     var pendingClientSecret by remember { mutableStateOf<String?>(null) }
     
+    // Observer le clientSecret du PaymentViewModel
+    LaunchedEffect(paymentClientSecret) {
+        if (paymentClientSecret != null) {
+            pendingClientSecret = paymentClientSecret
+        }
+    }
+    
     // Présenter PaymentSheet quand le clientSecret est disponible
-    // Utiliser Handler pour s'assurer que c'est sur le thread principal et de manière synchrone
     LaunchedEffect(pendingClientSecret) {
         if (pendingClientSecret != null && activity != null) {
-            // Utiliser Handler.post pour exécuter de manière synchrone sur le thread principal
-            // Cela évite les problèmes de lifecycle car c'est exécuté immédiatement
             android.os.Handler(android.os.Looper.getMainLooper()).post {
                 try {
                     PaymentService.presentPaymentSheet(
@@ -132,7 +147,7 @@ fun CartView(
                             when (paymentResult) {
                                 is PaymentSheetResult.Completed -> {
                                     scope.launch {
-                                        viewModel.confirmPurchase(token, cartItems)
+                                        paymentViewModel.confirmStripeOrders(token, cartItems)
                                         showSuccessDialog = true
                                         CartManager.clearCart(context)
                                     }
@@ -168,6 +183,8 @@ fun CartView(
 
     LaunchedEffect(userId) {
         CartManager.fetchCartItems()
+        // Rafraîchir le balance au démarrage
+        paymentViewModel.refreshBalance(token)
     }
 
     Scaffold(
@@ -244,7 +261,7 @@ fun CartView(
                         themeTeal = themeTeal
                     )
 
-                    // Order Summary (comme iOS)
+                    // Order Summary avec choix balance/carte (comme iOS)
                     OrderSummary(
                         totalPrice = totalPrice,
                         themeCard = themeCard,
@@ -252,28 +269,52 @@ fun CartView(
                         themeTeal = themeTeal,
                         themeText = themeText,
                         cartItems = cartItems,
-                        isLoading = isLoading,
+                        isLoading = isLoading || isProcessingPayment,
+                        userBalance = userBalance,
+                        useBalance = useBalance,
+                        canPayWithBalance = paymentViewModel.canPayWithBalance(totalPrice),
+                        onUseBalanceChange = { paymentViewModel.setUseBalance(it) },
                         onCheckoutClick = {
-                            if (cartItems.isNotEmpty() && activity != null) {
-                                scope.launch {
-                                    // Créer le Payment Intent
-                                    val result = viewModel.createPaymentIntent(token, totalPrice)
-                                    result.onSuccess { secret ->
-                                        // Stocker le clientSecret pour que DisposableEffect le présente
-                                        pendingClientSecret = secret
-                                    }.onFailure { error ->
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar(
-                                                "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
-                                            )
-                                        }
-                                    }
-                                }
+                            if (cartItems.isNotEmpty()) {
+                                paymentViewModel.startCheckout(token, cartItems, totalPrice)
                             }
                         }
                     )
 
                     Spacer(modifier = Modifier.height(100.dp))
+                }
+            }
+            
+            // Loading overlay (comme iOS)
+            if (isProcessingPayment) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = themePrimary),
+                        shape = RoundedCornerShape(20.dp)
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(30.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(20.dp)
+                        ) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Text(
+                                text = "Processing payment...",
+                                color = Color.White,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                    }
                 }
             }
 
@@ -286,15 +327,22 @@ fun CartView(
     }
 
     // Dialog de succès après paiement
+    LaunchedEffect(showPaymentSuccess) {
+        if (showPaymentSuccess) {
+            showSuccessDialog = true
+        }
+    }
+    
     if (showSuccessDialog) {
         AlertDialog(
             onDismissRequest = {
                 showSuccessDialog = false
+                paymentViewModel.resetAfterSuccess()
                 viewModel.resetPaymentState()
             },
             title = {
                 Text(
-                    text = "✅ Paiement avec succès",
+                    text = "Purchase Successful! 🎉",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         color = Color.Green
@@ -303,7 +351,7 @@ fun CartView(
             },
             text = {
                 Text(
-                    text = "Votre paiement a été effectué avec succès. Merci pour votre achat!",
+                    text = "Your items have been purchased successfully!",
                     style = MaterialTheme.typography.bodyMedium
                 )
             },
@@ -311,7 +359,9 @@ fun CartView(
                 TextButton(
                     onClick = {
                         showSuccessDialog = false
+                        paymentViewModel.resetAfterSuccess()
                         viewModel.resetPaymentState()
+                        onNavigateBack()
                     }
                 ) {
                     Text(
@@ -329,6 +379,14 @@ fun CartView(
         errorMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
             viewModel.clearMessages()
+        }
+    }
+    
+    // Afficher les erreurs de paiement
+    LaunchedEffect(paymentErrorMessage) {
+        paymentErrorMessage?.let { message ->
+            snackbarHostState.showSnackbar(message)
+            paymentViewModel.clearMessages()
         }
     }
 
@@ -572,7 +630,7 @@ private fun FreeShippingBanner(
 }
 
 /**
- * Order Summary (comme iOS)
+ * Order Summary avec choix balance/carte (comme iOS)
  */
 @Composable
 private fun OrderSummary(
@@ -583,6 +641,10 @@ private fun OrderSummary(
     themeText: Color,
     cartItems: List<CartItem>,
     isLoading: Boolean,
+    userBalance: Double,
+    useBalance: Boolean,
+    canPayWithBalance: Boolean,
+    onUseBalanceChange: (Boolean) -> Unit,
     onCheckoutClick: () -> Unit
 ) {
     Card(
@@ -607,23 +669,96 @@ private fun OrderSummary(
                 )
             )
 
-            Divider(
-                color = themePrimary.copy(alpha = 0.3f),
-                thickness = 1.dp
-            )
-
-            // Subtotal
+            // Available Balance (comme iOS)
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    text = "${String.format("%.2f", totalPrice)} DT",
-                    style = MaterialTheme.typography.bodyLarge.copy(
+                    text = "Available Balance",
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         color = themeText
                     )
                 )
+                Text(
+                    text = "${String.format("%.2f", userBalance)} DT",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (canPayWithBalance) themeTeal else Color.Red
+                    )
+                )
             }
+            
+            // Payment method choice (comme iOS)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // Balance button
+                Button(
+                    onClick = { onUseBalanceChange(true) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = if (useBalance) themeTeal else themeText.copy(alpha = 0.6f)
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (useBalance) 
+                                androidx.compose.material.icons.Icons.Default.RadioButtonChecked 
+                            else 
+                                androidx.compose.material.icons.Icons.Default.RadioButtonUnchecked,
+                            contentDescription = "Balance",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Balance",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
+                }
+                
+                // Card button
+                Button(
+                    onClick = { onUseBalanceChange(false) },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent,
+                        contentColor = if (!useBalance) themePrimary else themeText.copy(alpha = 0.6f)
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = if (!useBalance) 
+                                androidx.compose.material.icons.Icons.Default.RadioButtonChecked 
+                            else 
+                                androidx.compose.material.icons.Icons.Default.RadioButtonUnchecked,
+                            contentDescription = "Card",
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Card",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
+                }
+            }
+
+            Divider(
+                color = themePrimary.copy(alpha = 0.3f),
+                thickness = 1.dp
+            )
 
             // Shipping
             Row(
@@ -672,12 +807,12 @@ private fun OrderSummary(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Proceed to Checkout button (comme iOS)
+            // Pay Now button (comme iOS)
             Button(
                 onClick = {
                     onCheckoutClick()
                 },
-                enabled = !isLoading && cartItems.isNotEmpty(),
+                enabled = !isLoading && cartItems.isNotEmpty() && !(useBalance && !canPayWithBalance),
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent
@@ -690,7 +825,7 @@ private fun OrderSummary(
                         .fillMaxWidth()
                         .height(56.dp)
                         .background(
-                            themePrimary,
+                            if (useBalance && !canPayWithBalance) Color.Gray else themePrimary,
                             shape = RoundedCornerShape(20.dp)
                         )
                         .shadow(10.dp, RoundedCornerShape(20.dp), spotColor = themePrimary.copy(alpha = 0.4f)),
@@ -700,12 +835,19 @@ private fun OrderSummary(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        if (isLoading) {
+                            androidx.compose.material3.CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        } else {
+                            Text(
+                                text = if (useBalance) "💳" else "💳",
+                                fontSize = 18.sp
+                            )
+                        }
                         Text(
-                            text = "💳",
-                            fontSize = 18.sp
-                        )
-                        Text(
-                            text = "Proceed to Checkout",
+                            text = if (isLoading) "Processing..." else "Pay Now",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = Color.White
@@ -713,6 +855,18 @@ private fun OrderSummary(
                         )
                     }
                 }
+            }
+            
+            // Insufficient balance message (comme iOS)
+            if (useBalance && !canPayWithBalance) {
+                Text(
+                    text = "Solde insuffisant. Veuillez recharger votre compte.",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        color = Color.Red,
+                        fontWeight = FontWeight.Medium
+                    ),
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }

@@ -103,7 +103,7 @@ fun ImageSourceDialog(
                             )
                         )
                         Text(
-                            text = "Utiliser la caméra",
+                            text = "Use camera",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = themeText.copy(alpha = 0.7f)
                             )
@@ -141,14 +141,14 @@ fun ImageSourceDialog(
                     }
                     Column(modifier = Modifier.weight(1f)) {
                         Text(
-                            text = "Choisir depuis la galerie",
+                            text = "Choose from gallery",
                             style = MaterialTheme.typography.bodyLarge.copy(
                                 fontWeight = FontWeight.SemiBold,
                                 color = themeText
                             )
                         )
                         Text(
-                            text = "Sélectionner une image existante",
+                            text = "Select an existing image",
                             style = MaterialTheme.typography.bodyMedium.copy(
                                 color = themeText.copy(alpha = 0.7f)
                             )

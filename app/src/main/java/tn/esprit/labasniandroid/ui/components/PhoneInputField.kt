@@ -30,7 +30,7 @@ fun PhoneInputField(
         modifier = modifier.fillMaxWidth(),
         placeholder = {
             Text(
-                text = "Numéro de téléphone",
+                text = "Phone number",
                 color = TealAccent.copy(alpha = 0.7f)
             )
         },

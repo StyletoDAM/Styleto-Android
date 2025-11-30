@@ -1072,7 +1072,7 @@ fun AboutDialog(
         },
         text = {
             Text(
-                text = "Labasni est une application de mode innovante qui vous permet de découvrir, partager et vendre vos vêtements. Créez votre garde-robe virtuelle, explorez les styles tendance et connectez-vous avec une communauté passionnée de mode.",
+                text = "Styleto is an innovative fashion app that lets you discover, share and sell your clothes. Create your virtual wardrobe, explore trending styles and connect with a passionate fashion community.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = themeText
             )

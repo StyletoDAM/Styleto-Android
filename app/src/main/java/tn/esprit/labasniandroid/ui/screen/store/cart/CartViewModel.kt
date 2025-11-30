@@ -83,6 +83,7 @@ class CartViewModel(
                     val result = storeRepository.confirmPurchase(
                         token = token,
                         storeItemId = item.storeItemID,
+                        paymentMethod = "card",
                         paymentIntentId = fullPaymentIntentId
                     )
 
