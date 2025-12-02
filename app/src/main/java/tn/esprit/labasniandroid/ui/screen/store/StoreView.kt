@@ -1,5 +1,8 @@
 package tn.esprit.labasniandroid.ui.screen.store
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
@@ -16,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.offset
@@ -24,6 +28,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -140,14 +146,48 @@ fun StoreTab(
     val isLoadingClothes by viewModel.isLoadingClothes.collectAsState()
     val isSubmitting by viewModel.isSubmitting.collectAsState()
     
+    // ✨ États pour les suggestions de vente (comme iOS)
+    val sellSuggestions by viewModel.sellSuggestions.collectAsState()
+    
+    // États pour le formulaire de vente
+    val selectedClothe by viewModel.selectedClothe.collectAsState()
+    val priceInput by viewModel.priceInput.collectAsState()
+    val selectedSize by viewModel.selectedSize.collectAsState()
+    val shoeSizeInput by viewModel.shoeSizeInput.collectAsState()
+    val isShoes by viewModel.isShoes.collectAsState()
+    
     var showProDetails by remember { mutableStateOf(false) }
 
     // Observer le nombre d'articles dans le panier (comme iOS CartManager.shared.itemCount)
     val cartItemCount by CartManager.itemCount.collectAsState(initial = 0)
 
+    var showEditDialog by remember { mutableStateOf<StoreItem?>(null) }
+    var showDeleteConfirmation by remember { mutableStateOf<StoreItem?>(null) }
+    var showDiscoverDetail by remember { mutableStateOf<StoreItem?>(null) }
+    
+    // État pour la barre d'onglets My Items / Discover
+    var selectedTab by remember { mutableStateOf("My Items") }
+
     LaunchedEffect(token, userId) {
         if (token.isNotBlank() && userId.isNotBlank()) {
-            viewModel.initialize(token, userId)
+            try {
+                viewModel.initialize(token, userId)
+            } catch (e: Exception) {
+                // Gérer l'erreur silencieusement ou logger
+                android.util.Log.e("StoreView", "Error initializing store: ${e.message}", e)
+            }
+        }
+    }
+    
+    // ✨ Charger les suggestions quand on passe à l'onglet My Items
+    LaunchedEffect(selectedTab) {
+        try {
+            if (selectedTab == "My Items") {
+                // Charger les suggestions quand on arrive sur My Items
+                viewModel.loadSellSuggestions(token)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StoreView", "Error handling tab change", e)
         }
     }
 
@@ -165,13 +205,6 @@ fun StoreTab(
         }
     }
 
-    var showEditDialog by remember { mutableStateOf<StoreItem?>(null) }
-    var showDeleteConfirmation by remember { mutableStateOf<StoreItem?>(null) }
-    var showDiscoverDetail by remember { mutableStateOf<StoreItem?>(null) }
-    
-    // État pour la barre d'onglets My Items / Discover
-    var selectedTab by remember { mutableStateOf("My Items") }
-
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = Color.Transparent,
@@ -184,9 +217,11 @@ fun StoreTab(
                 .background(themeBackground)
         ) {
             // Scrollable Content (comme iOS)
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
+            val scrollState = rememberScrollState()
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp)
                     .padding(top = 8.dp),
                 verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -303,6 +338,63 @@ fun StoreTab(
                     themeText = DynamicThemeColors.text(isMale)
                 )
 
+                // ✨ NOUVEAU : Liste scrollable horizontale des suggestions de vente (comme iOS)
+                if (selectedTab == "My Items" && sellSuggestions.isNotEmpty()) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Header "Sell Suggestions"
+                        Text(
+                            text = "Sell Suggestions",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 20.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = themeTeal,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        
+                        // Liste horizontale scrollable
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            contentPadding = PaddingValues(horizontal = 0.dp, vertical = 8.dp)
+                        ) {
+                            items(sellSuggestions, key = { it.id }) { suggestion ->
+                                SellSuggestionCard(
+                                    clothe = suggestion,
+                                    onAccept = { 
+                                        try {
+                                            // ✨ "Sell It" = accepter cette suggestion spécifique
+                                            viewModel.acceptSellSuggestionForItem(token, suggestion.id)
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("StoreView", "Error accepting suggestion", e)
+                                        }
+                                    },
+                                    onReject = { 
+                                        try {
+                                            // ✨ "Not Now" = marquer comme rejetée et retirer de la liste
+                                            viewModel.dismissSellSuggestion(suggestion.id)
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("StoreView", "Error rejecting suggestion", e)
+                                        }
+                                    },
+                                    onDismiss = { 
+                                        try {
+                                            // ✨ Bouton X = cacher cette suggestion
+                                            viewModel.dismissSellSuggestion(suggestion.id)
+                                        } catch (e: Exception) {
+                                            android.util.Log.e("StoreView", "Error dismissing suggestion", e)
+                                        }
+                                    },
+                                    modifier = Modifier.width(320.dp) // Largeur fixe pour chaque carte
+                                )
+                            }
+                        }
+                    }
+                }
+
                 // Search Bar (comme iOS)
                 StoreSearchBar(
                     value = searchText,
@@ -315,18 +407,21 @@ fun StoreTab(
                 when (selectedTab) {
                     "My Items" -> {
                         // My Items Section
-                if (storeItems.isNotEmpty()) {
-                    MyItemsGrid(
-                        items = storeItems,
-                        deletingIds = deletingIds,
-                        themePrimary = themePrimary,
-                        themeCard = themeCard,
-                        themeTeal = themeTeal,
-                        themeSecondary = themeSecondary,
-                        themeAqua = themeAqua,
-                        onDelete = { }, // Plus utilisé
-                        onEdit = { showEditDialog = it }
-                    )
+                        if (storeItems.isNotEmpty()) {
+                            // ✨ Utiliser LazyVerticalGrid avec heightIn pour permettre le scroll vertical
+                            Box(modifier = Modifier.heightIn(max = 1000.dp)) {
+                                MyItemsGrid(
+                                    items = storeItems,
+                                    deletingIds = deletingIds,
+                                    themePrimary = themePrimary,
+                                    themeCard = themeCard,
+                                    themeTeal = themeTeal,
+                                    themeSecondary = themeSecondary,
+                                    themeAqua = themeAqua,
+                                    onDelete = { }, // Plus utilisé
+                                    onEdit = { showEditDialog = it }
+                                )
+                            }
                         } else if (!isLoading) {
                             // Empty state pour My Items
                             Box(
@@ -361,18 +456,21 @@ fun StoreTab(
                     }
                     "Discover" -> {
                         // Discover Section
-                if (discoverItems.isNotEmpty()) {
-                    DiscoverGrid(
-                        items = discoverItems,
-                        userId = userId,
-                        themeCard = themeCard,
-                        themeTeal = themeTeal,
-                        themePrimary = themePrimary,
-                        themeSecondary = themeSecondary,
-                        themeAqua = themeAqua,
-                                onItemClick = { showDiscoverDetail = it },
-                        onContactOwner = onContactOwner
-                    )
+                        if (discoverItems.isNotEmpty()) {
+                            // ✨ Utiliser DiscoverGrid avec heightIn pour permettre le scroll vertical
+                            Box(modifier = Modifier.heightIn(max = 1000.dp)) {
+                                DiscoverGrid(
+                                    items = discoverItems,
+                                    userId = userId,
+                                    themeCard = themeCard,
+                                    themeTeal = themeTeal,
+                                    themePrimary = themePrimary,
+                                    themeSecondary = themeSecondary,
+                                    themeAqua = themeAqua,
+                                    onItemClick = { showDiscoverDetail = it },
+                                    onContactOwner = onContactOwner
+                                )
+                            }
                         } else if (!isLoading) {
                             // Empty state pour Discover
                             Box(
@@ -409,12 +507,12 @@ fun StoreTab(
 
                 // Loading state (affiché dans chaque onglet si nécessaire)
                 if (isLoading && ((selectedTab == "My Items" && storeItems.isEmpty()) || (selectedTab == "Discover" && discoverItems.isEmpty()))) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
                             .height(200.dp),
-                    contentAlignment = Alignment.Center
-                ) {
+                        contentAlignment = Alignment.Center
+                    ) {
                         CircularProgressIndicator(color = themePrimary)
                     }
                 }
@@ -838,13 +936,14 @@ private fun ProductCard(
                     ),
                 contentAlignment = Alignment.Center
             ) {
-                if (storeItem.cloth?.imageUrl?.isNotBlank() == true) {
+                val imageUrl = storeItem.cloth?.imageUrl
+                if (!imageUrl.isNullOrBlank()) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(storeItem.cloth!!.imageUrl)
+                            .data(imageUrl)
                             .crossfade(true)
                             .build(),
-                        contentDescription = storeItem.cloth!!.name,
+                        contentDescription = storeItem.cloth?.name ?: "Item",
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(140.dp)
@@ -1032,26 +1131,24 @@ private fun AddToStoreSheet(
     themeSecondaryText: Color,
     onDismiss: () -> Unit
 ) {
-    var selectedCloth by remember { mutableStateOf<Cloth?>(null) }
-    var priceInput by rememberSaveable { mutableStateOf("") }
-    var selectedSize by rememberSaveable { mutableStateOf<String?>(null) }
-    var shoeSizeInput by rememberSaveable { mutableStateOf("") }
+    // ✨ NOUVEAU : Utiliser les états du ViewModel (comme iOS)
+    val selectedClothe by viewModel.selectedClothe.collectAsState()
+    val priceInput by viewModel.priceInput.collectAsState()
+    val selectedSize by viewModel.selectedSize.collectAsState()
+    val shoeSizeInput by viewModel.shoeSizeInput.collectAsState()
+    val isShoes by viewModel.isShoes.collectAsState()
+    
     val context = LocalContext.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
-    LaunchedEffect(selectedCloth?.id) {
-        selectedSize = null
-        shoeSizeInput = ""
-    }
-
     val currentSizeValue = when {
-        selectedCloth == null -> ""
-        selectedCloth.isShoeItem() -> shoeSizeInput.trim().replace(',', '.')
+        selectedClothe == null -> ""
+        isShoes -> shoeSizeInput.trim().replace(',', '.')
         else -> selectedSize.orEmpty()
     }
 
     val isPriceValid = priceInput.toDoubleOrNull()?.let { it > 0 } == true
-    val isSizeValid = selectedCloth != null && currentSizeValue.isNotBlank()
+    val isSizeValid = selectedClothe != null && currentSizeValue.isNotBlank()
 
     androidx.compose.material3.ModalBottomSheet(
         onDismissRequest = { if (!isSubmitting) onDismiss() },
@@ -1105,8 +1202,8 @@ private fun AddToStoreSheet(
             } else {
                 ClothesList(
                     clothes = availableClothes,
-                    selectedCloth = selectedCloth,
-                    onSelectCloth = { selectedCloth = it },
+                    selectedCloth = selectedClothe,
+                    onSelectCloth = { viewModel.setSelectedClothe(it) },
                     themePrimary = themePrimary,
                     themeCard = themeCard,
                     themeText = themeText,
@@ -1122,7 +1219,7 @@ private fun AddToStoreSheet(
             // Price Input
             PriceInput(
                 value = priceInput,
-                onValueChange = { priceInput = it },
+                onValueChange = { viewModel.setPriceInput(it) },
                 themeText = themeText,
                 themeCard = themeCard,
                 themeSecondary = themeSecondary,
@@ -1130,13 +1227,14 @@ private fun AddToStoreSheet(
             )
 
             SizeSelectorSection(
-                selectedCloth = selectedCloth,
+                selectedCloth = selectedClothe,
                 selectedSize = selectedSize,
-                onSelectSize = { selectedSize = it },
+                onSelectSize = { viewModel.setSelectedSize(it) },
                 shoeSizeInput = shoeSizeInput,
                 onShoeSizeChange = { input ->
-                    shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
+                    viewModel.setShoeSizeInput(input.replace("[^0-9,\\.]".toRegex(), "").take(6))
                 },
+                isShoes = isShoes,
                 themePrimary = themePrimary,
                 themeSecondaryText = themeSecondaryText,
                 themeSoftPink = themeSoftPink,
@@ -1158,24 +1256,20 @@ private fun AddToStoreSheet(
 
                 androidx.compose.material3.Button(
                     onClick = {
-                        if (selectedCloth != null && isPriceValid && isSizeValid) {
+                        if (selectedClothe != null && isPriceValid && isSizeValid) {
                             val price = priceInput.toDouble()
                             viewModel.addStoreItem(
                                 token = token,
-                                selectedCloth = selectedCloth!!,
+                                selectedCloth = selectedClothe!!,
                                 price = price,
                                 size = currentSizeValue
                             )
-                            selectedCloth = null
-                            selectedSize = null
-                            shoeSizeInput = ""
-                            priceInput = ""
                         }
                     },
-                    enabled = selectedCloth != null && isPriceValid && isSizeValid && !isSubmitting,
+                    enabled = selectedClothe != null && isPriceValid && isSizeValid && !isSubmitting,
                     modifier = Modifier.weight(1f),
                     colors = androidx.compose.material3.ButtonDefaults.buttonColors(
-                        containerColor = if (selectedCloth != null && isPriceValid && isSizeValid && !isSubmitting) themePrimary else Color.Gray.copy(alpha = 0.3f)
+                        containerColor = if (selectedClothe != null && isPriceValid && isSizeValid && !isSubmitting) themePrimary else Color.Gray.copy(alpha = 0.3f)
                     )
                 ) {
                     if (isSubmitting) {
@@ -1384,6 +1478,7 @@ private fun SizeSelectorSection(
     onSelectSize: (String) -> Unit,
     shoeSizeInput: String,
     onShoeSizeChange: (String) -> Unit,
+    isShoes: Boolean,
     themePrimary: Color,
     themeSecondaryText: Color,
     themeSoftPink: Color,
@@ -1409,7 +1504,7 @@ private fun SizeSelectorSection(
                     )
                 )
             }
-            selectedCloth.isShoeItem() -> {
+            isShoes -> {
                 OutlinedTextField(
                     value = shoeSizeInput,
                     onValueChange = onShoeSizeChange,
@@ -1671,6 +1766,7 @@ private fun EditStoreDialog(
                         onShoeSizeChange = { input ->
                             shoeSizeInput = input.replace("[^0-9,\\.]".toRegex(), "").take(6)
                         },
+                        isShoes = cloth.isShoeItem(),
                         themePrimary = themePrimary,
                         themeSecondaryText = themeSecondary,
                         themeSoftPink = themeSoftPink,

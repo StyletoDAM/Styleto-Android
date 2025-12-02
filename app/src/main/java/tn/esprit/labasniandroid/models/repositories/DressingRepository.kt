@@ -13,6 +13,7 @@ import tn.esprit.labasniandroid.api.ClothesApi
 import tn.esprit.labasniandroid.api.CreateClothRequest
 import tn.esprit.labasniandroid.api.DetectionApiResponse
 import tn.esprit.labasniandroid.api.RetrofitClient
+import tn.esprit.labasniandroid.api.UpdateFeedbackRequest
 import tn.esprit.labasniandroid.models.DetectionResult
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.entities.Cloth
@@ -288,6 +289,58 @@ class DressingRepository(
         }
     }
 
+    /**
+     * Met à jour le feedback d'un vêtement (acceptedCount ou rejectedCount)
+     * Comme iOS: PATCH /cloth/:id/feedback avec { "accepted": true/false }
+     */
+    suspend fun updateFeedback(
+        token: String,
+        clotheId: String,
+        accepted: Boolean
+    ): Result<Unit> {
+        return try {
+            val request = UpdateFeedbackRequest(accepted = accepted)
+            val response = clothesApi.updateFeedback("Bearer $token", clotheId, request)
+            
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    404 -> "Vêtement introuvable."
+                    else -> errorBody ?: "Impossible de mettre à jour le feedback."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    /**
+     * Récupère les suggestions de vente (vêtements rejetés plusieurs fois)
+     * Comme iOS: fetchSellSuggestions()
+     */
+    suspend fun fetchSellSuggestions(token: String): Result<List<Cloth>> {
+        return try {
+            val response = clothesApi.getSellSuggestions("Bearer $token")
+            if (response.isSuccessful && response.body() != null) {
+                val clothes = response.body()!!.map { it.toEntity() }
+                Result.success(clothes)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de récupérer les suggestions de vente."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
 }
 
 private fun ClothResponse.toEntity(): Cloth {
@@ -305,7 +358,9 @@ private fun ClothResponse.toEntity(): Cloth {
         createdAt = createdAt,
         season = season,
         style = style,
-        color = color
+        color = color,
+        acceptedCount = acceptedCount,
+        rejectedCount = rejectedCount
     )
 }
 

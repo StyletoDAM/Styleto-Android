@@ -1,6 +1,12 @@
 package tn.esprit.labasniandroid
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavHostController
 import androidx.navigation.NavOptionsBuilder
 import androidx.navigation.compose.NavHost
@@ -11,6 +17,7 @@ import tn.esprit.labasniandroid.ui.screen.intro.IntroView
 import tn.esprit.labasniandroid.ui.screen.auth.login.LoginView
 import tn.esprit.labasniandroid.ui.screen.auth.signup.SignupView
 import tn.esprit.labasniandroid.ui.screen.home.MainScreen
+import tn.esprit.labasniandroid.utils.TokenManager
 
 sealed class LabasniDestination(val route: String) {
     data object Intro : LabasniDestination("intro")
@@ -24,10 +31,28 @@ sealed class LabasniDestination(val route: String) {
 @Composable
 fun LabasniApp() {
     val navController = rememberNavController()
+    val context = LocalContext.current
+    
+    // ✨ NOUVEAU : Vérifier si l'utilisateur est connecté au démarrage (comme iOS)
+    var isLoggedIn by remember { mutableStateOf<Boolean?>(null) }
+    
+    LaunchedEffect(Unit) {
+        // Vérifier le token et l'userId au démarrage
+        val token = TokenManager.getToken(context)
+        val userId = TokenManager.getUserId(context)
+        isLoggedIn = !token.isNullOrBlank() && !userId.isNullOrBlank()
+    }
+    
+    // Déterminer la destination de départ selon l'état de connexion
+    val startDestination = when (isLoggedIn) {
+        true -> LabasniDestination.Home.route // Utilisateur connecté → aller directement à Home
+        false -> LabasniDestination.Intro.route // Utilisateur non connecté → afficher Intro
+        null -> LabasniDestination.Intro.route // En attente de vérification → afficher Intro par défaut
+    }
 
     NavHost(
         navController = navController,
-        startDestination = LabasniDestination.Intro.route
+        startDestination = startDestination
     ) {
         composable(LabasniDestination.Intro.route) {
             IntroView(
@@ -82,6 +107,8 @@ fun LabasniApp() {
         composable(LabasniDestination.Home.route) {
             MainScreen(
                 onLogout = {
+                    // ✨ NOUVEAU : Nettoyer le token et rediriger vers Login (comme iOS)
+                    TokenManager.clearToken(context)
                     navController.navigate(LabasniDestination.Login.route) {
                         popUpTo(LabasniDestination.Intro.route) { inclusive = true }
                     }

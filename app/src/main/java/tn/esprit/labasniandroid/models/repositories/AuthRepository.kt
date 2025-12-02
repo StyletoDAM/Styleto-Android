@@ -78,10 +78,12 @@ class AuthRepository {
         gender: String? = null
     ): Result<Responses.SigninResponse> {
         return try {
+            // ✨ NOUVEAU : Normaliser l'email en minuscules (comme iOS) pour que le backend trouve le profil existant
+            val normalizedEmail = email.lowercase().trim()
             val request = GoogleAuthRequest(
                 googleId = googleId,
                 fullName = fullName,
-                email = email,
+                email = normalizedEmail, // ✨ Utiliser l'email normalisé
                 profilePicture = profilePicture,
                 gender = gender
             )

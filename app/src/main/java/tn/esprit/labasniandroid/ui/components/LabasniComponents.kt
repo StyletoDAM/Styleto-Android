@@ -166,6 +166,7 @@ fun LabasniOutlinedField(
     onValueChange: (String) -> Unit,
     placeholder: String,
     leading: @Composable (() -> Unit)? = null,
+    trailing: @Composable (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None
@@ -185,6 +186,7 @@ fun LabasniOutlinedField(
         },
         singleLine = true,
         leadingIcon = leading,
+        trailingIcon = trailing,
         keyboardOptions = keyboardOptions,
         visualTransformation = visualTransformation,
         shape = RoundedCornerShape(22.dp),

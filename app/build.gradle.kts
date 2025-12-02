@@ -17,6 +17,11 @@ val stripePublishableKey =
         .trim()
         .ifEmpty { "" }
 
+val googleClientId =
+    (localProperties.getProperty("GOOGLE_CLIENT_ID") ?: "")
+        .trim()
+        .ifEmpty { "" }
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -39,6 +44,7 @@ android {
 
         buildConfigField("String", "BASE_URL", "\"$baseUrl\"")
         buildConfigField("String", "STRIPE_PUBLISHABLE_KEY", "\"$stripePublishableKey\"")
+        buildConfigField("String", "GOOGLE_CLIENT_ID", "\"$googleClientId\"")
     }
 
     buildTypes {

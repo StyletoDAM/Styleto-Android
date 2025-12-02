@@ -16,10 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.rounded.Email
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
@@ -32,8 +35,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -51,8 +56,10 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.R
@@ -62,6 +69,7 @@ import tn.esprit.labasniandroid.ui.theme.TealAccent
 import tn.esprit.labasniandroid.ui.components.LabasniOutlinedField
 import tn.esprit.labasniandroid.ui.components.LabasniPillButton
 import tn.esprit.labasniandroid.utils.TokenManager
+import tn.esprit.labasniandroid.BuildConfig
 
 @Composable
 fun LoginView(
@@ -80,10 +88,23 @@ fun LoginView(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    
+    // ✨ NOUVEAU : État pour afficher/masquer le mot de passe (comme iOS)
+    var passwordVisible by remember { mutableStateOf(false) }
 
     // Configuration Google Sign-In
+    // ✨ NOUVEAU : Client ID depuis BuildConfig (depuis local.properties)
+    // Ajoutez GOOGLE_CLIENT_ID dans local.properties avec votre Client ID Android
+    // Pour Android, vous devez créer un Client ID Android dans Google Cloud Console
+    // et ajouter le SHA-1 de votre clé de signature
+    val googleClientId = BuildConfig.GOOGLE_CLIENT_ID.ifBlank { 
+        // Fallback vers le Client ID iOS si non configuré (pour tests)
+        "654276245605-bj14tf7v33v9cucd6cgq99d9jcfr5mud.apps.googleusercontent.com"
+    }
+    
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(googleClientId) // ✨ NOUVEAU : Client ID depuis BuildConfig
             .requestId() // garantit un identifiant Google stable pour lier un compte existant
             .requestEmail()
             .requestProfile()
@@ -261,8 +282,19 @@ fun LoginView(
                             tint = if (isDark) colorScheme.onSurface.copy(alpha = 0.7f) else TealAccent
                         )
                     },
+                    trailing = {
+                        IconButton(
+                            onClick = { passwordVisible = !passwordVisible }
+                        ) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.Visibility else Icons.Filled.VisibilityOff,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = if (isDark) colorScheme.onSurface.copy(alpha = 0.7f) else TealAccent
+                            )
+                        }
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                    visualTransformation = PasswordVisualTransformation()
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation()
                 )
 
                 Row(
@@ -362,13 +394,14 @@ private fun GoogleSignInButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    androidx.compose.material3.Button(
+    // ✨ NOUVEAU : Utiliser OutlinedButton pour une meilleure visibilité (comme iOS)
+    androidx.compose.material3.OutlinedButton(
         onClick = onClick,
         modifier = modifier
             .height(52.dp)
             .clip(RoundedCornerShape(22.dp)),
         shape = RoundedCornerShape(22.dp),
-        colors = androidx.compose.material3.ButtonDefaults.buttonColors(
+        colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
             containerColor = Color.White,
             contentColor = TealAccent
         ),
@@ -381,11 +414,15 @@ private fun GoogleSignInButton(
         ) {
             Text(
                 text = "🌐",
-                modifier = Modifier.padding(end = 8.dp)
+                modifier = Modifier.padding(end = 8.dp),
+                fontSize = 18.sp
             )
             Text(
                 text = "Continue with Google",
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.bodyLarge.copy(
+                    fontWeight = FontWeight.SemiBold,
+                    color = TealAccent
+                )
             )
         }
     }
@@ -416,13 +453,16 @@ private fun handleGoogleSignInResult(
                 else -> ""
             }
 
-            if (googleId.isNotEmpty() && email.isNotEmpty()) {
-                Log.d("GoogleSignIn", "Calling signInWithGoogle with ID: $googleId, Email: $email")
+            // ✨ NOUVEAU : Normaliser l'email en minuscules (comme iOS) pour que le backend trouve le profil existant
+            val normalizedEmail = email.lowercase().trim()
+
+            if (googleId.isNotEmpty() && normalizedEmail.isNotEmpty()) {
+                Log.d("GoogleSignIn", "Calling signInWithGoogle with ID: $googleId, Email: $normalizedEmail")
                 viewModel.signInWithGoogle(
                     context = context,
                     googleId = googleId,
                     fullName = fullName,
-                    email = email,
+                    email = normalizedEmail, // ✨ Utiliser l'email normalisé
                     profilePicture = profilePicture
                 )
             } else {

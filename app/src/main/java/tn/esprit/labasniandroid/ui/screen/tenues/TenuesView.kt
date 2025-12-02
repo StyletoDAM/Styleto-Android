@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -23,6 +24,10 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -66,6 +71,7 @@ import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.entities.Outfit
 import tn.esprit.labasniandroid.ui.screen.tenues.TenuesViewModel
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
+import tn.esprit.labasniandroid.api.AIRecommendationResponse
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import java.text.SimpleDateFormat
@@ -88,6 +94,9 @@ fun TenuesTab(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
     val successMessage by viewModel.successMessage.collectAsState()
+    val isGenerating by viewModel.isGenerating.collectAsState()
+    val aiSuggestion by viewModel.aiSuggestion.collectAsState()
+    val isAccepting by viewModel.isAccepting.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -110,10 +119,26 @@ fun TenuesTab(
         }
     }
 
+    // ✨ NOUVEAU: Ne plus utiliser Snackbar pour les erreurs de recommandation
+    // Les erreurs sont maintenant affichées dans une carte dédiée (RecommendationErrorCard)
+    // On garde le Snackbar uniquement pour les autres messages (succès, etc.)
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
-            scope.launch { snackbarHostState.showSnackbar(message) }
-            viewModel.clearMessages()
+            // Détecter si c'est une erreur de recommandation (message contient des mots-clés)
+            val isRecommendationError = message.contains("don't have enough clothes", ignoreCase = true) ||
+                    message.contains("unable to generate", ignoreCase = true) ||
+                    message.contains("recommendation", ignoreCase = true) ||
+                    message.contains("style", ignoreCase = true) ||
+                    message.contains("wardrobe", ignoreCase = true)
+            
+            if (isRecommendationError && aiSuggestion == null && !isGenerating) {
+                // C'est une erreur de recommandation, elle sera affichée dans la carte
+                // Ne rien faire ici, la carte s'affichera automatiquement
+            } else {
+                // Autres erreurs (création d'outfit, etc.) - utiliser Snackbar
+                scope.launch { snackbarHostState.showSnackbar(message) }
+                viewModel.clearMessages()
+            }
         }
     }
 
@@ -123,8 +148,6 @@ fun TenuesTab(
             viewModel.clearMessages()
         }
     }
-
-    // Logique de génération supprimée
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -151,12 +174,15 @@ fun TenuesTab(
             }
         }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(themeBackground)
                 .padding(innerPadding)
         ) {
+            Column(
+                modifier = Modifier.fillMaxSize()
+            ) {
             // ScrollView principal avec pull to refresh (comme iOS)
             androidx.compose.foundation.rememberScrollState().let { scrollState ->
                 Column(
@@ -179,12 +205,50 @@ fun TenuesTab(
                         modifier = Modifier.fillMaxWidth()
                     )
 
-                    // Suggestion Card principale (comme iOS) - UI seulement, pas de génération
+                    // Suggestion Card principale (comme iOS)
                     TodaySuggestionCard(
                         themePrimary = themePrimary,
                         themeSecondary = themeSecondary,
-                        onSeeSuggestion = { showStylePopup = true }
+                        onSeeSuggestion = { showStylePopup = true },
+                        isLoading = isGenerating
                     )
+
+                    // ✅ CARTE AI SUGGESTION (si disponible) - comme iOS
+                    aiSuggestion?.let { suggestion ->
+                        AISuggestionCard(
+                            suggestion = suggestion,
+                            isAccepting = isAccepting,
+                            themePrimary = themePrimary,
+                            themeSecondary = themeSecondary,
+                            themeTeal = themeTeal,
+                            themeCard = themeCard,
+                            themeSecondaryText = themeSecondaryText,
+                            onAccept = {
+                                viewModel.acceptAISuggestion(token)
+                            },
+                            onReject = {
+                                viewModel.rejectAISuggestion(token)
+                            },
+                            context = context
+                        )
+                    }
+                    
+                    // ✨ NOUVEAU: Carte d'erreur de recommandation (au lieu du Snackbar)
+                    errorMessage?.let { message ->
+                        // Afficher seulement si c'est une erreur de recommandation (pas de suggestion en cours)
+                        if (aiSuggestion == null && !isGenerating) {
+                            RecommendationErrorCard(
+                                message = message,
+                                themePrimary = themePrimary,
+                                themeSecondary = themeSecondary,
+                                themeCard = themeCard,
+                                themeSecondaryText = themeSecondaryText,
+                                onDismiss = {
+                                    viewModel.clearMessages()
+                                }
+                            )
+                        }
+                    }
 
                     // Section Header "Recent Outfits" (comme iOS)
             Text(
@@ -239,6 +303,10 @@ fun TenuesTab(
                                         onToggleFavorite = {
                                             viewModel.toggleFavorite(outfit.id)
                                         },
+                                        onDelete = {
+                                            viewModel.deleteOutfit(token, outfit.id)
+                                        },
+                                        isDeleting = viewModel.deletingIds.value.contains(outfit.id),
                                         context = context
                     )
                 }
@@ -248,9 +316,46 @@ fun TenuesTab(
 }
             }
         }
+
+            // ✅ Overlay de chargement pour la génération AI (comme iOS)
+            if (isGenerating) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.4f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Card(
+                        modifier = Modifier.padding(32.dp),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = themePrimary.copy(alpha = 0.95f))
+                    ) {
+                        Column(
+                            modifier = Modifier.padding(32.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = Color.White,
+                                strokeWidth = 4.dp
+                            )
+                            Text(
+                                text = "AI is creating your perfect outfit...",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White,
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    // StyleSelectionPopup (comme iOS) - UI seulement, pas de génération
+    // StyleSelectionPopup (comme iOS)
     if (showStylePopup) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
@@ -259,11 +364,19 @@ fun TenuesTab(
             sheetState = sheetState
         ) {
             StyleSelectionPopup(
-                styles = listOf("Casual", "Formal", "Sporty", "Elegant", "Party"),
+                styles = listOf("Casual", "Formal", "Sport"),
                 themePrimary = themePrimary,
                 themeSecondary = themeSecondary,
+                isLoading = isGenerating,
                 onStyleSelected = { style ->
-                    // Pas de génération - juste fermer le popup
+                    // Appeler la recommandation avec le style sélectionné (comme iOS)
+                    val preference = when (style.lowercase()) {
+                        "casual" -> "casual"
+                        "formal" -> "formal"
+                        "sport", "sporty" -> "sport"
+                        else -> "casual"
+                    }
+                    viewModel.generateAISuggestion(token, preference)
                     showStylePopup = false
                 },
                 onDismiss = { showStylePopup = false }
@@ -272,12 +385,13 @@ fun TenuesTab(
     }
 }
 
-// MARK: - Today's Suggestion Card (comme iOS) - UI seulement
+// MARK: - Today's Suggestion Card (comme iOS)
 @Composable
 private fun TodaySuggestionCard(
     themePrimary: Color,
     themeSecondary: Color,
-    onSeeSuggestion: () -> Unit
+    onSeeSuggestion: () -> Unit,
+    isLoading: Boolean = false
 ) {
     Box(
         modifier = Modifier
@@ -303,7 +417,7 @@ private fun TodaySuggestionCard(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "Today's Suggestion",
+                text = "Today's AI Suggestion",
                 style = MaterialTheme.typography.titleLarge.copy(
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold
@@ -311,12 +425,13 @@ private fun TodaySuggestionCard(
                 color = Color.White
             )
             Text(
-                text = "The weather is nice today! Why not try a light and colorful outfit?",
+                text = "Let our AI create the perfect outfit based on weather and your style!",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.White.copy(alpha = 0.95f)
             )
             TextButton(
                 onClick = onSeeSuggestion,
+                enabled = !isLoading,
                 colors = ButtonDefaults.textButtonColors(
                     contentColor = Color.White
                 ),
@@ -325,25 +440,34 @@ private fun TodaySuggestionCard(
                     .background(Color.White)
                     .padding(horizontal = 20.dp, vertical = 12.dp)
             ) {
-                Text(
-                    text = "See suggestion",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = themePrimary
-                )
+                if (isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(16.dp),
+                        color = themePrimary,
+                        strokeWidth = 2.dp
+                    )
+                } else {
+                    Text(
+                        text = "Get AI Suggestion",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themePrimary
+                    )
+                }
             }
         }
     }
 }
 
-// MARK: - Style Selection Popup (comme iOS) - UI seulement
+// MARK: - Style Selection Popup (comme iOS)
 @Composable
 private fun StyleSelectionPopup(
     styles: List<String>,
     themePrimary: Color,
     themeSecondary: Color,
+    isLoading: Boolean = false,
     onStyleSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -370,6 +494,7 @@ private fun StyleSelectionPopup(
             styles.forEach { style ->
                 Button(
                     onClick = { onStyleSelected(style) },
+                    enabled = !isLoading,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color.Transparent
@@ -390,13 +515,21 @@ private fun StyleSelectionPopup(
                             .padding(16.dp),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = style,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color.White
-                        )
+                        if (isLoading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = style,
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White
+                            )
+                        }
                     }
                 }
             }
@@ -430,6 +563,8 @@ private fun TenueCard(
     themeCard: Color,
     themeSecondaryText: Color,
     onToggleFavorite: () -> Unit,
+    onDelete: () -> Unit, // ✨ NOUVEAU
+    isDeleting: Boolean = false, // ✨ NOUVEAU
     context: android.content.Context
 ) {
     Card(
@@ -477,20 +612,51 @@ private fun TenueCard(
                     )
                 }
 
-                // Bouton favoris (comme iOS)
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(themeCard.copy(alpha = 0.8f))
+                // ✨ Boutons favoris et suppression (comme iOS)
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
+                    // Bouton favoris
+                    IconButton(
+                        onClick = onToggleFavorite,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(themeCard.copy(alpha = 0.8f))
+                    ) {
                         Icon(
-                        imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (outfit.isFavorite) themePrimary else themeSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
+                            imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (outfit.isFavorite) themePrimary else themeSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                    
+                    // ✨ Bouton suppression (en dessous du cœur)
+                    IconButton(
+                        onClick = onDelete,
+                        enabled = !isDeleting,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(themeCard.copy(alpha = 0.8f))
+                    ) {
+                        if (isDeleting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(20.dp),
+                                strokeWidth = 2.dp,
+                                color = Color.Red
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Filled.Delete,
+                                contentDescription = "Delete",
+                                tint = Color.Red.copy(alpha = 0.7f),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
             }
 
@@ -555,6 +721,344 @@ private fun TenueCard(
     }
 }
 
+// MARK: - AI Suggestion Card (comme iOS AISuggestionCard)
+@Composable
+private fun AISuggestionCard(
+    suggestion: AIRecommendationResponse,
+    isAccepting: Boolean,
+    themePrimary: Color,
+    themeSecondary: Color,
+    themeTeal: Color,
+    themeCard: Color,
+    themeSecondaryText: Color,
+    onAccept: () -> Unit,
+    onReject: () -> Unit,
+    context: android.content.Context
+) {
+    val outfit = suggestion.outfit ?: return
+    val top = outfit.top
+    val bottom = outfit.bottom
+    val footwear = outfit.footwear
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = themeCard)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            // Header avec icône AI
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Favorite, // Utiliser sparkles si disponible
+                        contentDescription = null,
+                        tint = Color(0xFFFFD700), // Yellow
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = "AI Suggestion",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = themePrimary
+                        )
+                        // Info météo si disponible
+                        suggestion.metadata?.weather?.let { weather ->
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = "${weather.temperature?.toInt() ?: 0}°C",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = themeSecondaryText
+                                )
+                                weather.city?.let {
+                                    Text(
+                                        text = "• $it",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = themeSecondaryText
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+                // Bouton pour fermer/rejeter
+                IconButton(
+                    onClick = onReject,
+                    modifier = Modifier.size(32.dp),
+                    enabled = !isAccepting
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Reject",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+
+            // Preview des 3 vêtements
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // Top
+                top?.let {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        outfitItemContent(
+                            clothe = it,
+                            label = "Top",
+                            themeCard = themeCard,
+                            themeSecondaryText = themeSecondaryText,
+                            context = context
+                        )
+                    }
+                }
+
+                // Bottom
+                bottom?.let {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        outfitItemContent(
+                            clothe = it,
+                            label = "Bottom",
+                            themeCard = themeCard,
+                            themeSecondaryText = themeSecondaryText,
+                            context = context
+                        )
+                    }
+                }
+
+                // Footwear
+                footwear?.let {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        outfitItemContent(
+                            clothe = it,
+                            label = "Shoes",
+                            themeCard = themeCard,
+                            themeSecondaryText = themeSecondaryText,
+                            context = context
+                        )
+                    }
+                }
+            }
+
+            // Explication AI (badges)
+            suggestion.metadata?.let { metadata ->
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    metadata.preference?.let {
+                        explanationBadge(
+                            icon = Icons.Filled.Check,
+                            text = it.replaceFirstChar { char -> char.uppercase() },
+                            themeTeal = themeTeal,
+                            themeSecondaryText = themeSecondaryText
+                        )
+                    }
+                    metadata.season?.let {
+                        explanationBadge(
+                            icon = Icons.Filled.CalendarToday,
+                            text = it.replaceFirstChar { char -> char.uppercase() },
+                            themeTeal = themeTeal,
+                            themeSecondaryText = themeSecondaryText
+                        )
+                    }
+                }
+            }
+
+            // Boutons Approve/Reject (comme iOS)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                // Bouton Reject
+                Button(
+                    onClick = onReject,
+                    enabled = !isAccepting,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(Color.Red.copy(alpha = 0.08f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Reject",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontWeight = FontWeight.Medium
+                            ),
+                            color = Color.Red,
+                            maxLines = 1
+                        )
+                    }
+                }
+
+                // Bouton Accept
+                Button(
+                    onClick = onAccept,
+                    enabled = !isAccepting,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color.Transparent
+                    ),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(themeTeal),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (isAccepting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                color = Color.White,
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Text(
+                                text = "Accept",
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.SemiBold
+                                ),
+                                color = Color.White,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Outfit Item Content (comme iOS)
+@Composable
+private fun outfitItemContent(
+    clothe: tn.esprit.labasniandroid.api.RecommendedCloth,
+    label: String,
+    themeCard: Color,
+    themeSecondaryText: Color,
+    context: android.content.Context
+) {
+    Box(
+        modifier = Modifier
+            .size(80.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .shadow(4.dp, RoundedCornerShape(16.dp))
+            .background(themeCard),
+        contentAlignment = Alignment.Center
+    ) {
+        val imageUrl = clothe.imageUrl?.takeIf { it.isNotBlank() }
+        if (!imageUrl.isNullOrBlank()) {
+            AsyncImage(
+                model = ImageRequest.Builder(context)
+                    .data(imageUrl)
+                    .crossfade(true)
+                    .placeholder(android.R.drawable.progress_indeterminate_horizontal)
+                    .error(android.R.drawable.ic_menu_gallery)
+                    .build(),
+                contentDescription = label,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .clip(RoundedCornerShape(16.dp)),
+                contentScale = ContentScale.Crop
+            )
+        } else {
+            CircularProgressIndicator(
+                modifier = Modifier.size(32.dp),
+                color = themeSecondaryText.copy(alpha = 0.5f),
+                strokeWidth = 2.dp
+            )
+        }
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.bodySmall.copy(
+            fontWeight = FontWeight.Medium
+        ),
+        color = themeSecondaryText
+    )
+}
+
+// MARK: - Explanation Badge (comme iOS)
+@Composable
+private fun explanationBadge(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    text: String,
+    themeTeal: Color,
+    themeSecondaryText: Color
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .clip(RoundedCornerShape(8.dp))
+            .background(themeTeal.copy(alpha = 0.15f))
+            .padding(horizontal = 10.dp, vertical = 6.dp)
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = themeTeal,
+            modifier = Modifier.size(10.dp)
+        )
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall.copy(
+                fontWeight = FontWeight.Medium
+            ),
+            color = themeSecondaryText
+        )
+    }
+}
+
 // MARK: - Empty State (comme iOS)
 @Composable
 private fun EmptyState(
@@ -585,6 +1089,7 @@ private fun EmptyState(
 @Composable
 fun FavoriteTab(
     modifier: Modifier = Modifier,
+    token: String, // ✨ NOUVEAU : Ajouter token pour pouvoir supprimer
     viewModel: TenuesViewModel = viewModel(),
     onBack: () -> Unit
 ) {
@@ -692,11 +1197,95 @@ fun FavoriteTab(
                             onToggleFavorite = {
                                 viewModel.toggleFavorite(outfit.id)
                             },
+                            onDelete = {
+                                viewModel.deleteOutfit(token, outfit.id)
+                            },
+                            isDeleting = viewModel.deletingIds.value.contains(outfit.id),
                             context = context
                         )
                     }
                 }
             }
+        }
+    }
+}
+
+// MARK: - Recommendation Error Card (comme iOS, style UI intégré)
+@Composable
+private fun RecommendationErrorCard(
+    message: String,
+    themePrimary: Color,
+    themeSecondary: Color,
+    themeCard: Color,
+    themeSecondaryText: Color,
+    onDismiss: () -> Unit
+) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .shadow(
+                elevation = 12.dp,
+                shape = RoundedCornerShape(20.dp),
+                spotColor = Color.Black.copy(alpha = 0.1f)
+            ),
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = Color(0xFFFF9800).copy(alpha = 0.08f) // Orange léger pour l'erreur
+        )
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            // Header avec icône et bouton fermer
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Info,
+                        contentDescription = null,
+                        tint = Color(0xFFFF9800), // Orange pour l'erreur
+                        modifier = Modifier.size(24.dp)
+                    )
+                    Text(
+                        text = "Recommendation",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = themePrimary
+                    )
+                }
+                // Bouton pour fermer
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.size(32.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Dismiss",
+                        tint = Color.Gray,
+                        modifier = Modifier.size(20.dp)
+                    )
+                }
+            }
+            
+            // Message d'erreur
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    lineHeight = 20.sp
+                ),
+                color = Color(0xFFFF9800), // Orange pour le texte
+                modifier = Modifier.fillMaxWidth()
+            )
         }
     }
 }

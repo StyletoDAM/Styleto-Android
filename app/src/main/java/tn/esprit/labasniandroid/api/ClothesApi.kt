@@ -9,6 +9,7 @@ import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
 import retrofit2.http.Multipart
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.Part
 import retrofit2.http.Path
@@ -36,7 +37,23 @@ interface ClothesApi {
     suspend fun detectCloth(
         @Part photo: MultipartBody.Part
     ): Response<DetectionApiResponse>
+
+    @PATCH("/cloth/{id}/feedback")
+    suspend fun updateFeedback(
+        @Header("Authorization") token: String,
+        @Path("id") id: String,
+        @Body request: UpdateFeedbackRequest
+    ): Response<Unit>
+
+    @GET("/cloth/sell-suggestions")
+    suspend fun getSellSuggestions(
+        @Header("Authorization") token: String
+    ): Response<List<ClothResponse>>
 }
+
+data class UpdateFeedbackRequest(
+    @SerializedName("accepted") val accepted: Boolean
+)
 
 data class ClothResponse(
     @SerializedName("_id") val id: String,
@@ -46,7 +63,9 @@ data class ClothResponse(
     @SerializedName("season") val season: String?,
     @SerializedName("color") val color: String?,
     @SerializedName("style") val style: String?,
-    @SerializedName("createdAt") val createdAt: String?
+    @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("acceptedCount") val acceptedCount: Int? = null,
+    @SerializedName("rejectedCount") val rejectedCount: Int? = null
 )
 
 data class CreateClothRequest(

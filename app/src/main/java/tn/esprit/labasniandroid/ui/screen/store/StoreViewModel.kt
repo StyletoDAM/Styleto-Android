@@ -57,6 +57,23 @@ class StoreViewModel(
 
     private val _showAddToStore = MutableStateFlow(false)
     val showAddToStore: StateFlow<Boolean> = _showAddToStore.asStateFlow()
+    
+    // ✨ NOUVEAU : Vêtement sélectionné pour la vente (comme iOS)
+    private val _selectedClothe = MutableStateFlow<Cloth?>(null)
+    val selectedClothe: StateFlow<Cloth?> = _selectedClothe.asStateFlow()
+    
+    // ✨ NOUVEAU : Champs du formulaire (comme iOS)
+    private val _priceInput = MutableStateFlow("")
+    val priceInput: StateFlow<String> = _priceInput.asStateFlow()
+    
+    private val _selectedSize = MutableStateFlow<String?>("M")
+    val selectedSize: StateFlow<String?> = _selectedSize.asStateFlow()
+    
+    private val _shoeSizeInput = MutableStateFlow("")
+    val shoeSizeInput: StateFlow<String> = _shoeSizeInput.asStateFlow()
+    
+    private val _isShoes = MutableStateFlow(false)
+    val isShoes: StateFlow<Boolean> = _isShoes.asStateFlow()
 
     private val _showToast = MutableStateFlow(false)
     val showToast: StateFlow<Boolean> = _showToast.asStateFlow()
@@ -67,6 +84,19 @@ class StoreViewModel(
     private val _searchText = MutableStateFlow("")
     val searchText: StateFlow<String> = _searchText.asStateFlow()
 
+    // ✨ Suggestions de vente (comme iOS)
+    private val _sellSuggestions = MutableStateFlow<List<Cloth>>(emptyList())
+    val sellSuggestions: StateFlow<List<Cloth>> = _sellSuggestions.asStateFlow()
+
+    private val _currentSuggestion = MutableStateFlow<Cloth?>(null)
+    val currentSuggestion: StateFlow<Cloth?> = _currentSuggestion.asStateFlow()
+
+    private val _showSellSuggestion = MutableStateFlow(false)
+    val showSellSuggestion: StateFlow<Boolean> = _showSellSuggestion.asStateFlow()
+
+    private val _dismissedSuggestionIds = MutableStateFlow<Set<String>>(emptySet())
+    val dismissedSuggestionIds: StateFlow<Set<String>> = _dismissedSuggestionIds.asStateFlow()
+
     private var searchJob: Job? = null
     private var initialized = false
     private var cachedToken: String? = null
@@ -74,21 +104,30 @@ class StoreViewModel(
     init {
         // Debounce pour la recherche (300ms comme iOS)
         viewModelScope.launch {
-            _searchText.collect { query ->
-                searchJob?.cancel()
-                searchJob = launch {
-                    delay(300)
-                    filterItems()
+            try {
+                _searchText.collect { query ->
+                    searchJob?.cancel()
+                    searchJob = launch {
+                        delay(300)
+                        filterItems()
+                    }
                 }
+            } catch (e: Exception) {
+                // Ignorer les erreurs de collect (ViewModel détruit)
             }
         }
     }
 
     fun initialize(token: String, userId: String) {
-        if (initialized && cachedToken == token) return
-        initialized = true
         cachedToken = token
-        loadMyStore(token)
+        if (!initialized) {
+            initialized = true
+            loadMyStore(token)
+        } else {
+            // Si déjà initialisé, recharger les suggestions seulement si on est dans My Items
+            // (ne pas réafficher les suggestions rejetées)
+            loadSellSuggestions(token)
+        }
     }
 
     fun loadMyStore(token: String) {
@@ -102,6 +141,7 @@ class StoreViewModel(
                     _rawStoreItems.value = items
                     _storeItems.value = items
                     loadDiscoverItems(token)
+                    loadSellSuggestions(token) // ✨ Charger les suggestions (comme iOS)
                 },
                 onFailure = { error -> _errorMessage.value = error.message }
             )
@@ -175,6 +215,8 @@ class StoreViewModel(
                         delay(2000)
                         _showToast.value = false
                     }
+                    // Recharger les suggestions après suppression
+                    cachedToken?.let { loadSellSuggestions(it) }
                 },
                 onFailure = { error -> _errorMessage.value = error.message }
             )
@@ -227,10 +269,14 @@ class StoreViewModel(
                 size = size
             ).fold(
                 onSuccess = {
+                    // Nettoyer le formulaire
+                    clearAddToStoreForm()
                     _showAddToStore.value = false
                     // Recharger la liste pour obtenir les objets avec clothesId populé
                     loadMyStore(token)
                     _successMessage.value = "Article ajouté à la boutique."
+                    // Recharger les suggestions après ajout
+                    loadSellSuggestions(token)
                 },
                 onFailure = { error ->
                     // Vérifier si l'erreur vient du backend (limite atteinte)
@@ -279,6 +325,8 @@ class StoreViewModel(
                         delay(2000)
                         _showToast.value = false
                     }
+                    // Recharger les suggestions après mise à jour
+                    loadSellSuggestions(token)
                 },
                 onFailure = { error -> _errorMessage.value = error.message }
             )
@@ -301,6 +349,8 @@ class StoreViewModel(
                         delay(2000)
                         _showToast.value = false
                     }
+                    // Recharger les suggestions après vente
+                    loadSellSuggestions(token)
                 },
                 onFailure = { error -> _errorMessage.value = error.message }
             )
@@ -311,5 +361,285 @@ class StoreViewModel(
     fun clearMessages() {
         _errorMessage.value = null
         _successMessage.value = null
+    }
+
+    // ✨ Charger les suggestions de vente (comme iOS)
+    fun loadSellSuggestions(token: String) {
+        viewModelScope.launch {
+            try {
+                dressingRepository.fetchSellSuggestions(token).fold(
+                    onSuccess = { suggestions ->
+                        // Filtrer les suggestions déjà rejetées ou déjà dans le store (comme iOS)
+                        val storeClothesIds = _rawStoreItems.value.mapNotNull { it.cloth?.id }.toSet()
+                        val filtered: List<Cloth> = suggestions.filter { clothe ->
+                            !_dismissedSuggestionIds.value.contains(clothe.id) &&
+                            !storeClothesIds.contains(clothe.id)
+                        }
+                        _sellSuggestions.value = filtered
+                        
+                        // ✨ NOUVEAU : Ne plus gérer currentSuggestion, toutes les suggestions sont affichées dans la liste
+                        // Garder currentSuggestion pour compatibilité avec les fonctions existantes
+                        if (filtered.isNotEmpty() && _currentSuggestion.value == null) {
+                            _currentSuggestion.value = filtered.first()
+                        } else if (filtered.isEmpty()) {
+                            _currentSuggestion.value = null
+                        }
+                    },
+                    onFailure = { error ->
+                        // Ne pas afficher d'erreur, c'est optionnel
+                        android.util.Log.d("StoreViewModel", "Error loading sell suggestions: ${error.message}")
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("StoreViewModel", "Exception loading sell suggestions", e)
+            }
+        }
+    }
+
+    // ✨ Afficher la suggestion suivante (comme iOS)
+    fun showNextSuggestion() {
+        try {
+            val next = _sellSuggestions.value.firstOrNull { clothe ->
+                !_dismissedSuggestionIds.value.contains(clothe.id)
+            }
+            if (next != null) {
+                _currentSuggestion.value = next
+                _showSellSuggestion.value = true
+            } else {
+                _currentSuggestion.value = null
+                _showSellSuggestion.value = false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StoreViewModel", "Exception showing next suggestion", e)
+            _currentSuggestion.value = null
+            _showSellSuggestion.value = false
+        }
+    }
+
+    // ✨ Accepter la suggestion (préparer la vente) (comme iOS)
+    fun acceptSellSuggestion(token: String) {
+        val suggestion = _currentSuggestion.value ?: return
+
+        try {
+            // Préparer le formulaire de vente (comme iOS)
+            _selectedClothe.value = suggestion
+            _priceInput.value = ""
+            _shoeSizeInput.value = ""
+            _selectedSize.value = "M"
+
+            // Détection automatique chaussures (comme iOS)
+            val category = suggestion.type.ifBlank { "" }.lowercase()
+            val isShoesDetected = category.contains("shoe") ||
+                    category.contains("sneaker") ||
+                    category.contains("basket") ||
+                    category.contains("boot") ||
+                    category.contains("chaussure") ||
+                    category.contains("footwear")
+            _isShoes.value = isShoesDetected
+
+            // Reset taille selon type (comme iOS)
+            if (isShoesDetected) {
+                _shoeSizeInput.value = ""
+            } else {
+                _selectedSize.value = "M"
+            }
+
+            // Fermer la suggestion IMMÉDIATEMENT
+            _showSellSuggestion.value = false
+            _currentSuggestion.value = null
+
+            // Marquer comme traité
+            _dismissedSuggestionIds.value = _dismissedSuggestionIds.value + suggestion.id
+
+            // Charger les vêtements disponibles pour le formulaire
+            loadAvailableClothes(token)
+
+            // Ouvrir le sheet d'ajout APRÈS avoir fermé la suggestion (comme iOS)
+            viewModelScope.launch {
+                kotlinx.coroutines.delay(300)
+                _showAddToStore.value = true
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StoreViewModel", "Exception accepting sell suggestion", e)
+        }
+    }
+
+    // ✨ Accepter la suggestion (préparer la vente) - version avec suggestion spécifique
+    fun acceptSellSuggestionForItem(token: String, suggestionId: String) {
+        viewModelScope.launch {
+            try {
+                // Trouver la suggestion dans la liste
+                val suggestion = _sellSuggestions.value.firstOrNull { it.id == suggestionId } ?: return@launch
+
+                // Préparer le formulaire de vente (comme iOS)
+                _selectedClothe.value = suggestion
+                _priceInput.value = ""
+                _shoeSizeInput.value = ""
+                _selectedSize.value = "M"
+
+                // Détection automatique chaussures (comme iOS)
+                val category = suggestion.type.ifBlank { "" }.lowercase()
+                val isShoesDetected = category.contains("shoe") ||
+                        category.contains("sneaker") ||
+                        category.contains("basket") ||
+                        category.contains("boot") ||
+                        category.contains("chaussure") ||
+                        category.contains("footwear")
+                _isShoes.value = isShoesDetected
+
+                // Reset taille selon type (comme iOS)
+                if (isShoesDetected) {
+                    _shoeSizeInput.value = ""
+                } else {
+                    _selectedSize.value = "M"
+                }
+
+                // Marquer comme traité
+                _dismissedSuggestionIds.value = _dismissedSuggestionIds.value + suggestion.id
+                
+                // Retirer de la liste des suggestions
+                _sellSuggestions.value = _sellSuggestions.value.filter { it.id != suggestionId }
+
+                // Charger les vêtements disponibles pour le formulaire
+                loadAvailableClothes(token)
+
+                // Ouvrir le sheet d'ajout APRÈS avoir fermé la suggestion (comme iOS)
+                kotlinx.coroutines.delay(300)
+                _showAddToStore.value = true
+            } catch (e: Exception) {
+                android.util.Log.e("StoreViewModel", "Exception accepting sell suggestion", e)
+            }
+        }
+    }
+
+    // ✨ Cacher la suggestion (bouton X) - Juste cacher, ne pas retirer de la liste
+    fun rejectSellSuggestion() {
+        try {
+            // NE PAS marquer comme rejeté dans dismissedSuggestionIds
+            // Juste cacher l'affichage, garder la suggestion pour qu'elle réapparaisse
+            _showSellSuggestion.value = false
+            // Garder _currentSuggestion.value pour qu'elle réapparaisse au retour
+        } catch (e: Exception) {
+            android.util.Log.e("StoreViewModel", "Exception hiding sell suggestion", e)
+            // En cas d'erreur, s'assurer que la carte est cachée
+            _showSellSuggestion.value = false
+        }
+    }
+    
+    // ✨ Passer à la suggestion suivante ("Not Now")
+    fun nextSellSuggestion() {
+        try {
+            val currentId = _currentSuggestion.value?.id
+            
+            // Marquer la suggestion actuelle comme rejetée (pour ne plus l'afficher)
+            if (currentId != null) {
+                _dismissedSuggestionIds.value = _dismissedSuggestionIds.value + currentId
+            }
+            
+            // Retirer de la liste des suggestions
+            _sellSuggestions.value = _sellSuggestions.value.filter { it.id != currentId }
+            
+            // Chercher la prochaine suggestion disponible
+            val next = _sellSuggestions.value.firstOrNull { clothe ->
+                !_dismissedSuggestionIds.value.contains(clothe.id)
+            }
+            
+            if (next != null) {
+                // Afficher la suggestion suivante
+                _currentSuggestion.value = next
+                _showSellSuggestion.value = true
+            } else {
+                // Plus de suggestions disponibles, cacher
+                _currentSuggestion.value = null
+                _showSellSuggestion.value = false
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StoreViewModel", "Exception going to next suggestion", e)
+            // En cas d'erreur, cacher
+            _showSellSuggestion.value = false
+        }
+    }
+    
+    // ✨ NOUVEAU : Fonction pour cacher une suggestion spécifique (bouton X)
+    fun dismissSellSuggestion(suggestionId: String) {
+        viewModelScope.launch {
+            try {
+                // Marquer comme rejeté
+                _dismissedSuggestionIds.value = _dismissedSuggestionIds.value + suggestionId
+                
+                // Retirer de la liste des suggestions
+                _sellSuggestions.value = _sellSuggestions.value.filter { it.id != suggestionId }
+                
+                // Si c'était la suggestion actuelle, la retirer aussi
+                if (_currentSuggestion.value?.id == suggestionId) {
+                    _currentSuggestion.value = null
+                    _showSellSuggestion.value = false
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("StoreViewModel", "Error dismissing sell suggestion", e)
+            }
+        }
+    }
+    
+    // Fonctions pour gérer les champs du formulaire
+    fun setPriceInput(price: String) {
+        _priceInput.value = price
+    }
+    
+    fun setSelectedSize(size: String?) {
+        _selectedSize.value = size
+    }
+    
+    fun setShoeSizeInput(size: String) {
+        _shoeSizeInput.value = size
+    }
+    
+    fun setSelectedClothe(clothe: Cloth?) {
+        _selectedClothe.value = clothe
+        // Détection automatique chaussures
+        if (clothe != null) {
+            val category = (clothe.type ?: "").lowercase()
+            val isShoesDetected = category.contains("shoe") ||
+                    category.contains("sneaker") ||
+                    category.contains("basket") ||
+                    category.contains("boot") ||
+                    category.contains("chaussure") ||
+                    category.contains("footwear")
+            _isShoes.value = isShoesDetected
+            if (isShoesDetected) {
+                _shoeSizeInput.value = ""
+            } else {
+                _selectedSize.value = "M"
+            }
+        }
+    }
+    
+    fun clearAddToStoreForm() {
+        _selectedClothe.value = null
+        _priceInput.value = ""
+        _selectedSize.value = "M"
+        _shoeSizeInput.value = ""
+        _isShoes.value = false
+    }
+    
+    // ✨ Cacher la suggestion (appelé quand on change d'onglet)
+    fun hideSellSuggestion() {
+        _showSellSuggestion.value = false
+        // Ne pas réinitialiser _currentSuggestion pour garder l'état
+    }
+    
+    // ✨ Réafficher la suggestion actuelle (appelé quand on revient à My Items)
+    fun showCurrentSuggestion() {
+        try {
+            if (_currentSuggestion.value != null) {
+                // Réafficher la suggestion actuelle (celle qui a été cachée avec "Not Now")
+                _showSellSuggestion.value = true
+            } else if (_sellSuggestions.value.isNotEmpty()) {
+                // Si aucune suggestion n'est en cours mais qu'il y en a dans la liste, afficher la première
+                showNextSuggestion()
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("StoreViewModel", "Exception showing current suggestion", e)
+        }
     }
 }

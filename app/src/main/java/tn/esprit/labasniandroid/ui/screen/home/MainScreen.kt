@@ -172,6 +172,7 @@ fun MainScreen(
                         }
                     } else if (showFavorites) {
                         FavoriteTab(
+                            token = authToken,
                             viewModel = tenuesViewModel,
                             onBack = { showFavorites = false }
                         )
