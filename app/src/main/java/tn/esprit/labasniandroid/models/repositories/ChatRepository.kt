@@ -118,23 +118,34 @@ class ChatRepository(
                         // Vérifier si le message existe déjà par ID (évite les doublons)
                         val existingMessageById = _messages.value.find { it.id == message.id }
                         if (existingMessageById != null) {
+                            // ✨ NOUVEAU : Mettre à jour le message existant si le contenu a changé (masquage)
+                            if (existingMessageById.content != message.content) {
+                                val updatedMessages = _messages.value.map { 
+                                    if (it.id == message.id) message else it 
+                                }
+                                _messages.value = updatedMessages.sortedWith(compareBy { 
+                                    it.createdAt ?: "0000-00-00T00:00:00.000Z"
+                                })
+                            }
                             return@on
                         }
                         
-                        // Chercher un message optimiste correspondant (même contenu et senderId, envoyé récemment)
-                            val optimisticMessage = _messages.value.find { 
-                                it.id.startsWith("temp_") && 
-                            it.content.trim() == message.content.trim() && 
+                        // ✨ CORRIGÉ : Chercher un message optimiste correspondant (même senderId et conversationId, envoyé récemment)
+                        // Ne pas comparer le contenu car il peut être masqué différemment
+                        val optimisticMessage = _messages.value.find {
+                            it.id.startsWith("temp_") && 
                             it.senderId == message.senderId &&
-                            // Vérifier que le message optimiste a été envoyé récemment (dans les 5 dernières secondes)
-                            (System.currentTimeMillis() - (it.id.removePrefix("temp_").toLongOrNull() ?: 0L)) < 5000L
-                            }
+                            it.conversationId == message.conversationId &&
+                            // Vérifier que le message optimiste a été envoyé récemment (dans les 10 dernières secondes)
+                            (System.currentTimeMillis() - (it.id.removePrefix("temp_").toLongOrNull() ?: 0L)) < 10000L
+                        }
                             
-                            if (optimisticMessage != null) {
+                        if (optimisticMessage != null) {
+                            // ✨ Remplacer le message optimiste par le message réel (masqué)
                             val filteredMessages = _messages.value.filter { it.id != optimisticMessage.id }
                             _messages.value = (filteredMessages + message).sortedWith(compareBy { 
                                 it.createdAt ?: "0000-00-00T00:00:00.000Z"
-                                })
+                            })
                         } else {
                             // Nouveau message reçu - l'ajouter et trier par date
                             _messages.value = (_messages.value + message).sortedWith(compareBy { 
@@ -505,6 +516,29 @@ class ChatRepository(
         val readAt = json.optString("readAt", "").takeIf { it.isNotBlank() }
         val createdAt = json.optString("createdAt", "").takeIf { it.isNotBlank() }
         val updatedAt = json.optString("updatedAt", "").takeIf { it.isNotBlank() }
+        
+        // ✨ NOUVEAU : Parser extractedInfo
+        val extractedInfo = if (json.has("extractedInfo")) {
+            val infoJson = json.getJSONObject("extractedInfo")
+            tn.esprit.labasniandroid.models.entities.ExtractedInfo(
+                phoneNumbers = if (infoJson.has("phoneNumbers")) {
+                    val arr = infoJson.getJSONArray("phoneNumbers")
+                    (0 until arr.length()).map { arr.getString(it) }
+                } else null,
+                addresses = if (infoJson.has("addresses")) {
+                    val arr = infoJson.getJSONArray("addresses")
+                    (0 until arr.length()).map { arr.getString(it) }
+                } else null,
+                emails = if (infoJson.has("emails")) {
+                    val arr = infoJson.getJSONArray("emails")
+                    (0 until arr.length()).map { arr.getString(it) }
+                } else null,
+                urls = if (infoJson.has("urls")) {
+                    val arr = infoJson.getJSONArray("urls")
+                    (0 until arr.length()).map { arr.getString(it) }
+                } else null
+            )
+        } else null
 
         return Message(
             id = id,
@@ -515,7 +549,8 @@ class ChatRepository(
             content = content,
             readAt = readAt,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            extractedInfo = extractedInfo
         )
     }
 
@@ -662,6 +697,16 @@ class ChatRepository(
             }
             else -> ""
         }
+        
+        // ✨ NOUVEAU : Parser extractedInfo depuis MessageResponse
+        val extractedInfo = this.extractedInfo?.let { info ->
+            tn.esprit.labasniandroid.models.entities.ExtractedInfo(
+                phoneNumbers = info.phoneNumbers,
+                addresses = info.addresses,
+                emails = info.emails,
+                urls = info.urls
+            )
+        }
 
         return Message(
             id = id,
@@ -672,7 +717,8 @@ class ChatRepository(
             content = content,
             readAt = readAt,
             createdAt = createdAt,
-            updatedAt = updatedAt
+            updatedAt = updatedAt,
+            extractedInfo = extractedInfo
         )
     }
 

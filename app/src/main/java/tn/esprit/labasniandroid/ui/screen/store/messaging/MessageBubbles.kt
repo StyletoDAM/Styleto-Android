@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import tn.esprit.labasniandroid.models.entities.ExtractedInfo
 
 /**
  * 💬 Message reçu PREMIUM (rose premium)
@@ -39,7 +40,9 @@ fun IncomingMessage(
     time: String,
     avatarLetter: String,
     profilePictureURL: String?,
-    themePrimary: Color
+    themePrimary: Color,
+    extractedInfo: ExtractedInfo? = null,
+    context: android.content.Context? = null
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -111,7 +114,7 @@ fun IncomingMessage(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = text,
+                    text = text, // ✨ Le texte est déjà masqué par le backend
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,
@@ -144,7 +147,8 @@ fun OutgoingMessage(
     text: String,
     time: String,
     themeCard: Color,
-    themeText: Color
+    themeText: Color,
+    extractedInfo: ExtractedInfo? = null // ✨ Conservé pour compatibilité mais non utilisé (masquage côté backend)
 ) {
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -173,7 +177,7 @@ fun OutgoingMessage(
                     .padding(horizontal = 16.dp, vertical = 12.dp)
             ) {
                 Text(
-                    text = text,
+                    text = text, // ✨ Le texte est déjà masqué par le backend
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 15.sp,
                         fontWeight = FontWeight.Medium,

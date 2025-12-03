@@ -53,6 +53,13 @@ data class ConversationResponse(
     @SerializedName("messages") val messages: List<MessageResponse>? = null
 )
 
+data class ExtractedInfoResponse(
+    @SerializedName("phoneNumbers") val phoneNumbers: List<String>? = null,
+    @SerializedName("addresses") val addresses: List<String>? = null,
+    @SerializedName("emails") val emails: List<String>? = null,
+    @SerializedName("urls") val urls: List<String>? = null
+)
+
 data class MessageResponse(
     @SerializedName("_id") val id: String,
     @SerializedName("conversationId") val conversationId: Any,
@@ -60,6 +67,7 @@ data class MessageResponse(
     @SerializedName("content") val content: String,
     @SerializedName("readAt") val readAt: String?,
     @SerializedName("createdAt") val createdAt: String?,
-    @SerializedName("updatedAt") val updatedAt: String?
+    @SerializedName("updatedAt") val updatedAt: String?,
+    @SerializedName("extractedInfo") val extractedInfo: ExtractedInfoResponse? = null
 )
 

@@ -480,6 +480,7 @@ private fun MessageBubble(
     themeCard: Color,
     themeText: Color
 ) {
+    val context = LocalContext.current
     val time = message.createdAt?.let {
         try {
             val format = java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", java.util.Locale.getDefault())
@@ -496,12 +497,15 @@ private fun MessageBubble(
         }
     } ?: ""
 
+    val ctx = LocalContext.current
+    
     if (isOwnMessage) {
         OutgoingMessage(
             text = message.content,
             time = time,
             themeCard = themeCard,
-            themeText = themeText
+            themeText = themeText,
+            extractedInfo = message.extractedInfo
         )
     } else {
         IncomingMessage(
@@ -509,7 +513,8 @@ private fun MessageBubble(
             time = time,
             avatarLetter = (message.senderName?.firstOrNull()?.uppercaseChar() ?: "U").toString(),
             profilePictureURL = message.senderAvatar,
-            themePrimary = themePrimary
+            themePrimary = themePrimary,
+            extractedInfo = message.extractedInfo
         )
     }
 }
