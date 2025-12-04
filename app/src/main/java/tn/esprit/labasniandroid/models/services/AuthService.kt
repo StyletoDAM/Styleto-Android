@@ -39,6 +39,8 @@ class AuthService(
         result.onSuccess { response ->
             // Sauvegarder le token
             TokenManager.saveToken(context, response.accessToken)
+            // ✨ Sauvegarder le refresh token (obligatoire maintenant)
+            TokenManager.saveRefreshToken(context, response.refreshToken)
             // Sauvegarder l'ID utilisateur
             val userId = response.user.userId
             if (userId.isNotEmpty()) {
@@ -116,6 +118,8 @@ class AuthService(
         // Logique métier après succès
         result.onSuccess { response ->
             TokenManager.saveToken(context, response.accessToken)
+            // ✨ Sauvegarder le refresh token (obligatoire maintenant)
+            TokenManager.saveRefreshToken(context, response.refreshToken)
             val userId = response.user.userId
             if (userId.isNotEmpty()) {
                 TokenManager.saveUserId(context, userId)
@@ -156,6 +160,8 @@ class AuthService(
         // Logique métier après succès
         result.onSuccess { response ->
             TokenManager.saveToken(context, response.accessToken)
+            // ✨ Sauvegarder le refresh token (obligatoire maintenant)
+            TokenManager.saveRefreshToken(context, response.refreshToken)
             val userId = response.user.userId
             if (userId.isNotEmpty()) {
                 TokenManager.saveUserId(context, userId)

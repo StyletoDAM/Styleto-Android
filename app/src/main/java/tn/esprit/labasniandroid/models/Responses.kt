@@ -9,7 +9,9 @@ object Responses {
         @SerializedName("user")
         val user: User,
         @SerializedName("access_token")
-        val accessToken: String
+        val accessToken: String,
+        @SerializedName("refresh_token")
+        val refreshToken: String // ✨ Refresh token (obligatoire)
     )
 
     data class SignupResponse(

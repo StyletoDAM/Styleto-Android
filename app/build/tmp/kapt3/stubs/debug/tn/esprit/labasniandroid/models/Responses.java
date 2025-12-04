@@ -174,7 +174,7 @@ public final class Responses {
         }
     }
     
-    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000(\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0002\b\t\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0010\b\n\u0002\b\u0002\b\u0087\b\u0018\u00002\u00020\u0001B\u0015\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u00a2\u0006\u0002\u0010\u0006J\t\u0010\u000b\u001a\u00020\u0003H\u00c6\u0003J\t\u0010\f\u001a\u00020\u0005H\u00c6\u0003J\u001d\u0010\r\u001a\u00020\u00002\b\b\u0002\u0010\u0002\u001a\u00020\u00032\b\b\u0002\u0010\u0004\u001a\u00020\u0005H\u00c6\u0001J\u0013\u0010\u000e\u001a\u00020\u000f2\b\u0010\u0010\u001a\u0004\u0018\u00010\u0001H\u00d6\u0003J\t\u0010\u0011\u001a\u00020\u0012H\u00d6\u0001J\t\u0010\u0013\u001a\u00020\u0005H\u00d6\u0001R\u0016\u0010\u0004\u001a\u00020\u00058\u0006X\u0087\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u0007\u0010\bR\u0016\u0010\u0002\u001a\u00020\u00038\u0006X\u0087\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\t\u0010\n\u00a8\u0006\u0014"}, d2 = {"Ltn/esprit/labasniandroid/models/Responses$SigninResponse;", "", "user", "Ltn/esprit/labasniandroid/models/entities/User;", "accessToken", "", "(Ltn/esprit/labasniandroid/models/entities/User;Ljava/lang/String;)V", "getAccessToken", "()Ljava/lang/String;", "getUser", "()Ltn/esprit/labasniandroid/models/entities/User;", "component1", "component2", "copy", "equals", "", "other", "hashCode", "", "toString", "app_debug"})
+    @kotlin.Metadata(mv = {1, 9, 0}, k = 1, xi = 48, d1 = {"\u0000(\n\u0002\u0018\u0002\n\u0002\u0010\u0000\n\u0000\n\u0002\u0018\u0002\n\u0000\n\u0002\u0010\u000e\n\u0002\b\f\n\u0002\u0010\u000b\n\u0002\b\u0002\n\u0002\u0010\b\n\u0002\b\u0002\b\u0087\b\u0018\u00002\u00020\u0001B\u001d\u0012\u0006\u0010\u0002\u001a\u00020\u0003\u0012\u0006\u0010\u0004\u001a\u00020\u0005\u0012\u0006\u0010\u0006\u001a\u00020\u0005\u00a2\u0006\u0002\u0010\u0007J\t\u0010\r\u001a\u00020\u0003H\u00c6\u0003J\t\u0010\u000e\u001a\u00020\u0005H\u00c6\u0003J\t\u0010\u000f\u001a\u00020\u0005H\u00c6\u0003J\'\u0010\u0010\u001a\u00020\u00002\b\b\u0002\u0010\u0002\u001a\u00020\u00032\b\b\u0002\u0010\u0004\u001a\u00020\u00052\b\b\u0002\u0010\u0006\u001a\u00020\u0005H\u00c6\u0001J\u0013\u0010\u0011\u001a\u00020\u00122\b\u0010\u0013\u001a\u0004\u0018\u00010\u0001H\u00d6\u0003J\t\u0010\u0014\u001a\u00020\u0015H\u00d6\u0001J\t\u0010\u0016\u001a\u00020\u0005H\u00d6\u0001R\u0016\u0010\u0004\u001a\u00020\u00058\u0006X\u0087\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\b\u0010\tR\u0016\u0010\u0006\u001a\u00020\u00058\u0006X\u0087\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\n\u0010\tR\u0016\u0010\u0002\u001a\u00020\u00038\u0006X\u0087\u0004\u00a2\u0006\b\n\u0000\u001a\u0004\b\u000b\u0010\f\u00a8\u0006\u0017"}, d2 = {"Ltn/esprit/labasniandroid/models/Responses$SigninResponse;", "", "user", "Ltn/esprit/labasniandroid/models/entities/User;", "accessToken", "", "refreshToken", "(Ltn/esprit/labasniandroid/models/entities/User;Ljava/lang/String;Ljava/lang/String;)V", "getAccessToken", "()Ljava/lang/String;", "getRefreshToken", "getUser", "()Ltn/esprit/labasniandroid/models/entities/User;", "component1", "component2", "component3", "copy", "equals", "", "other", "hashCode", "", "toString", "app_debug"})
     public static final class SigninResponse {
         @com.google.gson.annotations.SerializedName(value = "user")
         @org.jetbrains.annotations.NotNull()
@@ -182,10 +182,14 @@ public final class Responses {
         @com.google.gson.annotations.SerializedName(value = "access_token")
         @org.jetbrains.annotations.NotNull()
         private final java.lang.String accessToken = null;
+        @com.google.gson.annotations.SerializedName(value = "refresh_token")
+        @org.jetbrains.annotations.NotNull()
+        private final java.lang.String refreshToken = null;
         
         public SigninResponse(@org.jetbrains.annotations.NotNull()
         tn.esprit.labasniandroid.models.entities.User user, @org.jetbrains.annotations.NotNull()
-        java.lang.String accessToken) {
+        java.lang.String accessToken, @org.jetbrains.annotations.NotNull()
+        java.lang.String refreshToken) {
             super();
         }
         
@@ -200,6 +204,11 @@ public final class Responses {
         }
         
         @org.jetbrains.annotations.NotNull()
+        public final java.lang.String getRefreshToken() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
         public final tn.esprit.labasniandroid.models.entities.User component1() {
             return null;
         }
@@ -210,9 +219,15 @@ public final class Responses {
         }
         
         @org.jetbrains.annotations.NotNull()
+        public final java.lang.String component3() {
+            return null;
+        }
+        
+        @org.jetbrains.annotations.NotNull()
         public final tn.esprit.labasniandroid.models.Responses.SigninResponse copy(@org.jetbrains.annotations.NotNull()
         tn.esprit.labasniandroid.models.entities.User user, @org.jetbrains.annotations.NotNull()
-        java.lang.String accessToken) {
+        java.lang.String accessToken, @org.jetbrains.annotations.NotNull()
+        java.lang.String refreshToken) {
             return null;
         }
         

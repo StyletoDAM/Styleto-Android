@@ -6,6 +6,7 @@ import android.content.SharedPreferences
 object TokenManager {
     private const val PREFS_NAME = "labasni_prefs"
     private const val KEY_ACCESS_TOKEN = "access_token"
+    private const val KEY_REFRESH_TOKEN = "refresh_token" // ✨ NOUVEAU
     private const val KEY_USER_ID = "user_id"
     private const val KEY_GENDER = "gender"
 
@@ -23,9 +24,20 @@ object TokenManager {
         return getSharedPreferences(context).getString(KEY_ACCESS_TOKEN, null)
     }
 
+    fun saveRefreshToken(context: Context, token: String) {
+        getSharedPreferences(context).edit()
+            .putString(KEY_REFRESH_TOKEN, token)
+            .apply()
+    }
+
+    fun getRefreshToken(context: Context): String? {
+        return getSharedPreferences(context).getString(KEY_REFRESH_TOKEN, null)
+    }
+
     fun clearToken(context: Context) {
         getSharedPreferences(context).edit()
             .remove(KEY_ACCESS_TOKEN)
+            .remove(KEY_REFRESH_TOKEN) // ✨ AJOUT
             .remove(KEY_USER_ID)
             .remove(KEY_GENDER)
             .apply()

@@ -6,8 +6,19 @@ import com.stripe.android.PaymentConfiguration
 import tn.esprit.labasniandroid.utils.PaymentService
 
 class LabasniApplication : Application() {
+    // ✨ NOUVEAU : Singleton pour accéder au contexte depuis n'importe où
+    companion object {
+        @Volatile
+        private var instance: LabasniApplication? = null
+        
+        fun getInstance(): LabasniApplication {
+            return instance ?: throw IllegalStateException("Application not initialized")
+        }
+    }
+    
     override fun onCreate() {
         super.onCreate()
+        instance = this
         
         // Initialiser Stripe avec la clé publique depuis BuildConfig
         val stripePublishableKey = BuildConfig.STRIPE_PUBLISHABLE_KEY

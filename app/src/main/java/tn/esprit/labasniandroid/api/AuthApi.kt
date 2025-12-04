@@ -139,4 +139,18 @@ interface AuthApi {
         @Header("Authorization") token: String,
         @Body request: TopUpBalanceRequest
     ): Response<TopUpBalanceResponse>
+
+    // ✨ NOUVEAU : Refresh Token
+    @POST("/auth/refresh")
+    suspend fun refreshToken(@Body request: RefreshTokenRequest): Response<RefreshTokenResponse>
 }
+
+// ✨ NOUVEAU : DTOs pour refresh token
+data class RefreshTokenRequest(
+    @SerializedName("refreshToken") val refreshToken: String
+)
+
+data class RefreshTokenResponse(
+    @SerializedName("access_token") val accessToken: String,
+    @SerializedName("refresh_token") val refreshToken: String
+)
