@@ -36,9 +36,9 @@ public final class CartDatabase_Impl extends CartDatabase {
     final SupportSQLiteOpenHelper.Callback _openCallback = new RoomOpenHelper(config, new RoomOpenHelper.Delegate(1) {
       @Override
       public void createAllTables(@NonNull final SupportSQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS `cart_items` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `storeItemID` TEXT NOT NULL, `title` TEXT, `size` TEXT, `price` REAL NOT NULL, `imageURL` TEXT, `addedAt` INTEGER NOT NULL, PRIMARY KEY(`id`))");
+        db.execSQL("CREATE TABLE IF NOT EXISTS `cart_items` (`id` TEXT NOT NULL, `userId` TEXT NOT NULL, `storeItemID` TEXT NOT NULL, `title` TEXT, `size` TEXT, `price` REAL NOT NULL, `imageURL` TEXT, `addedAt` INTEGER NOT NULL, `status` TEXT NOT NULL, PRIMARY KEY(`id`))");
         db.execSQL("CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)");
-        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '6a43f3ee5f4a289cec1a5dd3a35f1f7e')");
+        db.execSQL("INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '7c1c55e5fa92cb21381fe55e5eba7f5f')");
       }
 
       @Override
@@ -87,7 +87,7 @@ public final class CartDatabase_Impl extends CartDatabase {
       @NonNull
       public RoomOpenHelper.ValidationResult onValidateSchema(
           @NonNull final SupportSQLiteDatabase db) {
-        final HashMap<String, TableInfo.Column> _columnsCartItems = new HashMap<String, TableInfo.Column>(8);
+        final HashMap<String, TableInfo.Column> _columnsCartItems = new HashMap<String, TableInfo.Column>(9);
         _columnsCartItems.put("id", new TableInfo.Column("id", "TEXT", true, 1, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsCartItems.put("userId", new TableInfo.Column("userId", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsCartItems.put("storeItemID", new TableInfo.Column("storeItemID", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
@@ -96,6 +96,7 @@ public final class CartDatabase_Impl extends CartDatabase {
         _columnsCartItems.put("price", new TableInfo.Column("price", "REAL", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsCartItems.put("imageURL", new TableInfo.Column("imageURL", "TEXT", false, 0, null, TableInfo.CREATED_FROM_ENTITY));
         _columnsCartItems.put("addedAt", new TableInfo.Column("addedAt", "INTEGER", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
+        _columnsCartItems.put("status", new TableInfo.Column("status", "TEXT", true, 0, null, TableInfo.CREATED_FROM_ENTITY));
         final HashSet<TableInfo.ForeignKey> _foreignKeysCartItems = new HashSet<TableInfo.ForeignKey>(0);
         final HashSet<TableInfo.Index> _indicesCartItems = new HashSet<TableInfo.Index>(0);
         final TableInfo _infoCartItems = new TableInfo("cart_items", _columnsCartItems, _foreignKeysCartItems, _indicesCartItems);
@@ -107,7 +108,7 @@ public final class CartDatabase_Impl extends CartDatabase {
         }
         return new RoomOpenHelper.ValidationResult(true, null);
       }
-    }, "6a43f3ee5f4a289cec1a5dd3a35f1f7e", "e83e9123a0aeb154288f02918c863fc0");
+    }, "7c1c55e5fa92cb21381fe55e5eba7f5f", "e187702867219c1774e7fdd81f21ea58");
     final SupportSQLiteOpenHelper.Configuration _sqliteConfig = SupportSQLiteOpenHelper.Configuration.builder(config.context).name(config.name).callback(_openCallback).build();
     final SupportSQLiteOpenHelper _helper = config.sqliteOpenHelperFactory.create(_sqliteConfig);
     return _helper;

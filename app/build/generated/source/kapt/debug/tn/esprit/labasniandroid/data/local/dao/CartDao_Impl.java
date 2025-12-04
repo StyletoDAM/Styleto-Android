@@ -48,7 +48,7 @@ public final class CartDao_Impl implements CartDao {
       @Override
       @NonNull
       protected String createQuery() {
-        return "INSERT OR IGNORE INTO `cart_items` (`id`,`userId`,`storeItemID`,`title`,`size`,`price`,`imageURL`,`addedAt`) VALUES (?,?,?,?,?,?,?,?)";
+        return "INSERT OR IGNORE INTO `cart_items` (`id`,`userId`,`storeItemID`,`title`,`size`,`price`,`imageURL`,`addedAt`,`status`) VALUES (?,?,?,?,?,?,?,?,?)";
       }
 
       @Override
@@ -86,6 +86,11 @@ public final class CartDao_Impl implements CartDao {
           statement.bindString(7, entity.getImageURL());
         }
         statement.bindLong(8, entity.getAddedAt());
+        if (entity.getStatus() == null) {
+          statement.bindNull(9);
+        } else {
+          statement.bindString(9, entity.getStatus());
+        }
       }
     };
     this.__deletionAdapterOfCartItem = new EntityDeletionOrUpdateAdapter<CartItem>(__db) {
@@ -207,6 +212,7 @@ public final class CartDao_Impl implements CartDao {
           final int _cursorIndexOfPrice = CursorUtil.getColumnIndexOrThrow(_cursor, "price");
           final int _cursorIndexOfImageURL = CursorUtil.getColumnIndexOrThrow(_cursor, "imageURL");
           final int _cursorIndexOfAddedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "addedAt");
+          final int _cursorIndexOfStatus = CursorUtil.getColumnIndexOrThrow(_cursor, "status");
           final List<CartItem> _result = new ArrayList<CartItem>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final CartItem _item;
@@ -250,7 +256,13 @@ public final class CartDao_Impl implements CartDao {
             }
             final long _tmpAddedAt;
             _tmpAddedAt = _cursor.getLong(_cursorIndexOfAddedAt);
-            _item = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt);
+            final String _tmpStatus;
+            if (_cursor.isNull(_cursorIndexOfStatus)) {
+              _tmpStatus = null;
+            } else {
+              _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            }
+            _item = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt,_tmpStatus);
             _result.add(_item);
           }
           return _result;
@@ -291,6 +303,7 @@ public final class CartDao_Impl implements CartDao {
           final int _cursorIndexOfPrice = CursorUtil.getColumnIndexOrThrow(_cursor, "price");
           final int _cursorIndexOfImageURL = CursorUtil.getColumnIndexOrThrow(_cursor, "imageURL");
           final int _cursorIndexOfAddedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "addedAt");
+          final int _cursorIndexOfStatus = CursorUtil.getColumnIndexOrThrow(_cursor, "status");
           final CartItem _result;
           if (_cursor.moveToFirst()) {
             final String _tmpId;
@@ -333,7 +346,13 @@ public final class CartDao_Impl implements CartDao {
             }
             final long _tmpAddedAt;
             _tmpAddedAt = _cursor.getLong(_cursorIndexOfAddedAt);
-            _result = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt);
+            final String _tmpStatus;
+            if (_cursor.isNull(_cursorIndexOfStatus)) {
+              _tmpStatus = null;
+            } else {
+              _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            }
+            _result = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt,_tmpStatus);
           } else {
             _result = null;
           }
@@ -378,6 +397,7 @@ public final class CartDao_Impl implements CartDao {
           final int _cursorIndexOfPrice = CursorUtil.getColumnIndexOrThrow(_cursor, "price");
           final int _cursorIndexOfImageURL = CursorUtil.getColumnIndexOrThrow(_cursor, "imageURL");
           final int _cursorIndexOfAddedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "addedAt");
+          final int _cursorIndexOfStatus = CursorUtil.getColumnIndexOrThrow(_cursor, "status");
           final CartItem _result;
           if (_cursor.moveToFirst()) {
             final String _tmpId;
@@ -420,7 +440,13 @@ public final class CartDao_Impl implements CartDao {
             }
             final long _tmpAddedAt;
             _tmpAddedAt = _cursor.getLong(_cursorIndexOfAddedAt);
-            _result = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt);
+            final String _tmpStatus;
+            if (_cursor.isNull(_cursorIndexOfStatus)) {
+              _tmpStatus = null;
+            } else {
+              _tmpStatus = _cursor.getString(_cursorIndexOfStatus);
+            }
+            _result = new CartItem(_tmpId,_tmpUserId,_tmpStoreItemID,_tmpTitle,_tmpSize,_tmpPrice,_tmpImageURL,_tmpAddedAt,_tmpStatus);
           } else {
             _result = null;
           }

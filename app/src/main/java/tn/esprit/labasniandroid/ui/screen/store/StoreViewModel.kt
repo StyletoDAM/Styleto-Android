@@ -57,7 +57,7 @@ class StoreViewModel(
 
     private val _showAddToStore = MutableStateFlow(false)
     val showAddToStore: StateFlow<Boolean> = _showAddToStore.asStateFlow()
-    
+
     // ✨ NOUVEAU : Vêtement sélectionné pour la vente (comme iOS)
     private val _selectedClothe = MutableStateFlow<Cloth?>(null)
     val selectedClothe: StateFlow<Cloth?> = _selectedClothe.asStateFlow()
@@ -105,12 +105,12 @@ class StoreViewModel(
         // Debounce pour la recherche (300ms comme iOS)
         viewModelScope.launch {
             try {
-                _searchText.collect { query ->
-                    searchJob?.cancel()
-                    searchJob = launch {
-                        delay(300)
-                        filterItems()
-                    }
+            _searchText.collect { query ->
+                searchJob?.cancel()
+                searchJob = launch {
+                    delay(300)
+                    filterItems()
+                }
                 }
             } catch (e: Exception) {
                 // Ignorer les erreurs de collect (ViewModel détruit)
@@ -122,7 +122,7 @@ class StoreViewModel(
         cachedToken = token
         if (!initialized) {
             initialized = true
-            loadMyStore(token)
+        loadMyStore(token)
         } else {
             // Si déjà initialisé, recharger les suggestions seulement si on est dans My Items
             // (ne pas réafficher les suggestions rejetées)

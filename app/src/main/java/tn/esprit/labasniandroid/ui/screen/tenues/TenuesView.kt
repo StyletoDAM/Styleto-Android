@@ -136,8 +136,8 @@ fun TenuesTab(
                 // Ne rien faire ici, la carte s'affichera automatiquement
             } else {
                 // Autres erreurs (création d'outfit, etc.) - utiliser Snackbar
-                scope.launch { snackbarHostState.showSnackbar(message) }
-                viewModel.clearMessages()
+            scope.launch { snackbarHostState.showSnackbar(message) }
+            viewModel.clearMessages()
             }
         }
     }
@@ -182,7 +182,7 @@ fun TenuesTab(
         ) {
             Column(
                 modifier = Modifier.fillMaxSize()
-            ) {
+        ) {
             // ScrollView principal avec pull to refresh (comme iOS)
             androidx.compose.foundation.rememberScrollState().let { scrollState ->
                 Column(
@@ -348,9 +348,9 @@ fun TenuesTab(
                                 color = Color.White,
                                 textAlign = TextAlign.Center
                             )
-                        }
-                    }
-                }
+        }
+    }
+}
             }
         }
     }
@@ -447,14 +447,14 @@ private fun TodaySuggestionCard(
                         strokeWidth = 2.dp
                     )
                 } else {
-                    Text(
+                Text(
                         text = "Get AI Suggestion",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = themePrimary
-                    )
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.SemiBold
+                    ),
+                    color = themePrimary
+                )
                 }
             }
         }
@@ -522,13 +522,13 @@ private fun StyleSelectionPopup(
                                 strokeWidth = 2.dp
                             )
                         } else {
-                            Text(
-                                text = style,
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White
-                            )
+                        Text(
+                            text = style,
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = Color.White
+                        )
                         }
                     }
                 }
@@ -618,19 +618,19 @@ private fun TenueCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Bouton favoris
-                    IconButton(
-                        onClick = onToggleFavorite,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(themeCard.copy(alpha = 0.8f))
-                    ) {
+                IconButton(
+                    onClick = onToggleFavorite,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(themeCard.copy(alpha = 0.8f))
+                ) {
                         Icon(
-                            imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                            contentDescription = "Favorite",
-                            tint = if (outfit.isFavorite) themePrimary else themeSecondary,
-                            modifier = Modifier.size(20.dp)
-                        )
+                        imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                        contentDescription = "Favorite",
+                        tint = if (outfit.isFavorite) themePrimary else themeSecondary,
+                        modifier = Modifier.size(20.dp)
+                    )
                     }
                     
                     // ✨ Bouton suppression (en dessous du cœur)

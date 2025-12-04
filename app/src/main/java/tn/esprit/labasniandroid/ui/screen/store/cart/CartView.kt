@@ -50,6 +50,7 @@ import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
@@ -77,7 +78,7 @@ import androidx.compose.material3.Snackbar
 
 /**
  * CartView Android (comme iOS CartView)
- * Empty state, cart items list, free shipping banner, order summary
+ * Empty state, cart items list, order summary
  */
 @Composable
 fun CartView(
@@ -147,7 +148,9 @@ fun CartView(
                             when (paymentResult) {
                                 is PaymentSheetResult.Completed -> {
                                     scope.launch {
-                                        paymentViewModel.confirmStripeOrders(token, cartItems)
+                                        // ✨ MODIFIÉ : Confirmer seulement les articles disponibles
+                                        val availableItems = cartItems.filter { it.status == "available" }
+                                        paymentViewModel.confirmStripeOrders(token, availableItems)
                                         showSuccessDialog = true
                                         CartManager.clearCart(context)
                                     }
@@ -182,9 +185,11 @@ fun CartView(
     }
 
     LaunchedEffect(userId) {
-        CartManager.fetchCartItems()
+        CartManager.fetchCartItems(context) // ✨ NOUVEAU : Passer context
         // Rafraîchir le balance au démarrage
         paymentViewModel.refreshBalance(token)
+        // ✨ NOUVEAU : Vérifier le statut des articles
+        CartManager.refreshCartStatus(context)
     }
 
     Scaffold(
@@ -255,12 +260,6 @@ fun CartView(
                         )
                     }
 
-                    // Free Shipping Banner (comme iOS)
-                    FreeShippingBanner(
-                        themeCard = themeCard,
-                        themeTeal = themeTeal
-                    )
-
                     // Order Summary avec choix balance/carte (comme iOS)
                     OrderSummary(
                         totalPrice = totalPrice,
@@ -275,8 +274,10 @@ fun CartView(
                         canPayWithBalance = paymentViewModel.canPayWithBalance(totalPrice),
                         onUseBalanceChange = { paymentViewModel.setUseBalance(it) },
                         onCheckoutClick = {
-                            if (cartItems.isNotEmpty()) {
-                                paymentViewModel.startCheckout(token, cartItems, totalPrice)
+                            // ✨ MODIFIÉ : Filtrer seulement les articles disponibles pour le paiement
+                            val availableItems = cartItems.filter { it.status == "available" }
+                            if (availableItems.isNotEmpty()) {
+                                paymentViewModel.startCheckout(token, availableItems, totalPrice)
                             }
                         }
                     )
@@ -416,7 +417,7 @@ fun CartView(
                     onClick = {
                         itemToDelete?.let { item ->
                             scope.launch {
-                                CartManager.removeFromCart(item)
+                                CartManager.removeFromCart(item, context) // ✨ NOUVEAU : Passer context
                             }
                         }
                         showDeleteAlert = false
@@ -485,6 +486,7 @@ private fun EmptyCartState(
 
 /**
  * Cart Item Row (comme iOS CartItemRow)
+ * ✨ NOUVEAU : Affiche "SOLD OUT" et grise les articles vendus
  */
 @Composable
 private fun CartItemRow(
@@ -497,14 +499,17 @@ private fun CartItemRow(
     onDelete: () -> Unit
 ) {
     val context = LocalContext.current
+    val isSold = cartItem.status == "sold" // ✨ NOUVEAU : Vérifier le statut
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = themeCard),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSold) themeCard.copy(alpha = 0.5f) else themeCard // ✨ NOUVEAU : Griser si vendu
+        ),
         shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isSold) 0.dp else 8.dp) // ✨ NOUVEAU : Pas d'ombre si vendu
     ) {
         Row(
             modifier = Modifier
@@ -514,17 +519,40 @@ private fun CartItemRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Image (90x90dp comme iOS)
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(cartItem.imageURL ?: "")
-                    .crossfade(true)
-                    .build(),
-                contentDescription = cartItem.title,
-                modifier = Modifier
-                    .size(90.dp)
-                    .clip(RoundedCornerShape(16.dp)),
-                contentScale = ContentScale.Crop
-            )
+            Box {
+                AsyncImage(
+                    model = ImageRequest.Builder(context)
+                        .data(cartItem.imageURL ?: "")
+                        .crossfade(true)
+                        .build(),
+                    contentDescription = cartItem.title,
+                    modifier = Modifier
+                        .size(90.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .then(
+                            if (isSold) Modifier.alpha(0.5f) else Modifier // ✨ NOUVEAU : Griser l'image si vendu
+                        ),
+                    contentScale = ContentScale.Crop
+                )
+                // ✨ NOUVEAU : Badge "SOLD OUT"
+                if (isSold) {
+                    Box(
+                        modifier = Modifier
+                            .size(90.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(Color.Black.copy(alpha = 0.6f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "SOLD OUT",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        )
+                    }
+                }
+            }
 
             // Infos
             Column(
@@ -536,7 +564,7 @@ private fun CartItemRow(
                     style = MaterialTheme.typography.bodyLarge.copy(
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 17.sp,
-                        color = themePrimary
+                        color = if (isSold) themePrimary.copy(alpha = 0.5f) else themePrimary // ✨ NOUVEAU : Griser le texte si vendu
                     ),
                     maxLines = 2
                 )
@@ -573,58 +601,18 @@ private fun CartItemRow(
                 )
             }
 
-            // Delete button
-            IconButton(onClick = onDelete) {
+            // Delete button (toujours actif, même pour les articles vendus)
+            IconButton(
+                onClick = onDelete,
+                enabled = true // ✨ MODIFIÉ : Toujours actif pour permettre la suppression même si vendu
+            ) {
                 Icon(
                     imageVector = Icons.Filled.Delete,
                     contentDescription = "Delete",
-                    tint = Color.Red.copy(alpha = 0.8f),
+                    tint = if (isSold) Color.Gray.copy(alpha = 0.6f) else Color.Red.copy(alpha = 0.8f), // ✨ MODIFIÉ : Légèrement grisé si vendu mais toujours cliquable
                     modifier = Modifier.size(24.dp)
                 )
             }
-        }
-    }
-}
-
-/**
- * Free Shipping Banner (comme iOS)
- */
-@Composable
-private fun FreeShippingBanner(
-    themeCard: Color,
-    themeTeal: Color
-) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp),
-        colors = CardDefaults.cardColors(containerColor = themeCard),
-        shape = RoundedCornerShape(16.dp)
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "🚚",
-                fontSize = 20.sp
-            )
-            Text(
-                text = "Free shipping!",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    color = themeTeal
-                )
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Text(
-                text = "🎉",
-                fontSize = 20.sp
-            )
         }
     }
 }
@@ -808,11 +796,13 @@ private fun OrderSummary(
             Spacer(modifier = Modifier.height(12.dp))
 
             // Pay Now button (comme iOS)
+            // ✨ NOUVEAU : Ne permettre le paiement que s'il y a des articles disponibles
+            val hasAvailableItems = cartItems.any { it.status == "available" }
             Button(
                 onClick = {
                     onCheckoutClick()
                 },
-                enabled = !isLoading && cartItems.isNotEmpty() && !(useBalance && !canPayWithBalance),
+                enabled = !isLoading && hasAvailableItems && !(useBalance && !canPayWithBalance), // ✨ MODIFIÉ : Vérifier hasAvailableItems
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Color.Transparent

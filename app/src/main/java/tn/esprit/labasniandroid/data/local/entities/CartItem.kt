@@ -6,6 +6,7 @@ import java.util.Date
 
 /**
  * CartItem entity pour Room (équivalent CartItem CoreData iOS)
+ * ✨ NOUVEAU : Inclut le statut de l'article (available/sold)
  */
 @Entity(tableName = "cart_items")
 data class CartItem(
@@ -17,6 +18,7 @@ data class CartItem(
     val size: String?,
     val price: Double,
     val imageURL: String?,
-    val addedAt: Long = System.currentTimeMillis() // Timestamp en millisecondes
+    val addedAt: Long = System.currentTimeMillis(), // Timestamp en millisecondes
+    val status: String = "available" // ✨ NOUVEAU : "available" | "sold"
 )
 

@@ -132,20 +132,20 @@ class ChatRepository(
                         
                         // ✨ CORRIGÉ : Chercher un message optimiste correspondant (même senderId et conversationId, envoyé récemment)
                         // Ne pas comparer le contenu car il peut être masqué différemment
-                        val optimisticMessage = _messages.value.find {
-                            it.id.startsWith("temp_") && 
+                            val optimisticMessage = _messages.value.find { 
+                                it.id.startsWith("temp_") && 
                             it.senderId == message.senderId &&
                             it.conversationId == message.conversationId &&
                             // Vérifier que le message optimiste a été envoyé récemment (dans les 10 dernières secondes)
                             (System.currentTimeMillis() - (it.id.removePrefix("temp_").toLongOrNull() ?: 0L)) < 10000L
-                        }
+                            }
                             
-                        if (optimisticMessage != null) {
+                            if (optimisticMessage != null) {
                             // ✨ Remplacer le message optimiste par le message réel (masqué)
                             val filteredMessages = _messages.value.filter { it.id != optimisticMessage.id }
                             _messages.value = (filteredMessages + message).sortedWith(compareBy { 
                                 it.createdAt ?: "0000-00-00T00:00:00.000Z"
-                            })
+                                })
                         } else {
                             // Nouveau message reçu - l'ajouter et trier par date
                             _messages.value = (_messages.value + message).sortedWith(compareBy { 

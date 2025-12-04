@@ -4,41 +4,34 @@ import android.content.Context
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import tn.esprit.labasniandroid.data.local.CartDatabase
-import tn.esprit.labasniandroid.data.local.dao.CartDao
 import tn.esprit.labasniandroid.data.local.entities.CartItem
 import tn.esprit.labasniandroid.models.entities.StoreItem
-import java.util.UUID
+import tn.esprit.labasniandroid.models.repositories.CartRepository
 
 /**
- * CartManager singleton (équivalent CartManager iOS avec CoreData)
- * Gère le panier avec Room (équivalent CoreData)
+ * CartManager singleton - ✨ NOUVEAU : Utilise l'API backend au lieu de Room
+ * Gère le panier avec des appels API REST
  */
 object CartManager {
-    private var database: CartDatabase? = null
-    private var cartDao: CartDao? = null
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
-    // Cache de l'ID utilisateur (comme iOS cachedUserId)
+    // Cache de l'ID utilisateur
     private var cachedUserId: String? = null
 
-    // Flow pour observer les changements du panier (comme iOS @Published cartItems)
+    // Flow pour observer les changements du panier
     private val _cartItems = MutableStateFlow<List<CartItem>>(emptyList())
     val cartItems: SharedFlow<List<CartItem>> = _cartItems.asSharedFlow()
 
-    // Flow pour le nombre d'articles (comme iOS itemCount)
+    // Flow pour le nombre d'articles
     private val _itemCount = MutableStateFlow<Int>(0)
     val itemCount: SharedFlow<Int> = _itemCount.asSharedFlow()
 
-    // Flow pour le prix total (comme iOS totalPrice)
+    // Flow pour le prix total
     private val _totalPrice = MutableStateFlow<Double>(0.0)
     val totalPrice: SharedFlow<Double> = _totalPrice.asSharedFlow()
 
@@ -46,15 +39,12 @@ object CartManager {
      * Initialise le CartManager (appelé au démarrage de l'app)
      */
     fun initialize(context: Context) {
-        database = CartDatabase.getDatabase(context)
-        cartDao = database?.cartDao()
-
         // Charger l'userId et le panier
         loadUserIdAndFetchCart(context)
     }
 
     /**
-     * Charge l'userId et le panier (comme iOS loadUserIdAndFetchCart)
+     * Charge l'userId et le panier depuis l'API
      */
     private fun loadUserIdAndFetchCart(context: Context) {
         scope.launch {
@@ -67,53 +57,56 @@ object CartManager {
             }
 
             // Charger le panier après avoir récupéré l'userId
-            fetchCartItems()
+            fetchCartItems(context)
         }
     }
 
-    // Job pour l'observer Flow
-    private var observerJob: kotlinx.coroutines.Job? = null
-
     /**
-     * Récupère les articles du panier pour l'utilisateur connecté (comme iOS fetchCartItems)
-     * Observe les changements avec Flow (comme iOS observe CoreData)
+     * ✨ NOUVEAU : Récupère les articles du panier depuis l'API
      */
-    fun fetchCartItems() {
-        val userId = cachedUserId ?: run {
+    fun fetchCartItems(context: Context) {
+        val userId = cachedUserId ?: TokenManager.getUserId(context)
+
+        if (userId == null) {
             android.util.Log.w("CartManager", "Aucun utilisateur connecté – panier vide")
             scope.launch {
-                _cartItems.value = emptyList()
-                _itemCount.value = 0
-                _totalPrice.value = 0.0
+                withContext(Dispatchers.Main) {
+                    _cartItems.value = emptyList()
+                    _itemCount.value = 0
+                    _totalPrice.value = 0.0
+                }
             }
             return
         }
 
-        val dao = cartDao ?: run {
-            android.util.Log.e("CartManager", "CartDao non initialisé")
-            return
-        }
-
-        // Annuler l'ancien observer s'il existe
-        observerJob?.cancel()
-
-        // Observer les changements du panier (comme iOS observe CoreData)
-        observerJob = scope.launch {
+        scope.launch {
             try {
-                dao.getCartItemsByUserId(userId).collect { items ->
+                val result = CartRepository.getCart(context)
+                result.onSuccess { items ->
                     withContext(Dispatchers.Main) {
-                        _cartItems.value = items
-                        _itemCount.value = items.size
+                        // ✨ NOUVEAU : Mettre à jour le userId pour chaque item
+                        val itemsWithUserId = items.map { it.copy(userId = userId) }
+                        _cartItems.value = itemsWithUserId
+                        _itemCount.value = itemsWithUserId.size
 
-                        // Calculer le prix total
-                        val total = items.sumOf { it.price }
+                        // Calculer le prix total (seulement pour les articles disponibles)
+                        val total = itemsWithUserId
+                            .filter { it.status == "available" }
+                            .sumOf { it.price }
                         _totalPrice.value = total
 
-                        android.util.Log.d("CartManager", "${items.size} articles chargés pour l'utilisateur $userId")
+                        android.util.Log.d("CartManager", "${itemsWithUserId.size} articles chargés depuis l'API pour l'utilisateur $userId")
+                    }
+                }.onFailure { error ->
+                    android.util.Log.e("CartManager", "Erreur fetch panier: ${error.message}", error)
+                    withContext(Dispatchers.Main) {
+                        _cartItems.value = emptyList()
+                        _itemCount.value = 0
+                        _totalPrice.value = 0.0
                     }
                 }
             } catch (e: Exception) {
-                android.util.Log.e("CartManager", "Erreur fetch panier: ${e.message}", e)
+                android.util.Log.e("CartManager", "Exception fetch panier: ${e.message}", e)
                 withContext(Dispatchers.Main) {
                     _cartItems.value = emptyList()
                     _itemCount.value = 0
@@ -124,7 +117,7 @@ object CartManager {
     }
 
     /**
-     * Ajoute un article au panier de l'utilisateur connecté (comme iOS addToCart)
+     * ✨ NOUVEAU : Ajoute un article au panier via l'API
      */
     suspend fun addToCart(storeItem: StoreItem, context: Context): Result<Unit> {
         val userId = cachedUserId ?: TokenManager.getUserId(context)
@@ -139,37 +132,14 @@ object CartManager {
             cachedUserId = userId
         }
 
-        val dao = cartDao ?: run {
-            android.util.Log.e("CartManager", "CartDao non initialisé")
-            return Result.failure(Exception("CartDao non initialisé"))
-        }
-
         return try {
-            // Vérifier si l'article existe déjà
-            val existing = dao.getCartItemByStoreItemId(storeItem.id, userId)
-            if (existing != null) {
-                android.util.Log.i("CartManager", "Article déjà dans le panier")
-                return Result.success(Unit)
+            val result = CartRepository.addToCart(context, storeItem.id)
+            result.onSuccess {
+                // Recharger le panier après ajout
+                fetchCartItems(context)
+                android.util.Log.d("CartManager", "Article ajouté au panier de $userId")
             }
-
-            // Créer un nouvel article
-            val newItem = CartItem(
-                id = UUID.randomUUID().toString(),
-                userId = userId,
-                storeItemID = storeItem.id,
-                title = storeItem.cloth?.type?.replaceFirstChar { it.uppercaseChar() } ?: "Article",
-                size = storeItem.size,
-                price = storeItem.price,
-                imageURL = storeItem.cloth?.imageUrl,
-                addedAt = System.currentTimeMillis()
-            )
-
-            // Insérer dans la base de données
-            dao.insertCartItem(newItem)
-
-            // Le Flow observera automatiquement le changement et mettra à jour _cartItems
-            android.util.Log.d("CartManager", "Article ajouté au panier de $userId")
-            Result.success(Unit)
+            result
         } catch (e: Exception) {
             android.util.Log.e("CartManager", "Erreur lors de l'ajout: ${e.message}", e)
             Result.failure(e)
@@ -177,19 +147,17 @@ object CartManager {
     }
 
     /**
-     * Supprime un article du panier (comme iOS removeFromCart)
+     * ✨ NOUVEAU : Supprime un article du panier via l'API
      */
-    suspend fun removeFromCart(cartItem: CartItem): Result<Unit> {
-        val dao = cartDao ?: run {
-            android.util.Log.e("CartManager", "CartDao non initialisé")
-            return Result.failure(Exception("CartDao non initialisé"))
-        }
-
+    suspend fun removeFromCart(cartItem: CartItem, context: Context): Result<Unit> {
         return try {
-            dao.deleteCartItem(cartItem)
-            // Le Flow observera automatiquement le changement
-            android.util.Log.d("CartManager", "Article supprimé du panier")
-            Result.success(Unit)
+            val result = CartRepository.removeFromCart(context, cartItem.storeItemID)
+            result.onSuccess {
+                // Recharger le panier après suppression
+                fetchCartItems(context)
+                android.util.Log.d("CartManager", "Article supprimé du panier")
+            }
+            result
         } catch (e: Exception) {
             android.util.Log.e("CartManager", "Erreur lors de la suppression: ${e.message}", e)
             Result.failure(e)
@@ -197,7 +165,7 @@ object CartManager {
     }
 
     /**
-     * Vide tout le panier de l'utilisateur connecté (comme iOS clearCart)
+     * ✨ NOUVEAU : Vide tout le panier via l'API
      */
     suspend fun clearCart(context: Context): Result<Unit> {
         val userId = cachedUserId ?: TokenManager.getUserId(context)
@@ -207,16 +175,18 @@ object CartManager {
             return Result.failure(Exception("Utilisateur non connecté"))
         }
 
-        val dao = cartDao ?: run {
-            android.util.Log.e("CartManager", "CartDao non initialisé")
-            return Result.failure(Exception("CartDao non initialisé"))
-        }
-
         return try {
-            dao.clearCartForUser(userId)
-            // Le Flow observera automatiquement le changement
-            android.util.Log.d("CartManager", "Panier vidé pour l'utilisateur $userId")
-            Result.success(Unit)
+            val result = CartRepository.clearCart(context)
+            result.onSuccess {
+                // Mettre à jour le cache local
+                withContext(Dispatchers.Main) {
+                    _cartItems.value = emptyList()
+                    _itemCount.value = 0
+                    _totalPrice.value = 0.0
+                }
+                android.util.Log.d("CartManager", "Panier vidé pour l'utilisateur $userId")
+            }
+            result
         } catch (e: Exception) {
             android.util.Log.e("CartManager", "Erreur lors du vidage: ${e.message}", e)
             Result.failure(e)
@@ -224,26 +194,23 @@ object CartManager {
     }
 
     /**
-     * Gère le logout en vidant le panier local (comme iOS handleLogout)
-     * Note: Ne vide PAS la base de données, seulement le cache en mémoire
-     * Les données restent dans Room et seront filtrées par userId lors du prochain login
+     * Gère le logout en vidant le panier local
      */
     fun handleLogout() {
         scope.launch {
-            // Annuler l'observer actuel
-            observerJob?.cancel()
-            
             // Vider le cache en mémoire
-            _cartItems.value = emptyList()
-            _itemCount.value = 0
-            _totalPrice.value = 0.0
+            withContext(Dispatchers.Main) {
+                _cartItems.value = emptyList()
+                _itemCount.value = 0
+                _totalPrice.value = 0.0
+            }
             cachedUserId = null
         }
         android.util.Log.d("CartManager", "Panier vidé après logout")
     }
 
     /**
-     * Vérifie si un article est déjà dans le panier de l'utilisateur connecté
+     * ✨ NOUVEAU : Vérifie si un article est déjà dans le panier
      */
     suspend fun isItemInCart(storeItemId: String, context: Context): Boolean {
         val userId = cachedUserId ?: TokenManager.getUserId(context)
@@ -252,11 +219,9 @@ object CartManager {
             return false
         }
         
-        val dao = cartDao ?: return false
-        
         return try {
-            val existing = dao.getCartItemByStoreItemId(storeItemId, userId)
-            existing != null
+            val result = CartRepository.getCart(context)
+            result.getOrNull()?.any { it.storeItemID == storeItemId } ?: false
         } catch (e: Exception) {
             android.util.Log.e("CartManager", "Erreur vérification panier: ${e.message}", e)
             false
@@ -264,34 +229,62 @@ object CartManager {
     }
 
     /**
-     * Met à jour l'userId (appelé lors du login/user update)
-     * Recharge le panier de l'utilisateur connecté depuis la base de données
+     * ✨ NOUVEAU : Met à jour l'userId et recharge le panier depuis l'API
      */
     fun updateUserId(userId: String?, context: Context) {
         val newUserId = userId ?: TokenManager.getUserId(context)
         
-        // Si l'userId change, annuler l'ancien observer et recharger
+        // Si l'userId change, recharger
         if (cachedUserId != newUserId) {
-            observerJob?.cancel()
             cachedUserId = newUserId
             
             if (newUserId != null) {
                 android.util.Log.d("CartManager", "Utilisateur changé: $newUserId, rechargement du panier")
-                fetchCartItems()
+                fetchCartItems(context)
             } else {
                 android.util.Log.w("CartManager", "Aucun utilisateur, panier vide")
                 scope.launch {
-                    _cartItems.value = emptyList()
-                    _itemCount.value = 0
-                    _totalPrice.value = 0.0
+                    withContext(Dispatchers.Main) {
+                        _cartItems.value = emptyList()
+                        _itemCount.value = 0
+                        _totalPrice.value = 0.0
+                    }
                 }
             }
         } else if (newUserId != null) {
             // Même utilisateur, juste recharger pour s'assurer que les données sont à jour
-            fetchCartItems()
+            fetchCartItems(context)
         }
         
         android.util.Log.d("CartManager", "Utilisateur mis à jour: $newUserId, panier rechargé")
     }
-}
 
+    /**
+     * ✨ NOUVEAU : Vérifie le statut des articles et met à jour le panier local
+     */
+    fun refreshCartStatus(context: Context) {
+        scope.launch {
+            try {
+                val statusResult = CartRepository.checkItemsStatus(context)
+                statusResult.onSuccess { statusMap ->
+                    // Mettre à jour les statuts dans le panier local
+                    withContext(Dispatchers.Main) {
+                        val updatedItems = _cartItems.value.map { item ->
+                            val newStatus = statusMap[item.storeItemID] ?: "available"
+                            item.copy(status = newStatus)
+                        }
+                        _cartItems.value = updatedItems
+
+                        // Recalculer le prix total (seulement pour les articles disponibles)
+                        val total = updatedItems
+                            .filter { it.status == "available" }
+                            .sumOf { it.price }
+                        _totalPrice.value = total
+                    }
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("CartManager", "Erreur refresh statut: ${e.message}", e)
+            }
+        }
+    }
+}

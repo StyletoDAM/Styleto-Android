@@ -171,7 +171,7 @@ fun StoreTab(
     LaunchedEffect(token, userId) {
         if (token.isNotBlank() && userId.isNotBlank()) {
             try {
-                viewModel.initialize(token, userId)
+            viewModel.initialize(token, userId)
             } catch (e: Exception) {
                 // Gérer l'erreur silencieusement ou logger
                 android.util.Log.e("StoreView", "Error initializing store: ${e.message}", e)
@@ -218,9 +218,9 @@ fun StoreTab(
         ) {
             // Scrollable Content (comme iOS)
             val scrollState = rememberScrollState()
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
                     .verticalScroll(scrollState)
                     .padding(horizontal = 16.dp)
                     .padding(top = 8.dp),
@@ -407,20 +407,20 @@ fun StoreTab(
                 when (selectedTab) {
                     "My Items" -> {
                         // My Items Section
-                        if (storeItems.isNotEmpty()) {
+                if (storeItems.isNotEmpty()) {
                             // ✨ Utiliser LazyVerticalGrid avec heightIn pour permettre le scroll vertical
                             Box(modifier = Modifier.heightIn(max = 1000.dp)) {
-                                MyItemsGrid(
-                                    items = storeItems,
-                                    deletingIds = deletingIds,
-                                    themePrimary = themePrimary,
-                                    themeCard = themeCard,
-                                    themeTeal = themeTeal,
-                                    themeSecondary = themeSecondary,
-                                    themeAqua = themeAqua,
-                                    onDelete = { }, // Plus utilisé
-                                    onEdit = { showEditDialog = it }
-                                )
+                    MyItemsGrid(
+                        items = storeItems,
+                        deletingIds = deletingIds,
+                        themePrimary = themePrimary,
+                        themeCard = themeCard,
+                        themeTeal = themeTeal,
+                        themeSecondary = themeSecondary,
+                        themeAqua = themeAqua,
+                        onDelete = { }, // Plus utilisé
+                        onEdit = { showEditDialog = it }
+                    )
                             }
                         } else if (!isLoading) {
                             // Empty state pour My Items
@@ -456,20 +456,20 @@ fun StoreTab(
                     }
                     "Discover" -> {
                         // Discover Section
-                        if (discoverItems.isNotEmpty()) {
+                if (discoverItems.isNotEmpty()) {
                             // ✨ Utiliser DiscoverGrid avec heightIn pour permettre le scroll vertical
                             Box(modifier = Modifier.heightIn(max = 1000.dp)) {
-                                DiscoverGrid(
-                                    items = discoverItems,
-                                    userId = userId,
-                                    themeCard = themeCard,
-                                    themeTeal = themeTeal,
-                                    themePrimary = themePrimary,
-                                    themeSecondary = themeSecondary,
-                                    themeAqua = themeAqua,
-                                    onItemClick = { showDiscoverDetail = it },
-                                    onContactOwner = onContactOwner
-                                )
+                    DiscoverGrid(
+                        items = discoverItems,
+                        userId = userId,
+                        themeCard = themeCard,
+                        themeTeal = themeTeal,
+                        themePrimary = themePrimary,
+                        themeSecondary = themeSecondary,
+                        themeAqua = themeAqua,
+                                onItemClick = { showDiscoverDetail = it },
+                        onContactOwner = onContactOwner
+                    )
                             }
                         } else if (!isLoading) {
                             // Empty state pour Discover
@@ -507,12 +507,12 @@ fun StoreTab(
 
                 // Loading state (affiché dans chaque onglet si nécessaire)
                 if (isLoading && ((selectedTab == "My Items" && storeItems.isEmpty()) || (selectedTab == "Discover" && discoverItems.isEmpty()))) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .height(200.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    contentAlignment = Alignment.Center
+                ) {
                         CircularProgressIndicator(color = themePrimary)
                     }
                 }

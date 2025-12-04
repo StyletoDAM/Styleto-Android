@@ -498,7 +498,7 @@ private fun MessageBubble(
     } ?: ""
 
     val ctx = LocalContext.current
-    
+
     if (isOwnMessage) {
         OutgoingMessage(
             text = message.content,
