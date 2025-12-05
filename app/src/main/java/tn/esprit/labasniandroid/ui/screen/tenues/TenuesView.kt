@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -86,7 +87,8 @@ fun TenuesTab(
     userId: String,
     viewModel: TenuesViewModel = viewModel(),
     onBack: () -> Unit,
-    onOpenFavorites: () -> Unit
+    onOpenFavorites: () -> Unit,
+    onNavigateToStore: () -> Unit = {} // ✨ NOUVEAU: Callback pour naviguer vers le store
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
 
@@ -245,7 +247,8 @@ fun TenuesTab(
                                 themeSecondaryText = themeSecondaryText,
                                 onDismiss = {
                                     viewModel.clearMessages()
-                                }
+                                },
+                                onNavigateToStore = onNavigateToStore // ✨ NOUVEAU: Passer le callback
                             )
                         }
                     }
@@ -1218,7 +1221,8 @@ private fun RecommendationErrorCard(
     themeSecondary: Color,
     themeCard: Color,
     themeSecondaryText: Color,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onNavigateToStore: () -> Unit // ✨ NOUVEAU: Callback pour naviguer vers le store
 ) {
     Card(
         modifier = Modifier
@@ -1230,14 +1234,14 @@ private fun RecommendationErrorCard(
             ),
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = Color(0xFFFF9800).copy(alpha = 0.08f) // Orange léger pour l'erreur
+            containerColor = themeCard // ✨ MODIFIÉ: Utiliser themeCard (rose/blanc) au lieu d'orange
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp) // ✨ MODIFIÉ: Réduit de 16 à 12 pour un espacement plus serré
         ) {
             // Header avec icône et bouton fermer
             Row(
@@ -1252,11 +1256,11 @@ private fun RecommendationErrorCard(
                     Icon(
                         imageVector = Icons.Filled.Info,
                         contentDescription = null,
-                        tint = Color(0xFFFF9800), // Orange pour l'erreur
+                        tint = themePrimary, // ✨ MODIFIÉ: Utiliser themePrimary (rose) au lieu d'orange
                         modifier = Modifier.size(24.dp)
                     )
                     Text(
-                        text = "Recommendation",
+                        text = "Outfit Recommendation",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold
                         ),
@@ -1277,15 +1281,66 @@ private fun RecommendationErrorCard(
                 }
             }
             
-            // Message d'erreur
+            // Message d'erreur (formaté de manière concise)
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    lineHeight = 20.sp
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 13.sp, // ✨ MODIFIÉ: Réduit de 14 à 13 pour un texte plus fin
+                    lineHeight = 16.sp // ✨ MODIFIÉ: Réduit de 18 à 16 pour un texte plus compact
                 ),
-                color = Color(0xFFFF9800), // Orange pour le texte
+                color = themeSecondaryText, // ✨ MODIFIÉ: Utiliser themeSecondaryText au lieu d'orange
                 modifier = Modifier.fillMaxWidth()
             )
+            
+            // ✨ NOUVEAU: Bouton pour naviguer vers le store
+            Button(
+                onClick = {
+                    onDismiss() // Fermer la carte d'erreur
+                    onNavigateToStore() // Naviguer vers le store
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp), // ✨ MODIFIÉ: Augmenté de 48 à 52 pour plus d'espace
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color.Transparent
+                ),
+                contentPadding = PaddingValues(0.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(50.dp))
+                        .background(
+                            Brush.linearGradient(
+                                colors = listOf(themeSecondary, themePrimary), // ✨ Dégradé rose/blanc comme la carte de suggestion
+                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
+                                end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, 0f)
+                            )
+                        )
+                        .padding(vertical = 14.dp, horizontal = 16.dp), // ✨ MODIFIÉ: Padding vertical augmenté pour éviter l'écrasement
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ShoppingBag, // ✨ NOUVEAU: Icône de shopping bag
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Go to Store",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.SemiBold,
+                                lineHeight = 20.sp // ✨ NOUVEAU: Ajout de lineHeight pour éviter l'écrasement
+                            ),
+                            color = Color.White
+                        )
+                    }
+                }
+            }
         }
     }
 }

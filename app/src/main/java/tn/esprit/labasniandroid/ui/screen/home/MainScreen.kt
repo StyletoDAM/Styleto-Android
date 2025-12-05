@@ -182,7 +182,8 @@ fun MainScreen(
                             userId = userId,
                             viewModel = tenuesViewModel,
                             onBack = { selectedTab = LabasniHomeTab.Dressing },
-                            onOpenFavorites = { showFavorites = true }
+                            onOpenFavorites = { showFavorites = true },
+                            onNavigateToStore = { selectedTab = LabasniHomeTab.Store } // ✨ NOUVEAU: Naviguer vers le store
                         )
                     }
                 }
