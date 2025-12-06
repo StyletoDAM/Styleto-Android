@@ -1,15 +1,14 @@
 package tn.esprit.labasniandroid.ui.components
 
-import androidx.activity.ComponentActivity
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
@@ -27,48 +26,39 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.stripe.android.paymentsheet.PaymentSheetResult
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
-import tn.esprit.labasniandroid.utils.PaymentService
 import tn.esprit.labasniandroid.utils.TokenManager
 
 /**
  * Modal plein écran affichant les détails du pack Premium
- * Avec sélecteur Mensuel/Annuel et liste des avantages
+ * Avec sélecteur Mensuel/Annuel et paiement via page web Stripe
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PremiumPackDetails(
     onDismiss: () -> Unit,
     onSubscribe: (isAnnual: Boolean) -> Unit = {},
-    onSubscriptionSuccess: (() -> Unit)? = null, // Callback après achat réussi
+    onSubscriptionSuccess: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val activity = context as? ComponentActivity
     val scope = rememberCoroutineScope()
     val subscriptionRepository = remember { SubscriptionRepository() }
-    
+
     // États
     var isAnnual by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var paymentError by remember { mutableStateOf<String?>(null) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    
-    // État pour vérifier si l'utilisateur a déjà le pack Premium
+
     var currentPlan by remember { mutableStateOf<String?>(null) }
     var isLoadingPlan by remember { mutableStateOf(true) }
     val hasPremiumPlan = remember(currentPlan) { currentPlan == "PREMIUM" }
-    
-    // Variable pour stocker le clientSecret à présenter
-    var pendingClientSecret by remember { mutableStateOf<String?>(null) }
-    
-    // Récupérer le plan actuel de l'utilisateur
+
+    // Récupérer le plan actuel
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
         if (token != null) {
@@ -89,7 +79,7 @@ fun PremiumPackDetails(
             isLoadingPlan = false
         }
     }
-    
+
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
     val themePrimary = DynamicThemeColors.primary(isMale)
@@ -98,106 +88,40 @@ fun PremiumPackDetails(
     val themeBackground = DynamicThemeColors.background()
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
-    val themeSoftPink = DynamicThemeColors.softPink(isMale)
-    
+
     // Prix
     val monthlyPrice = 9.99
     val annualPrice = 99.0
     val annualPricePerMonth = annualPrice / 12
     val discountPercentage = ((monthlyPrice * 12 - annualPrice) / (monthlyPrice * 12) * 100).toInt()
-    
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
-    
-    // Présenter PaymentSheet quand le clientSecret est disponible
-    LaunchedEffect(pendingClientSecret) {
-        if (pendingClientSecret != null && activity != null) {
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                try {
-                    PaymentService.presentPaymentSheet(
-                        activity = activity,
-                        clientSecret = pendingClientSecret!!,
-                        onResult = { paymentResult ->
-                            when (paymentResult) {
-                                is PaymentSheetResult.Completed -> {
-                                    scope.launch {
-                                        // Paiement réussi, confirmer l'abonnement avec le backend
-                                        val token = TokenManager.getToken(context)
-                                        if (token != null) {
-                                            val result = subscriptionRepository.upgradeSubscription(
-                                                token = token,
-                                                plan = "PREMIUM"
-                                            )
-                                            result.onSuccess {
-                                                showSuccessDialog = true
-                                                isProcessing = false
-                                                // Appeler le callback pour rafraîchir les données après un court délai
-                                                // pour laisser le backend se mettre à jour
-                                                scope.launch {
-                                                    kotlinx.coroutines.delay(800) // Délai avant de rafraîchir
-                                                    onSubscriptionSuccess?.invoke()
-                                                }
-                                            }.onFailure { error ->
-                                                paymentError = "Paiement réussi mais confirmation échouée: ${error.message}"
-                                                isProcessing = false
-                                            }
-                                        } else {
-                                            paymentError = "Token d'authentification manquant"
-                                            isProcessing = false
-                                        }
-                                    }
-                                }
-                                is PaymentSheetResult.Canceled -> {
-                                    isProcessing = false
-                                    // Ne pas afficher d'erreur pour une annulation
-                                }
-                                is PaymentSheetResult.Failed -> {
-                                    val errorMsg = paymentResult.error?.message ?: "Erreur inconnue"
-                                    paymentError = "Erreur de paiement: $errorMsg"
-                                    isProcessing = false
-                                }
-                            }
-                            pendingClientSecret = null
-                        }
-                    )
-                } catch (e: Exception) {
-                    paymentError = "Erreur: ${e.message ?: "Impossible d'ouvrir le paiement"}"
-                    pendingClientSecret = null
-                    isProcessing = false
-                }
-            }
-        }
-    }
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
         containerColor = themeBackground,
         modifier = modifier.fillMaxSize(),
-        dragHandle = null // Pas de drag handle pour un modal plein écran
+        dragHandle = null
     ) {
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-            ) {
-                // Header fixe (non scrollable)
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // Header fixe
                 PremiumPackHeader(
                     onBackClick = onDismiss,
                     themePrimary = themePrimary,
                     themeText = themeText
                 )
-                
-                // Zone 1 - Header visuel (non scrollable)
+
+                // Header visuel
                 PremiumPackVisualHeader(
                     themePrimary = themePrimary,
                     themeText = themeText,
                     themeSecondaryText = themeSecondaryText
                 )
-                
-                // Zone 2 & 3 combinées - Une seule carte scrollable avec sélecteur prix + avantages + info
+
+                // Carte scrollable
                 Column(
                     modifier = Modifier
                         .weight(1f)
@@ -217,7 +141,6 @@ fun PremiumPackDetails(
                                 .padding(20.dp),
                             verticalArrangement = Arrangement.spacedBy(24.dp)
                         ) {
-                            // Sélecteur Mensuel/Annuel avec prix
                             PremiumPackPriceSelectorContent(
                                 isAnnual = isAnnual,
                                 onToggle = { isAnnual = it },
@@ -230,76 +153,77 @@ fun PremiumPackDetails(
                                 themeText = themeText,
                                 themeSecondaryText = themeSecondaryText
                             )
-                            
-                            // Divider
+
                             HorizontalDivider(
                                 color = themeSecondaryText.copy(alpha = 0.2f),
                                 thickness = 1.dp
                             )
-                            
-                            // Liste des avantages
+
                             PremiumPackFeaturesListContent(
                                 themePrimary = themePrimary,
                                 themeText = themeText,
                                 themeSecondaryText = themeSecondaryText
                             )
-                            
-                            // Divider
+
                             HorizontalDivider(
                                 color = themeSecondaryText.copy(alpha = 0.2f),
                                 thickness = 1.dp
                             )
-                            
-                            // Bloc "Bon à savoir"
+
                             PremiumPackInfoBlockContent(
                                 themeText = themeText,
                                 themeSecondaryText = themeSecondaryText
                             )
                         }
                     }
-                    
-                    // Padding en bas pour le bouton sticky
+
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
-            
-            // Zone 4 - Bouton CTA sticky (fixe en bas)
+
+            // Bouton CTA sticky
             PremiumPackCTAButton(
                 isProcessing = isProcessing,
                 hasPremiumPlan = hasPremiumPlan,
                 isLoadingPlan = isLoadingPlan,
                 onClick = {
-                    if (hasPremiumPlan) {
-                        return@PremiumPackCTAButton
-                    }
+                    if (hasPremiumPlan) return@PremiumPackCTAButton
                     val token = TokenManager.getToken(context)
                     if (token == null) {
                         paymentError = "Vous devez être connecté pour souscrire"
                         return@PremiumPackCTAButton
                     }
-                    
-                    if (activity != null) {
-                        isProcessing = true
-                        paymentError = null
-                        
-                        scope.launch {
-                            // Calculer le montant selon mensuel/annuel
-                            val amount = if (isAnnual) annualPrice else monthlyPrice
-                            
-                            // Créer le PaymentIntent via Stripe
-                            val result = subscriptionRepository.createSubscriptionPaymentIntent(
-                                token = token,
-                                amount = amount,
-                                currency = "usd"
-                            )
-                            
-                            result.onSuccess { clientSecret ->
-                                // Stocker le clientSecret pour que LaunchedEffect le présente
-                                pendingClientSecret = clientSecret
-                            }.onFailure { error ->
-                                paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
-                                isProcessing = false
+
+                    isProcessing = true
+                    paymentError = null
+
+                    scope.launch {
+                        // ✨ Créer une Checkout Session Stripe
+                        val interval = if (isAnnual) "year" else "month"
+                        val result = subscriptionRepository.createCheckoutSession(
+                            token = token,
+                            plan = "PREMIUM",
+                            interval = interval
+                        )
+
+                        result.onSuccess { checkoutResponse ->
+                            isProcessing = false
+                            // ✨ Ouvrir la page Stripe dans le navigateur
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutResponse.checkoutUrl))
+                                context.startActivity(intent)
+
+                                // Fermer le modal après ouverture du navigateur
+                                onDismiss()
+
+                                // ✨ L'abonnement sera activé automatiquement par les webhooks Stripe
+                                // quand l'utilisateur complète le paiement
+                            } catch (e: Exception) {
+                                paymentError = "Impossible d'ouvrir le navigateur: ${e.message}"
                             }
+                        }.onFailure { error ->
+                            paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
+                            isProcessing = false
                         }
                     }
                 },
@@ -311,47 +235,8 @@ fun PremiumPackDetails(
             )
         }
     }
-    
-    // Dialog de succès après paiement
-    if (showSuccessDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showSuccessDialog = false
-                onDismiss()
-            },
-            title = {
-                Text(
-                    text = "✅ Subscription successful",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
-                    )
-                )
-            },
-            text = {
-                Text(
-                    text = "Your Premium subscription has been activated successfully!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSuccessDialog = false
-                        onDismiss()
-                    }
-                ) {
-                    Text(
-                        text = "OK",
-                        fontWeight = FontWeight.Bold,
-                        color = themePrimary
-                    )
-                }
-            }
-        )
-    }
-    
-    // AlertDialog pour les erreurs de paiement
+
+    // Dialog d'erreur
     paymentError?.let { error ->
         AlertDialog(
             onDismissRequest = { paymentError = null },
@@ -373,6 +258,9 @@ fun PremiumPackDetails(
         )
     }
 }
+
+// Les autres composables (PremiumPackHeader, PremiumPackVisualHeader, etc.)
+// restent identiques au code original - je les ai omis pour la brièveté
 
 // MARK: - Header avec flèche retour et titre
 @Composable
@@ -398,9 +286,9 @@ private fun PremiumPackHeader(
                 modifier = Modifier.size(24.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.weight(1f))
-        
+
         Text(
             text = "Pack Details",
             style = MaterialTheme.typography.headlineSmall.copy(
@@ -409,9 +297,9 @@ private fun PremiumPackHeader(
             ),
             color = themePrimary
         )
-        
+
         Spacer(modifier = Modifier.weight(1f))
-        
+
         // Espace pour équilibrer avec la flèche
         Spacer(modifier = Modifier.width(40.dp))
     }
@@ -453,7 +341,7 @@ private fun PremiumPackVisualHeader(
                 modifier = Modifier.size(40.dp)
             )
         }
-        
+
         Text(
             text = "Premium Access",
             style = MaterialTheme.typography.headlineMedium.copy(
@@ -462,7 +350,7 @@ private fun PremiumPackVisualHeader(
             ),
             color = themePrimary
         )
-        
+
         Text(
             text = "For fashion enthusiasts who want to go further",
             style = MaterialTheme.typography.bodyMedium.copy(
@@ -522,7 +410,7 @@ private fun PremiumPackPriceSelectorContent(
                         color = if (!isAnnual) Color.White else themeText
                     )
                 }
-                
+
                 // Bouton Annuel
                 Box(
                     modifier = Modifier
@@ -547,7 +435,7 @@ private fun PremiumPackPriceSelectorContent(
                             ),
                             color = if (isAnnual) Color.White else themeText
                         )
-                        
+
                         if (isAnnual) {
                             Box(
                                 modifier = Modifier
@@ -568,7 +456,7 @@ private fun PremiumPackPriceSelectorContent(
                     }
                 }
             }
-            
+
             // Prix affiché
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -591,7 +479,7 @@ private fun PremiumPackPriceSelectorContent(
                         ),
                         color = themePrimary
                     )
-                    
+
                     Text(
                         text = "DT",
                         style = MaterialTheme.typography.headlineSmall.copy(
@@ -601,7 +489,7 @@ private fun PremiumPackPriceSelectorContent(
                         color = themePrimary
                     )
                 }
-                
+
                 Text(
                     text = if (isAnnual) {
                         "$annualPrice DT / an"
@@ -658,7 +546,7 @@ private fun PremiumPackFeaturesListContent(
             isLimited = true
         )
     )
-    
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -672,7 +560,7 @@ private fun PremiumPackFeaturesListContent(
             color = themePrimary,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        
+
         features.forEach { feature ->
                 PremiumFeatureRow(
                     feature = feature,
@@ -680,7 +568,7 @@ private fun PremiumPackFeaturesListContent(
                     themeSecondaryText = themeSecondaryText,
                     themePrimary = themePrimary
                 )
-                
+
                 if (feature != features.last()) {
                     HorizontalDivider(
                         modifier = Modifier.padding(vertical = 4.dp),
@@ -692,12 +580,7 @@ private fun PremiumPackFeaturesListContent(
     }
 }
 
-data class FeatureItem(
-    val icon: ImageVector,
-    val title: String,
-    val description: String,
-    val isLimited: Boolean = false
-)
+
 
 @Composable
 private fun PremiumFeatureRow(
@@ -726,7 +609,7 @@ private fun PremiumFeatureRow(
                 modifier = Modifier.size(20.dp)
             )
         }
-        
+
         // Texte
         Column(
             modifier = Modifier.weight(1f),
@@ -744,7 +627,7 @@ private fun PremiumFeatureRow(
                     ),
                     color = themeText
                 )
-                
+
                 if (feature.isLimited) {
                     Icon(
                         imageVector = Icons.Rounded.Lock,
@@ -754,7 +637,7 @@ private fun PremiumFeatureRow(
                     )
                 }
             }
-            
+
             Text(
                 text = feature.description,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -764,7 +647,7 @@ private fun PremiumFeatureRow(
                 color = themeSecondaryText
             )
         }
-        
+
         // Coche
         Icon(
             imageVector = Icons.Rounded.CheckCircle,
@@ -794,14 +677,14 @@ private fun PremiumPackInfoBlockContent(
             color = themeText,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        
+
         val infoItems = listOf(
             "Cancel anytime, no commitment",
             "Change pack whenever you want",
             "Secure payment",
             "Customer support available 24/7"
         )
-        
+
         infoItems.forEach { item ->
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -813,7 +696,7 @@ private fun PremiumPackInfoBlockContent(
                         tint = themeSecondaryText.copy(alpha = 0.7f),
                         modifier = Modifier.size(16.dp)
                     )
-                    
+
                     Text(
                         text = item,
                         style = MaterialTheme.typography.bodySmall.copy(
@@ -823,7 +706,7 @@ private fun PremiumPackInfoBlockContent(
                         color = themeSecondaryText
                     )
                 }
-                
+
                 if (item != infoItems.last()) {
                     Spacer(modifier = Modifier.height(4.dp))
                 }
@@ -909,7 +792,7 @@ private fun PremiumPackCTAButton(
                     }
                 }
             }
-            
+
             // Safe area padding pour les appareils avec notch
             Spacer(modifier = Modifier.height(8.dp))
         }

@@ -5,14 +5,14 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
+import androidx.compose.material.icons.rounded.ShoppingBag
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -26,7 +26,7 @@ import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 
 /**
  * Dialog modal pour proposer l'upgrade vers Pro Seller
- * S'affiche quand l'utilisateur a atteint sa limite de ventes
+ * Identique à la version iOS (design + textes + features)
  */
 @Composable
 fun UpgradeToProDialog(
@@ -39,10 +39,9 @@ fun UpgradeToProDialog(
     val themePrimary = DynamicThemeColors.primary(isMale)
     val themeTeal = DynamicThemeColors.teal(isMale)
     val themeCard = DynamicThemeColors.card()
-    val themeBackground = DynamicThemeColors.background()
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
-    
+
     Dialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(
@@ -54,9 +53,9 @@ fun UpgradeToProDialog(
         Card(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(20.dp)
+                .padding(horizontal = 32.dp) // Identique à iOS
                 .shadow(
-                    elevation = 24.dp,
+                    elevation = 20.dp,
                     shape = RoundedCornerShape(24.dp)
                 ),
             colors = CardDefaults.cardColors(containerColor = themeCard),
@@ -67,92 +66,81 @@ fun UpgradeToProDialog(
                     .fillMaxWidth()
                     .padding(24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(20.dp)
+                verticalArrangement = Arrangement.spacedBy(24.dp) // Même spacing principal que iOS
             ) {
-                // Icon avec gradient background
+                // Icon (identique à iOS : cercle léger + bag teal)
                 Box(
                     modifier = Modifier
                         .size(80.dp)
                         .clip(CircleShape)
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    themeTeal.copy(alpha = 0.9f),
-                                    themeTeal.copy(alpha = 0.7f)
-                                )
-                            )
-                        ),
+                        .background(themeTeal.copy(alpha = 0.2f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.Store,
+                        imageVector = Icons.Rounded.ShoppingBag,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = themeTeal,
                         modifier = Modifier.size(40.dp)
                     )
                 }
-                
-                // Title
+
+                // Title (couleur themePrimary comme sur iOS)
                 Text(
                     text = "Selling Limit Reached",
                     style = MaterialTheme.typography.headlineSmall.copy(
                         fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     ),
-                    color = themeText,
+                    color = themePrimary,
                     textAlign = TextAlign.Center
                 )
-                
-                // Description
+
+                // Message (texte identique + padding horizontal comme iOS)
                 Text(
-                    text = "You've reached your monthly selling limit. Upgrade to Pro Seller to list unlimited items!",
+                    text = "You've reached your monthly selling limit. Upgrade to Pro Seller for unlimited sales and more!",
                     style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 15.sp,
                         lineHeight = 22.sp
                     ),
                     color = themeSecondaryText,
-                    textAlign = TextAlign.Center
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 20.dp)
                 )
-                
-                // Features list
+
+                // Features (exactement comme iOS : emojis + textes + alignment leading)
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
                     FeatureRow(
-                        icon = Icons.Rounded.Store,
-                        text = "Unlimited sales on Labas Store",
+                        emoji = "♾️",
+                        text = "Unlimited sales on Styleto Store",
                         themeTeal = themeTeal,
                         themeText = themeText
                     )
                     FeatureRow(
-                        icon = Icons.Rounded.BarChart,
-                        text = "Advanced sales analytics",
+                        emoji = "📸",
+                        text = "Unlimited clothes detection",
                         themeTeal = themeTeal,
                         themeText = themeText
                     )
                     FeatureRow(
-                        icon = Icons.Rounded.Verified,
-                        text = "Professional seller badge",
-                        themeTeal = themeTeal,
-                        themeText = themeText
-                    )
-                    FeatureRow(
-                        icon = Icons.Rounded.Star,
-                        text = "VIP priority support",
+                        emoji = "✨",
+                        text = "Unlimited outfit suggestions",
                         themeTeal = themeTeal,
                         themeText = themeText
                     )
                 }
-                
-                Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Buttons
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // Upgrade Button
+                    // Upgrade Button (sans emoji 👑 comme sur iOS)
                     Button(
                         onClick = {
                             onUpgrade()
@@ -167,24 +155,15 @@ fun UpgradeToProDialog(
                         ),
                         shape = RoundedCornerShape(16.dp)
                     ) {
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "👑",
-                                fontSize = 18.sp
+                        Text(
+                            text = "Upgrade to Pro Seller",
+                            style = MaterialTheme.typography.titleMedium.copy(
+                                fontSize = 17.sp,
+                                fontWeight = FontWeight.Bold
                             )
-                            Text(
-                                text = "Upgrade to Pro Seller",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontSize = 17.sp,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            )
-                        }
+                        )
                     }
-                    
+
                     // Cancel Button
                     TextButton(
                         onClick = onDismiss,
@@ -207,7 +186,7 @@ fun UpgradeToProDialog(
 
 @Composable
 private fun FeatureRow(
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    emoji: String,
     text: String,
     themeTeal: Color,
     themeText: Color
@@ -217,13 +196,12 @@ private fun FeatureRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            tint = themeTeal,
-            modifier = Modifier.size(20.dp)
+        Text(
+            text = emoji,
+            fontSize = 28.sp,
+            color = themeTeal
         )
-        
+
         Text(
             text = text,
             style = MaterialTheme.typography.bodyMedium.copy(
@@ -234,4 +212,3 @@ private fun FeatureRow(
         )
     }
 }
-

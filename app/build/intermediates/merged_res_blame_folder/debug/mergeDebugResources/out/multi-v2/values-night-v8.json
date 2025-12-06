@@ -4,43 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-night-v8/values-night-v8.xml",
             "map": [
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/f7b62651121a9ce4fbcd66700ef7ce68/transformed/stripe-3ds2-android-6.1.8/res/values-night-v8/values-night-v8.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,108,165,221,285,339,393,452,509,587,665,729,791,853",
-                        "endLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,27",
-                        "endColumns": "52,56,55,63,53,53,58,56,77,77,63,61,61,12",
-                        "endOffsets": "103,160,216,280,334,388,447,504,582,660,724,786,848,1772"
-                    },
-                    "to": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,55",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,108,165,221,285,339,393,452,509,587,665,729,791,3801",
-                        "endLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,67",
-                        "endColumns": "52,56,55,63,53,53,58,56,77,77,63,61,61,12",
-                        "endOffsets": "103,160,216,280,334,388,447,504,582,660,724,786,848,4720"
-                    }
-                },
-                {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/f5d8167e4d232da2bebdec6e57bae290/transformed/payments-core-20.49.0/res/values-night-v8/values-night-v8.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9,10,11",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,132,210,280,354,437,516,573,643,722",
-                        "endColumns": "76,77,69,73,82,78,56,69,78,80",
-                        "endOffsets": "127,205,275,349,432,511,568,638,717,798"
-                    },
-                    "to": {
-                        "startLines": "15,16,17,18,19,20,21,22,23,24",
-                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
-                        "startOffsets": "853,930,1008,1078,1152,1235,1314,1371,1441,1520",
-                        "endColumns": "76,77,69,73,82,78,56,69,78,80",
-                        "endOffsets": "925,1003,1073,1147,1230,1309,1366,1436,1515,1596"
-                    }
-                },
-                {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/3ef421a62156454f4731bfb866911629/transformed/paymentsheet-20.49.0/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/3ef421a62156454f4731bfb866911629/transformed/paymentsheet-20.49.0/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -59,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/d997f93ee6159c6fae3fda039993f5d6/transformed/material-1.11.0/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/d997f93ee6159c6fae3fda039993f5d6/transformed/material-1.11.0/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -76,24 +40,7 @@
                     }
                 },
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/421d131ddc479e1c91079d94191d827b/transformed/payments-ui-core-20.49.0/res/values-night-v8/values-night-v8.xml",
-                    "from": {
-                        "startLines": "2",
-                        "startColumns": "4",
-                        "startOffsets": "55",
-                        "endColumns": "61",
-                        "endOffsets": "112"
-                    },
-                    "to": {
-                        "startLines": "26",
-                        "startColumns": "4",
-                        "startOffsets": "1671",
-                        "endColumns": "61",
-                        "endOffsets": "1728"
-                    }
-                },
-                {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/441c73fcf8c35123f11da37117622c33/transformed/link-20.49.0/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/441c73fcf8c35123f11da37117622c33/transformed/link-20.49.0/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -110,7 +57,7 @@
                     }
                 },
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-night-v8/values-night-v8.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-night-v8/values-night-v8.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9",
                         "startColumns": "4,4,4,4,4,4,4,4",
@@ -124,6 +71,59 @@
                         "startOffsets": "4725,4795,4879,4963,5059,5161,5263,8118",
                         "endColumns": "69,83,83,95,101,101,93,88",
                         "endOffsets": "4790,4874,4958,5054,5156,5258,5352,8202"
+                    }
+                },
+                {
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/f5d8167e4d232da2bebdec6e57bae290/transformed/payments-core-20.49.0/res/values-night-v8/values-night-v8.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,132,210,280,354,437,516,573,643,722",
+                        "endColumns": "76,77,69,73,82,78,56,69,78,80",
+                        "endOffsets": "127,205,275,349,432,511,568,638,717,798"
+                    },
+                    "to": {
+                        "startLines": "15,16,17,18,19,20,21,22,23,24",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "853,930,1008,1078,1152,1235,1314,1371,1441,1520",
+                        "endColumns": "76,77,69,73,82,78,56,69,78,80",
+                        "endOffsets": "925,1003,1073,1147,1230,1309,1366,1436,1515,1596"
+                    }
+                },
+                {
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/421d131ddc479e1c91079d94191d827b/transformed/payments-ui-core-20.49.0/res/values-night-v8/values-night-v8.xml",
+                    "from": {
+                        "startLines": "2",
+                        "startColumns": "4",
+                        "startOffsets": "55",
+                        "endColumns": "61",
+                        "endOffsets": "112"
+                    },
+                    "to": {
+                        "startLines": "26",
+                        "startColumns": "4",
+                        "startOffsets": "1671",
+                        "endColumns": "61",
+                        "endOffsets": "1728"
+                    }
+                },
+                {
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/f7b62651121a9ce4fbcd66700ef7ce68/transformed/stripe-3ds2-android-6.1.8/res/values-night-v8/values-night-v8.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,108,165,221,285,339,393,452,509,587,665,729,791,853",
+                        "endLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,27",
+                        "endColumns": "52,56,55,63,53,53,58,56,77,77,63,61,61,12",
+                        "endOffsets": "103,160,216,280,334,388,447,504,582,660,724,786,848,1772"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,55",
+                        "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,108,165,221,285,339,393,452,509,587,665,729,791,3801",
+                        "endLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,67",
+                        "endColumns": "52,56,55,63,53,53,58,56,77,77,63,61,61,12",
+                        "endOffsets": "103,160,216,280,334,388,447,504,582,660,724,786,848,4720"
                     }
                 }
             ]

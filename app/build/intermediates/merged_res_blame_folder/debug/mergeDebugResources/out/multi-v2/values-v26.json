@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-v26/values-v26.xml",
             "map": [
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-v26/values-v26.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-v26/values-v26.xml",
                     "from": {
                         "startLines": "2,3,4,8,12,16",
                         "startColumns": "4,4,4,4,4,4",

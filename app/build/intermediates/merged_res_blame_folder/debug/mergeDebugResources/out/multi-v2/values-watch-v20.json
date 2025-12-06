@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-watch-v20/values-watch-v20.xml",
             "map": [
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/b7293316cb5d08e7cb2d674f1bbc40d0/transformed/play-services-auth-21.0.0/res/values-watch-v20/values.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/b7293316cb5d08e7cb2d674f1bbc40d0/transformed/play-services-auth-21.0.0/res/values-watch-v20/values.xml",
                     "from": {
                         "startLines": "4,5,6,7,8,9,10,11",
                         "startColumns": "0,0,0,0,0,0,0,0",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/Users/mac/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-watch-v20/values-watch-v20.xml",
+                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/c21e4ea7989d938a74b17d24090240ba/transformed/appcompat-1.6.1/res/values-watch-v20/values-watch-v20.xml",
                     "from": {
                         "startLines": "2,5,8",
                         "startColumns": "4,4,4",

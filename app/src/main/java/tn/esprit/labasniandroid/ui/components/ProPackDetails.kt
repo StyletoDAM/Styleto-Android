@@ -1,5 +1,7 @@
 package tn.esprit.labasniandroid.ui.components
 
+import android.content.Intent
+import android.net.Uri
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -27,19 +29,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.stripe.android.paymentsheet.PaymentSheetResult
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import tn.esprit.labasniandroid.models.repositories.SubscriptionRepository
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
-import tn.esprit.labasniandroid.utils.PaymentService
 import tn.esprit.labasniandroid.utils.TokenManager
 
 /**
  * Modal plein écran affichant les détails du pack Pro Seller
- * Avec sélecteur Mensuel/Annuel et liste des avantages
+ * Avec sélecteur Mensuel/Annuel et paiement via page web Stripe
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,21 +52,17 @@ fun ProPackDetails(
     val activity = context as? ComponentActivity
     val scope = rememberCoroutineScope()
     val subscriptionRepository = remember { SubscriptionRepository() }
-    
+
     // États
     var isAnnual by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var paymentError by remember { mutableStateOf<String?>(null) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-    
+
     // État pour vérifier si l'utilisateur a déjà le pack Pro Seller
     var currentPlan by remember { mutableStateOf<String?>(null) }
     var isLoadingPlan by remember { mutableStateOf(true) }
     val hasProPlan = remember(currentPlan) { currentPlan == "PRO_SELLER" }
-    
-    // Variable pour stocker le clientSecret à présenter
-    var pendingClientSecret by remember { mutableStateOf<String?>(null) }
-    
+
     // Récupérer le plan actuel de l'utilisateur
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
@@ -89,7 +84,7 @@ fun ProPackDetails(
             isLoadingPlan = false
         }
     }
-    
+
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
     val themePrimary = DynamicThemeColors.primary(isMale)
@@ -99,76 +94,16 @@ fun ProPackDetails(
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
     val themeSoftPink = DynamicThemeColors.softPink(isMale)
-    
+
     // Prix
     val monthlyPrice = 24.99
     val annualPrice = 249.0
     val annualPricePerMonth = annualPrice / 12
     val discountPercentage = ((monthlyPrice * 12 - annualPrice) / (monthlyPrice * 12) * 100).toInt()
-    
+
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val scrollState = rememberScrollState()
-    
-    // Présenter PaymentSheet quand le clientSecret est disponible
-    LaunchedEffect(pendingClientSecret) {
-        if (pendingClientSecret != null && activity != null) {
-            android.os.Handler(android.os.Looper.getMainLooper()).post {
-                try {
-                    PaymentService.presentPaymentSheet(
-                        activity = activity,
-                        clientSecret = pendingClientSecret!!,
-                        onResult = { paymentResult ->
-                            when (paymentResult) {
-                                is PaymentSheetResult.Completed -> {
-                                    scope.launch {
-                                        // Paiement réussi, confirmer l'abonnement avec le backend
-                                        val token = TokenManager.getToken(context)
-                                        if (token != null) {
-                                            val result = subscriptionRepository.upgradeSubscription(
-                                                token = token,
-                                                plan = "PRO_SELLER"
-                                            )
-                                            result.onSuccess {
-                                                showSuccessDialog = true
-                                                isProcessing = false
-                                                // Appeler le callback pour rafraîchir les données après un court délai
-                                                // pour laisser le backend se mettre à jour
-                                                scope.launch {
-                                                    kotlinx.coroutines.delay(800) // Délai avant de rafraîchir
-                                                    onSubscriptionSuccess?.invoke()
-                                                }
-                                            }.onFailure { error ->
-                                                paymentError = "Paiement réussi mais confirmation échouée: ${error.message}"
-                                                isProcessing = false
-                                            }
-                                        } else {
-                                            paymentError = "Token d'authentification manquant"
-                                            isProcessing = false
-                                        }
-                                    }
-                                }
-                                is PaymentSheetResult.Canceled -> {
-                                    isProcessing = false
-                                    // Ne pas afficher d'erreur pour une annulation
-                                }
-                                is PaymentSheetResult.Failed -> {
-                                    val errorMsg = paymentResult.error?.message ?: "Erreur inconnue"
-                                    paymentError = "Erreur de paiement: $errorMsg"
-                                    isProcessing = false
-                                }
-                            }
-                            pendingClientSecret = null
-                        }
-                    )
-                } catch (e: Exception) {
-                    paymentError = "Erreur: ${e.message ?: "Impossible d'ouvrir le paiement"}"
-                    pendingClientSecret = null
-                    isProcessing = false
-                }
-            }
-        }
-    }
-    
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -188,14 +123,14 @@ fun ProPackDetails(
                     themePrimary = themePrimary,
                     themeText = themeText
                 )
-                
+
                 // Zone 1 - Header visuel (non scrollable)
                 ProPackVisualHeader(
                     themePrimary = themePrimary,
                     themeText = themeText,
                     themeSecondaryText = themeSecondaryText
                 )
-                
+
                 // Zone 2 & 3 combinées - Une seule carte scrollable avec sélecteur prix + avantages + info
                 Column(
                     modifier = Modifier
@@ -229,26 +164,26 @@ fun ProPackDetails(
                                 themeText = themeText,
                                 themeSecondaryText = themeSecondaryText
                             )
-                            
+
                             // Divider
                             HorizontalDivider(
                                 color = themeSecondaryText.copy(alpha = 0.2f),
                                 thickness = 1.dp
                             )
-                            
+
                             // Liste des avantages
                             ProPackFeaturesListContent(
                                 themePrimary = themePrimary,
                                 themeText = themeText,
                                 themeSecondaryText = themeSecondaryText
                             )
-                            
+
                             // Divider
                             HorizontalDivider(
                                 color = themeSecondaryText.copy(alpha = 0.2f),
                                 thickness = 1.dp
                             )
-                            
+
                             // Bloc "Bon à savoir"
                             ProPackInfoBlockContent(
                                 themeText = themeText,
@@ -256,12 +191,12 @@ fun ProPackDetails(
                             )
                         }
                     }
-                    
+
                     // Padding en bas pour le bouton sticky
                     Spacer(modifier = Modifier.height(100.dp))
                 }
             }
-            
+
             // Zone 4 - Bouton CTA sticky (fixe en bas)
             ProPackCTAButton(
                 isProcessing = isProcessing,
@@ -276,29 +211,37 @@ fun ProPackDetails(
                         paymentError = "Vous devez être connecté pour souscrire"
                         return@ProPackCTAButton
                     }
-                    
-                    if (activity != null) {
-                        isProcessing = true
-                        paymentError = null
-                        
-                        scope.launch {
-                            // Calculer le montant selon mensuel/annuel
-                            val amount = if (isAnnual) annualPrice else monthlyPrice
-                            
-                            // Créer le PaymentIntent via Stripe
-                            val result = subscriptionRepository.createSubscriptionPaymentIntent(
-                                token = token,
-                                amount = amount,
-                                currency = "usd"
-                            )
-                            
-                            result.onSuccess { clientSecret ->
-                                // Stocker le clientSecret pour que LaunchedEffect le présente
-                                pendingClientSecret = clientSecret
-                            }.onFailure { error ->
-                                paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
-                                isProcessing = false
+
+                    isProcessing = true
+                    paymentError = null
+
+                    scope.launch {
+                        // ✨ Créer une Checkout Session Stripe
+                        val interval = if (isAnnual) "year" else "month"
+                        val result = subscriptionRepository.createCheckoutSession(
+                            token = token,
+                            plan = "PRO_SELLER",
+                            interval = interval
+                        )
+
+                        result.onSuccess { checkoutResponse ->
+                            isProcessing = false
+                            // ✨ Ouvrir la page Stripe dans le navigateur
+                            try {
+                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutResponse.checkoutUrl))
+                                context.startActivity(intent)
+
+                                // Fermer le modal après ouverture du navigateur
+                                onDismiss()
+
+                                // ✨ L'abonnement sera activé automatiquement par les webhooks Stripe
+                                // quand l'utilisateur complète le paiement
+                            } catch (e: Exception) {
+                                paymentError = "Impossible d'ouvrir le navigateur: ${e.message}"
                             }
+                        }.onFailure { error ->
+                            paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
+                            isProcessing = false
                         }
                     }
                 },
@@ -310,53 +253,14 @@ fun ProPackDetails(
             )
         }
     }
-    
-    // Dialog de succès après paiement
-    if (showSuccessDialog) {
-        AlertDialog(
-            onDismissRequest = {
-                showSuccessDialog = false
-                onDismiss()
-            },
-            title = {
-                Text(
-                    text = "✅ Subscription successful",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF4CAF50)
-                    )
-                )
-            },
-            text = {
-                Text(
-                    text = "Your Pro Seller subscription has been activated successfully!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSuccessDialog = false
-                        onDismiss()
-                    }
-                ) {
-                    Text(
-                        text = "OK",
-                        fontWeight = FontWeight.Bold,
-                        color = themePrimary
-                    )
-                }
-            }
-        )
-    }
-    
+
     // AlertDialog pour les erreurs
     paymentError?.let { error ->
         AlertDialog(
             onDismissRequest = { paymentError = null },
             title = {
                 Text(
-                    text = "Erreur",
+                    text = "Erreur de paiement",
                     fontWeight = FontWeight.Bold
                 )
             },
@@ -399,9 +303,9 @@ private fun ProPackHeader(
                 modifier = Modifier.size(24.dp)
             )
         }
-        
+
         Spacer(modifier = Modifier.weight(1f))
-        
+
         Text(
             text = "Pack Details",
             style = MaterialTheme.typography.headlineSmall.copy(
@@ -410,9 +314,9 @@ private fun ProPackHeader(
             ),
             color = themePrimary
         )
-        
+
         Spacer(modifier = Modifier.weight(1f))
-        
+
         // Espace pour équilibrer avec la flèche
         Spacer(modifier = Modifier.width(40.dp))
     }
@@ -454,7 +358,7 @@ private fun ProPackVisualHeader(
                 modifier = Modifier.size(40.dp)
             )
         }
-        
+
         Text(
             text = "Pro Seller",
             style = MaterialTheme.typography.headlineMedium.copy(
@@ -463,7 +367,7 @@ private fun ProPackVisualHeader(
             ),
             color = themePrimary
         )
-        
+
         Text(
             text = "For professional sellers who want to maximize their sales",
             style = MaterialTheme.typography.bodyMedium.copy(
@@ -523,7 +427,7 @@ private fun ProPackPriceSelectorContent(
                     color = if (!isAnnual) Color.White else themeText
                 )
             }
-            
+
             // Bouton Annuel
             Box(
                 modifier = Modifier
@@ -548,7 +452,7 @@ private fun ProPackPriceSelectorContent(
                         ),
                         color = if (isAnnual) Color.White else themeText
                     )
-                    
+
                     if (isAnnual) {
                         Box(
                             modifier = Modifier
@@ -569,7 +473,7 @@ private fun ProPackPriceSelectorContent(
                 }
             }
         }
-        
+
         // Prix affiché
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -592,7 +496,7 @@ private fun ProPackPriceSelectorContent(
                     ),
                     color = themePrimary
                 )
-                
+
                 Text(
                     text = "DT",
                     style = MaterialTheme.typography.headlineSmall.copy(
@@ -602,48 +506,19 @@ private fun ProPackPriceSelectorContent(
                     color = themePrimary
                 )
             }
-            
-            if (isAnnual) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = "$annualPrice DT / an",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
-                            lineHeight = 18.sp
-                        ),
-                        color = themeSecondaryText
-                    )
-                    
-                    Text(
-                        text = "·",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp
-                        ),
-                        color = themeSecondaryText
-                    )
-                    
-                    Text(
-                        text = "${String.format("%.2f", annualPricePerMonth)} DT/mois",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp,
-                            lineHeight = 18.sp
-                        ),
-                        color = themeSecondaryText
-                    )
-                }
-            } else {
-                Text(
-                    text = "par mois",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 14.sp,
-                        lineHeight = 18.sp
-                    ),
-                    color = themeSecondaryText
-                )
-            }
+
+            Text(
+                text = if (isAnnual) {
+                    "$annualPrice DT / an"
+                } else {
+                    "par mois"
+                },
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontSize = 14.sp,
+                    lineHeight = 18.sp
+                ),
+                color = themeSecondaryText
+            )
         }
     }
 }
@@ -687,7 +562,7 @@ private fun ProPackFeaturesListContent(
             description = "Vous êtes notre priorité"
         )
     )
-    
+
     Column(
         modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(20.dp)
@@ -701,7 +576,7 @@ private fun ProPackFeaturesListContent(
             color = themePrimary,
             modifier = Modifier.padding(bottom = 4.dp)
         )
-        
+
         features.forEach { feature ->
             ProFeatureRow(
                 feature = feature,
@@ -709,7 +584,7 @@ private fun ProPackFeaturesListContent(
                 themeSecondaryText = themeSecondaryText,
                 themePrimary = themePrimary
             )
-            
+
             if (feature != features.last()) {
                 HorizontalDivider(
                     modifier = Modifier.padding(vertical = 4.dp),
@@ -749,7 +624,7 @@ private fun ProFeatureRow(
                 modifier = Modifier.size(20.dp)
             )
         }
-        
+
         // Texte
         Column(
             modifier = Modifier.weight(1f),
@@ -763,7 +638,7 @@ private fun ProFeatureRow(
                 ),
                 color = themeText
             )
-            
+
             Text(
                 text = feature.description,
                 style = MaterialTheme.typography.bodyMedium.copy(
@@ -773,7 +648,7 @@ private fun ProFeatureRow(
                 color = themeSecondaryText
             )
         }
-        
+
         // Coche
         Icon(
             imageVector = Icons.Rounded.CheckCircle,
@@ -804,7 +679,7 @@ private fun ProPackInfoBlockContent(
                 tint = Color(0xFFFF9800),
                 modifier = Modifier.size(20.dp)
             )
-            
+
             Text(
                 text = "Good to know",
                 style = MaterialTheme.typography.titleMedium.copy(
@@ -814,14 +689,14 @@ private fun ProPackInfoBlockContent(
                 color = themeText
             )
         }
-        
+
         val infoItems = listOf(
             "Cancel anytime, no commitment",
             "Change pack whenever you want",
             "Secure payment",
             "Customer support available 24/7"
         )
-        
+
         infoItems.forEach { item ->
             Row(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -833,7 +708,7 @@ private fun ProPackInfoBlockContent(
                     tint = themeSecondaryText.copy(alpha = 0.7f),
                     modifier = Modifier.size(16.dp)
                 )
-                
+
                 Text(
                     text = item,
                     style = MaterialTheme.typography.bodySmall.copy(
@@ -843,7 +718,7 @@ private fun ProPackInfoBlockContent(
                     color = themeSecondaryText
                 )
             }
-            
+
             if (item != infoItems.last()) {
                 Spacer(modifier = Modifier.height(4.dp))
             }
@@ -885,9 +760,9 @@ private fun ProPackCTAButton(
                     .fillMaxWidth()
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF4AA3A2),
+                    containerColor = themePrimary,
                     contentColor = Color.White,
-                    disabledContainerColor = if (hasProPlan) Color.Gray.copy(alpha = 0.3f) else Color(0xFF4AA3A2).copy(alpha = 0.6f)
+                    disabledContainerColor = if (hasProPlan) Color.Gray.copy(alpha = 0.3f) else themePrimary.copy(alpha = 0.6f)
                 ),
                 shape = RoundedCornerShape(16.dp)
             ) {
@@ -929,10 +804,16 @@ private fun ProPackCTAButton(
                     }
                 }
             }
-            
+
             // Safe area padding
             Spacer(modifier = Modifier.height(8.dp))
         }
     }
 }
 
+data class FeatureItem(
+    val icon: ImageVector,
+    val title: String,
+    val description: String,
+    val isLimited: Boolean = false
+)

@@ -73,11 +73,15 @@ import tn.esprit.labasniandroid.models.entities.Outfit
 import tn.esprit.labasniandroid.ui.screen.tenues.TenuesViewModel
 import tn.esprit.labasniandroid.ui.theme.DynamicThemeColors
 import tn.esprit.labasniandroid.api.AIRecommendationResponse
+import tn.esprit.labasniandroid.ui.components.PremiumPackDetails
+import tn.esprit.labasniandroid.ui.components.UpgradeToPremiumDialog
 import tn.esprit.labasniandroid.ui.theme.ThemeController
 import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+
+// Dans TenuesTab.kt - Modifications à apporter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -87,11 +91,9 @@ fun TenuesTab(
     userId: String,
     viewModel: TenuesViewModel = viewModel(),
     onBack: () -> Unit,
-    onOpenFavorites: () -> Unit,
-    onNavigateToStore: () -> Unit = {} // ✨ NOUVEAU: Callback pour naviguer vers le store
+    onOpenFavorites: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
-
     val outfits by viewModel.outfits.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -99,13 +101,12 @@ fun TenuesTab(
     val isGenerating by viewModel.isGenerating.collectAsState()
     val aiSuggestion by viewModel.aiSuggestion.collectAsState()
     val isAccepting by viewModel.isAccepting.collectAsState()
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
-    // Déterminer isMale depuis ThemeVariant (BLUE = MALE, PINK = FEMALE)
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
 
-    // Couleurs dynamiques
     val themePrimary = DynamicThemeColors.primary(isMale)
     val themeSecondary = DynamicThemeColors.secondary(isMale)
     val themeTeal = DynamicThemeColors.teal(isMale)
@@ -115,38 +116,43 @@ fun TenuesTab(
 
     var showStylePopup by remember { mutableStateOf(false) }
 
+    // ✨ ÉTATS pour gérer les dialogues
+    var showPremiumDialog by remember { mutableStateOf(false) }
+    var showPremiumPackDetails by remember { mutableStateOf(false) }
+
     LaunchedEffect(token, userId) {
         if (token.isNotBlank() && userId.isNotBlank()) {
             viewModel.initialize(token, userId)
         }
     }
 
-    // ✨ NOUVEAU: Ne plus utiliser Snackbar pour les erreurs de recommandation
-    // Les erreurs sont maintenant affichées dans une carte dédiée (RecommendationErrorCard)
-    // On garde le Snackbar uniquement pour les autres messages (succès, etc.)
+    // ✨ Détecter les erreurs de limite Premium
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
-            // Détecter si c'est une erreur de recommandation (message contient des mots-clés)
-            val isRecommendationError = message.contains("don't have enough clothes", ignoreCase = true) ||
-                    message.contains("unable to generate", ignoreCase = true) ||
-                    message.contains("recommendation", ignoreCase = true) ||
-                    message.contains("style", ignoreCase = true) ||
-                    message.contains("wardrobe", ignoreCase = true)
-            
-            if (isRecommendationError && aiSuggestion == null && !isGenerating) {
-                // C'est une erreur de recommandation, elle sera affichée dans la carte
-                // Ne rien faire ici, la carte s'affichera automatiquement
+            val isPremiumLimitError = message.contains("limit", ignoreCase = true) ||
+                    message.contains("upgrade", ignoreCase = true) ||
+                    message.contains("premium", ignoreCase = true) ||
+                    message.contains("monthly", ignoreCase = true)
+
+            if (isPremiumLimitError && aiSuggestion == null && !isGenerating) {
+                // Afficher d'abord le petit dialogue
+                showPremiumDialog = true
+                viewModel.clearMessages()
             } else {
-                // Autres erreurs (création d'outfit, etc.) - utiliser Snackbar
-            scope.launch { snackbarHostState.showSnackbar(message) }
-            viewModel.clearMessages()
+                // Autres erreurs - utiliser Snackbar
+                scope.launch {
+                    snackbarHostState.showSnackbar(message)
+                }
+                viewModel.clearMessages()
             }
         }
     }
 
     LaunchedEffect(successMessage) {
         successMessage?.let { message ->
-            scope.launch { snackbarHostState.showSnackbar(message) }
+            scope.launch {
+                snackbarHostState.showSnackbar(message)
+            }
             viewModel.clearMessages()
         }
     }
@@ -156,16 +162,13 @@ fun TenuesTab(
         containerColor = Color.Transparent,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
-            // Bouton favoris dans la toolbar (comme iOS)
             Row(
-            modifier = Modifier
+                modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.End
             ) {
-                IconButton(
-                    onClick = onOpenFavorites
-                ) {
+                IconButton(onClick = onOpenFavorites) {
                     Icon(
                         imageVector = Icons.Filled.Favorite,
                         contentDescription = "Favorites",
@@ -182,145 +185,105 @@ fun TenuesTab(
                 .background(themeBackground)
                 .padding(innerPadding)
         ) {
-            Column(
-                modifier = Modifier.fillMaxSize()
-        ) {
-            // ScrollView principal avec pull to refresh (comme iOS)
-            androidx.compose.foundation.rememberScrollState().let { scrollState ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .verticalScroll(scrollState)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 12.dp)
-                        .padding(bottom = 32.dp),
-                    verticalArrangement = Arrangement.spacedBy(24.dp)
-                ) {
-                    // Header "My Outfits" (comme iOS)
-                    Text(
-                        text = "My Outfits",
-                        style = MaterialTheme.typography.headlineLarge.copy(
-                            fontSize = 36.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = themePrimary,
-                        modifier = Modifier.fillMaxWidth()
-                    )
+            Column(modifier = Modifier.fillMaxSize()) {
+                androidx.compose.foundation.rememberScrollState().let { scrollState ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .verticalScroll(scrollState)
+                            .padding(horizontal = 16.dp)
+                            .padding(top = 12.dp)
+                            .padding(bottom = 32.dp),
+                        verticalArrangement = Arrangement.spacedBy(24.dp)
+                    ) {
+                        Text(
+                            text = "My Outfits",
+                            style = MaterialTheme.typography.headlineLarge.copy(
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = themePrimary,
+                            modifier = Modifier.fillMaxWidth()
+                        )
 
-                    // Suggestion Card principale (comme iOS)
-                    TodaySuggestionCard(
-                        themePrimary = themePrimary,
-                        themeSecondary = themeSecondary,
-                        onSeeSuggestion = { showStylePopup = true },
-                        isLoading = isGenerating
-                    )
-
-                    // ✅ CARTE AI SUGGESTION (si disponible) - comme iOS
-                    aiSuggestion?.let { suggestion ->
-                        AISuggestionCard(
-                            suggestion = suggestion,
-                            isAccepting = isAccepting,
+                        TodaySuggestionCard(
                             themePrimary = themePrimary,
                             themeSecondary = themeSecondary,
-                            themeTeal = themeTeal,
-                            themeCard = themeCard,
-                            themeSecondaryText = themeSecondaryText,
-                            onAccept = {
-                                viewModel.acceptAISuggestion(token)
-                            },
-                            onReject = {
-                                viewModel.rejectAISuggestion(token)
-                            },
-                            context = context
+                            onSeeSuggestion = { showStylePopup = true },
+                            isLoading = isGenerating
                         )
-                    }
-                    
-                    // ✨ NOUVEAU: Carte d'erreur de recommandation (au lieu du Snackbar)
-                    errorMessage?.let { message ->
-                        // Afficher seulement si c'est une erreur de recommandation (pas de suggestion en cours)
-                        if (aiSuggestion == null && !isGenerating) {
-                            RecommendationErrorCard(
-                                message = message,
+
+                        aiSuggestion?.let { suggestion ->
+                            AISuggestionCard(
+                                suggestion = suggestion,
+                                isAccepting = isAccepting,
                                 themePrimary = themePrimary,
                                 themeSecondary = themeSecondary,
+                                themeTeal = themeTeal,
                                 themeCard = themeCard,
                                 themeSecondaryText = themeSecondaryText,
-                                onDismiss = {
-                                    viewModel.clearMessages()
-                                },
-                                onNavigateToStore = onNavigateToStore // ✨ NOUVEAU: Passer le callback
+                                onAccept = { viewModel.acceptAISuggestion(token) },
+                                onReject = { viewModel.rejectAISuggestion(token) },
+                                context = context
                             )
                         }
-                    }
 
-                    // Section Header "Recent Outfits" (comme iOS)
-            Text(
-                        text = "Recent Outfits",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 22.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = themeTeal
-                    )
+                        Text(
+                            text = "Recent Outfits",
+                            style = MaterialTheme.typography.titleLarge.copy(
+                                fontSize = 22.sp,
+                                fontWeight = FontWeight.SemiBold
+                            ),
+                            color = themeTeal
+                        )
 
-                    // États de chargement/erreur/vide
-                    when {
-                        isLoading && outfits.isEmpty() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                                    .padding(16.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                                CircularProgressIndicator(color = themePrimary)
+                        when {
+                            isLoading && outfits.isEmpty() -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(color = themePrimary)
+                                }
+                            }
+                            errorMessage != null && outfits.isEmpty() -> {
+                                Text(
+                                    text = errorMessage ?: "Error",
+                                    color = Color.Red,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp)
+                                )
+                            }
+                            outfits.isEmpty() -> {
+                                EmptyState(themeSecondaryText = themeSecondaryText)
+                            }
+                            else -> {
+                                Column(verticalArrangement = Arrangement.spacedBy(18.dp)) {
+                                    outfits.forEach { outfit ->
+                                        TenueCard(
+                                            outfit = outfit,
+                                            isSuggestion = false,
+                                            themePrimary = themePrimary,
+                                            themeSecondary = themeSecondary,
+                                            themeTeal = themeTeal,
+                                            themeCard = themeCard,
+                                            themeSecondaryText = themeSecondaryText,
+                                            onToggleFavorite = { viewModel.toggleFavorite(outfit.id) },
+                                            onDelete = { viewModel.deleteOutfit(token, outfit.id) },
+                                            isDeleting = viewModel.deletingIds.value.contains(outfit.id),
+                                            context = context
+                                        )
+                                    }
+                                }
                             }
                         }
-                        errorMessage != null && outfits.isEmpty() -> {
-                            Text(
-                                text = errorMessage ?: "Error",
-                                color = Color.Red,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                                    .padding(16.dp)
-                            )
-                        }
-                        outfits.isEmpty() -> {
-                            EmptyState(
-                                themeSecondaryText = themeSecondaryText
-                            )
-                        }
-                        else -> {
-                            // Liste des tenues
-    Column(
-        verticalArrangement = Arrangement.spacedBy(18.dp)
-    ) {
-                                outfits.forEach { outfit ->
-                                    TenueCard(
-                        outfit = outfit,
-                                        isSuggestion = false,
-                                        themePrimary = themePrimary,
-                                        themeSecondary = themeSecondary,
-                                        themeTeal = themeTeal,
-                                        themeCard = themeCard,
-                                        themeSecondaryText = themeSecondaryText,
-                                        onToggleFavorite = {
-                                            viewModel.toggleFavorite(outfit.id)
-                                        },
-                                        onDelete = {
-                                            viewModel.deleteOutfit(token, outfit.id)
-                                        },
-                                        isDeleting = viewModel.deletingIds.value.contains(outfit.id),
-                                        context = context
-                    )
+                    }
                 }
             }
-        }
-    }
-}
-            }
-        }
 
-            // ✅ Overlay de chargement pour la génération AI (comme iOS)
             if (isGenerating) {
                 Box(
                     modifier = Modifier
@@ -351,14 +314,13 @@ fun TenuesTab(
                                 color = Color.White,
                                 textAlign = TextAlign.Center
                             )
-        }
-    }
-}
+                        }
+                    }
+                }
             }
         }
     }
 
-    // StyleSelectionPopup (comme iOS)
     if (showStylePopup) {
         val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         ModalBottomSheet(
@@ -372,7 +334,6 @@ fun TenuesTab(
                 themeSecondary = themeSecondary,
                 isLoading = isGenerating,
                 onStyleSelected = { style ->
-                    // Appeler la recommandation avec le style sélectionné (comme iOS)
                     val preference = when (style.lowercase()) {
                         "casual" -> "casual"
                         "formal" -> "formal"
@@ -386,7 +347,34 @@ fun TenuesTab(
             )
         }
     }
+
+    // ✨ ÉTAPE 1: Afficher le petit dialogue d'alerte
+    if (showPremiumDialog) {
+        UpgradeToPremiumDialog(
+            onDismiss = { showPremiumDialog = false },
+            onUpgrade = {
+                // Fermer le petit dialogue
+                showPremiumDialog = false
+                // Ouvrir le pack details complet
+                showPremiumPackDetails = true
+            }
+        )
+    }
+
+    // ✨ ÉTAPE 2: Afficher le pack details plein écran avec paiement
+    if (showPremiumPackDetails) {
+        PremiumPackDetails(
+            onDismiss = { showPremiumPackDetails = false },
+            onSubscriptionSuccess = {
+                // Rafraîchir les données après souscription réussie
+                viewModel.refresh(token)
+                showPremiumPackDetails = false
+            }
+        )
+    }
 }
+
+// Le reste de votre code (TodaySuggestionCard, StyleSelectionPopup, etc.) reste identique
 
 // MARK: - Today's Suggestion Card (comme iOS)
 @Composable
