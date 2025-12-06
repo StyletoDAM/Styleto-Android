@@ -53,10 +53,14 @@ fun PremiumPackDetails(
     var isAnnual by remember { mutableStateOf(false) }
     var isProcessing by remember { mutableStateOf(false) }
     var paymentError by remember { mutableStateOf<String?>(null) }
-
     var currentPlan by remember { mutableStateOf<String?>(null) }
     var isLoadingPlan by remember { mutableStateOf(true) }
     val hasPremiumPlan = remember(currentPlan) { currentPlan == "PREMIUM" }
+
+    // États pour WebView
+    var showPaymentWebView by remember { mutableStateOf(false) }
+    var paymentUrl by remember { mutableStateOf("") }
+    var token by remember { mutableStateOf("") }
 
     // Récupérer le plan actuel
     LaunchedEffect(Unit) {
@@ -106,133 +110,154 @@ fun PremiumPackDetails(
         dragHandle = null
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            Column(modifier = Modifier.fillMaxSize()) {
-                // Header fixe
-                PremiumPackHeader(
-                    onBackClick = onDismiss,
-                    themePrimary = themePrimary,
-                    themeText = themeText
-                )
-
-                // Header visuel
-                PremiumPackVisualHeader(
-                    themePrimary = themePrimary,
-                    themeText = themeText,
-                    themeSecondaryText = themeSecondaryText
-                )
-
-                // Carte scrollable
-                Column(
-                    modifier = Modifier
-                        .weight(1f)
-                        .verticalScroll(scrollState)
-                ) {
-                    Card(
+            if (showPaymentWebView) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Header pour le WebView avec bouton retour
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 12.dp),
-                        colors = CardDefaults.cardColors(containerColor = themeCard),
-                        shape = RoundedCornerShape(20.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                            .padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Column(
+                        IconButton(onClick = { showPaymentWebView = false }) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Rounded.ArrowBack,
+                                contentDescription = "Back",
+                                tint = themePrimary
+                            )
+                        }
+                        Spacer(Modifier.width(16.dp))
+                        Text(
+                            text = "Secure Payment",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = themePrimary
+                        )
+                    }
+                    PaymentWebView(
+                        url = paymentUrl,
+                        token = token,
+                        subscriptionRepository = subscriptionRepository,
+                        onSuccess = {
+                            showPaymentWebView = false
+                            onSubscriptionSuccess?.invoke()
+                            onDismiss()
+                        },
+                        onCancel = { showPaymentWebView = false },
+                        onError = { error -> paymentError = error }
+                    )
+                }
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // Header fixe
+                    PremiumPackHeader(
+                        onBackClick = onDismiss,
+                        themePrimary = themePrimary,
+                        themeText = themeText
+                    )
+
+                    // Header visuel
+                    PremiumPackVisualHeader(
+                        themePrimary = themePrimary,
+                        themeText = themeText,
+                        themeSecondaryText = themeSecondaryText
+                    )
+
+                    // Carte scrollable
+                    Column(
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(scrollState)
+                    ) {
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(20.dp),
-                            verticalArrangement = Arrangement.spacedBy(24.dp)
+                                .padding(horizontal = 20.dp, vertical = 12.dp),
+                            colors = CardDefaults.cardColors(containerColor = themeCard),
+                            shape = RoundedCornerShape(20.dp),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
                         ) {
-                            PremiumPackPriceSelectorContent(
-                                isAnnual = isAnnual,
-                                onToggle = { isAnnual = it },
-                                monthlyPrice = monthlyPrice,
-                                annualPrice = annualPrice,
-                                annualPricePerMonth = annualPricePerMonth,
-                                discountPercentage = discountPercentage,
-                                themeCard = themeCard,
-                                themePrimary = themePrimary,
-                                themeText = themeText,
-                                themeSecondaryText = themeSecondaryText
-                            )
-
-                            HorizontalDivider(
-                                color = themeSecondaryText.copy(alpha = 0.2f),
-                                thickness = 1.dp
-                            )
-
-                            PremiumPackFeaturesListContent(
-                                themePrimary = themePrimary,
-                                themeText = themeText,
-                                themeSecondaryText = themeSecondaryText
-                            )
-
-                            HorizontalDivider(
-                                color = themeSecondaryText.copy(alpha = 0.2f),
-                                thickness = 1.dp
-                            )
-
-                            PremiumPackInfoBlockContent(
-                                themeText = themeText,
-                                themeSecondaryText = themeSecondaryText
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(100.dp))
-                }
-            }
-
-            // Bouton CTA sticky
-            PremiumPackCTAButton(
-                isProcessing = isProcessing,
-                hasPremiumPlan = hasPremiumPlan,
-                isLoadingPlan = isLoadingPlan,
-                onClick = {
-                    if (hasPremiumPlan) return@PremiumPackCTAButton
-                    val token = TokenManager.getToken(context)
-                    if (token == null) {
-                        paymentError = "Vous devez être connecté pour souscrire"
-                        return@PremiumPackCTAButton
-                    }
-
-                    isProcessing = true
-                    paymentError = null
-
-                    scope.launch {
-                        // ✨ Créer une Checkout Session Stripe
-                        val interval = if (isAnnual) "year" else "month"
-                        val result = subscriptionRepository.createCheckoutSession(
-                            token = token,
-                            plan = "PREMIUM",
-                            interval = interval
-                        )
-
-                        result.onSuccess { checkoutResponse ->
-                            isProcessing = false
-                            // ✨ Ouvrir la page Stripe dans le navigateur
-                            try {
-                                val intent = Intent(Intent.ACTION_VIEW, Uri.parse(checkoutResponse.checkoutUrl))
-                                context.startActivity(intent)
-
-                                // Fermer le modal après ouverture du navigateur
-                                onDismiss()
-
-                                // ✨ L'abonnement sera activé automatiquement par les webhooks Stripe
-                                // quand l'utilisateur complète le paiement
-                            } catch (e: Exception) {
-                                paymentError = "Impossible d'ouvrir le navigateur: ${e.message}"
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                PremiumPackPriceSelectorContent(
+                                    isAnnual = isAnnual,
+                                    onToggle = { isAnnual = it },
+                                    monthlyPrice = monthlyPrice,
+                                    annualPrice = annualPrice,
+                                    annualPricePerMonth = annualPricePerMonth,
+                                    discountPercentage = discountPercentage,
+                                    themeCard = themeCard,
+                                    themePrimary = themePrimary,
+                                    themeText = themeText,
+                                    themeSecondaryText = themeSecondaryText
+                                )
+                                HorizontalDivider(
+                                    color = themeSecondaryText.copy(alpha = 0.2f),
+                                    thickness = 1.dp
+                                )
+                                PremiumPackFeaturesListContent(
+                                    themePrimary = themePrimary,
+                                    themeText = themeText,
+                                    themeSecondaryText = themeSecondaryText
+                                )
+                                HorizontalDivider(
+                                    color = themeSecondaryText.copy(alpha = 0.2f),
+                                    thickness = 1.dp
+                                )
+                                PremiumPackInfoBlockContent(
+                                    themeText = themeText,
+                                    themeSecondaryText = themeSecondaryText
+                                )
                             }
-                        }.onFailure { error ->
-                            paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
-                            isProcessing = false
                         }
+                        Spacer(modifier = Modifier.height(100.dp))
                     }
-                },
-                themePrimary = themePrimary,
-                themeBackground = themeBackground,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-            )
+                }
+
+                // Bouton CTA sticky
+                PremiumPackCTAButton(
+                    isProcessing = isProcessing,
+                    hasPremiumPlan = hasPremiumPlan,
+                    isLoadingPlan = isLoadingPlan,
+                    onClick = {
+                        if (hasPremiumPlan) return@PremiumPackCTAButton
+                        val currentToken = TokenManager.getToken(context)
+                        if (currentToken == null) {
+                            paymentError = "Vous devez être connecté pour souscrire"
+                            return@PremiumPackCTAButton
+                        }
+                        token = currentToken
+                        isProcessing = true
+                        paymentError = null
+                        scope.launch {
+                            // ✨ Créer une Checkout Session Stripe
+                            val interval = if (isAnnual) "year" else "month"
+                            val result = subscriptionRepository.createCheckoutSession(
+                                token = currentToken,
+                                plan = "PREMIUM",
+                                interval = interval
+                            )
+                            result.onSuccess { checkoutResponse ->
+                                isProcessing = false
+                                // ✨ Afficher le WebView au lieu d'ouvrir le navigateur
+                                paymentUrl = checkoutResponse.checkoutUrl
+                                showPaymentWebView = true
+                            }.onFailure { error ->
+                                paymentError = "Erreur: ${error.message ?: "Impossible de créer le paiement"}"
+                                isProcessing = false
+                            }
+                        }
+                    },
+                    themePrimary = themePrimary,
+                    themeBackground = themeBackground,
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                )
+            }
         }
     }
 
@@ -240,19 +265,11 @@ fun PremiumPackDetails(
     paymentError?.let { error ->
         AlertDialog(
             onDismissRequest = { paymentError = null },
-            title = {
-                Text(
-                    text = "Erreur de paiement",
-                    fontWeight = FontWeight.Bold
-                )
-            },
+            title = { Text(text = "Erreur de paiement", fontWeight = FontWeight.Bold) },
             text = { Text(error) },
             confirmButton = {
                 TextButton(onClick = { paymentError = null }) {
-                    Text(
-                        text = "OK",
-                        fontWeight = FontWeight.Bold
-                    )
+                    Text(text = "OK", fontWeight = FontWeight.Bold)
                 }
             }
         )

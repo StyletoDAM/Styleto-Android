@@ -520,7 +520,7 @@ fun DressingTab(
                         value = searchQuery,
                         onValueChange = { searchQuery = it },
                         modifier = Modifier.weight(1f),
-                        placeholder = { Text("Rechercher...") },
+                        placeholder = { Text("Search...") },
                         leadingIcon = {
                             Icon(
                                 imageVector = Icons.Filled.Search,
@@ -540,26 +540,7 @@ fun DressingTab(
                     )
 
                     // Bouton filtre circulaire (comme iOS)
-                    Box(
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(themeAqua)
-                            .shadow(
-                                elevation = 6.dp,
-                                shape = CircleShape,
-                                spotColor = Color.Black.copy(alpha = 0.1f)
-                            )
-                            .clickable { /* TODO: Ouvrir filtre */ },
-                        contentAlignment = Alignment.Center
-                    ) {
-                Icon(
-                            imageVector = Icons.Filled.FilterList,
-                            contentDescription = "Filtre",
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
+
                 }
 
                 // Category Chips (comme iOS)
@@ -1045,30 +1026,7 @@ private fun ClothingCard(
 
                 Spacer(modifier = Modifier.width(8.dp))
 
-                // Trash Button (comme iOS - 32dp)
-                IconButton(
-                    onClick = { if (!isDeleting) onDelete() },
-                    enabled = !isDeleting,
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(CircleShape)
-                        .background(themePrimary.copy(alpha = 0.15f))
-                ) {
-                    if (isDeleting) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(16.dp),
-                            color = themePrimary,
-                            strokeWidth = 2.dp
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Filled.Delete,
-                            contentDescription = "Supprimer",
-                            tint = themePrimary,
-                            modifier = Modifier.size(16.dp)
-                )
-            }
-        }
+
     }
 }
     }

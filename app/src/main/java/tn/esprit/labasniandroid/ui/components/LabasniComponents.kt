@@ -385,7 +385,7 @@ fun LabasniTabBar(
         )
         LabasniTabItem(
             icon = Icons.Rounded.People,
-            label = "Tenues",
+            label = "Outfits",
             isActive = activeTab == LabasniTab.Outfits
         )
         LabasniTabItem(

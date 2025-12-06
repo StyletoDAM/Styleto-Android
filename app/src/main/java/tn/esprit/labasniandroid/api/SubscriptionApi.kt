@@ -39,7 +39,7 @@ interface SubscriptionApi {
         @Header("Authorization") token: String,
         @Query("sessionId") sessionId: String
     ): Response<VerifySessionResponse>
-    @DELETE("/subscriptions/cancel")
+    @POST("/subscriptions/cancel")
     suspend fun cancelSubscription(
         @Header("Authorization") token: String
     ): Response<CancelSubscriptionResponse>

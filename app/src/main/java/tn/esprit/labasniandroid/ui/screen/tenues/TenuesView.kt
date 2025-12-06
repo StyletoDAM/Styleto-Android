@@ -4,12 +4,14 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -22,14 +24,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -80,8 +87,8 @@ import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.ui.input.pointer.pointerInput
 
-// Dans TenuesTab.kt - Modifications à apporter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,7 +98,8 @@ fun TenuesTab(
     userId: String,
     viewModel: TenuesViewModel = viewModel(),
     onBack: () -> Unit,
-    onOpenFavorites: () -> Unit
+    onOpenFavorites: () -> Unit,
+    onNavigateToStore: () -> Unit
 ) {
     val context = androidx.compose.ui.platform.LocalContext.current
     val outfits by viewModel.outfits.collectAsState()
@@ -120,31 +128,21 @@ fun TenuesTab(
     var showPremiumDialog by remember { mutableStateOf(false) }
     var showPremiumPackDetails by remember { mutableStateOf(false) }
 
+    var showErrorCard by remember { mutableStateOf(false) }
+    var errorCardMessage by remember { mutableStateOf("") }
+
     LaunchedEffect(token, userId) {
         if (token.isNotBlank() && userId.isNotBlank()) {
             viewModel.initialize(token, userId)
         }
     }
 
-    // ✨ Détecter les erreurs de limite Premium
+    // ✨ Détecter les erreurs
     LaunchedEffect(errorMessage) {
         errorMessage?.let { message ->
-            val isPremiumLimitError = message.contains("limit", ignoreCase = true) ||
-                    message.contains("upgrade", ignoreCase = true) ||
-                    message.contains("premium", ignoreCase = true) ||
-                    message.contains("monthly", ignoreCase = true)
-
-            if (isPremiumLimitError && aiSuggestion == null && !isGenerating) {
-                // Afficher d'abord le petit dialogue
-                showPremiumDialog = true
-                viewModel.clearMessages()
-            } else {
-                // Autres erreurs - utiliser Snackbar
-                scope.launch {
-                    snackbarHostState.showSnackbar(message)
-                }
-                viewModel.clearMessages()
-            }
+            errorCardMessage = message
+            showErrorCard = true
+            viewModel.clearMessages()
         }
     }
 
@@ -213,6 +211,20 @@ fun TenuesTab(
                             isLoading = isGenerating
                         )
 
+                        if (showErrorCard) {
+                            RecommendationErrorCard(
+                                message = errorCardMessage,
+                                themePrimary = themePrimary,
+                                themeSecondary = themeSecondary,
+                                themeTeal = themeTeal,
+                                themeCard = themeCard,
+                                themeSecondaryText = themeSecondaryText,
+                                onDismiss = { showErrorCard = false },
+                                onNavigateToStore = onNavigateToStore,
+                                onOpenPremiumDetails = { showPremiumPackDetails = true }
+                            )
+                        }
+
                         aiSuggestion?.let { suggestion ->
                             AISuggestionCard(
                                 suggestion = suggestion,
@@ -279,41 +291,6 @@ fun TenuesTab(
                                     }
                                 }
                             }
-                        }
-                    }
-                }
-            }
-
-            if (isGenerating) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(Color.Black.copy(alpha = 0.4f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Card(
-                        modifier = Modifier.padding(32.dp),
-                        shape = RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = themePrimary.copy(alpha = 0.95f))
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(32.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.spacedBy(16.dp)
-                        ) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(48.dp),
-                                color = Color.White,
-                                strokeWidth = 4.dp
-                            )
-                            Text(
-                                text = "AI is creating your perfect outfit...",
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                ),
-                                color = Color.White,
-                                textAlign = TextAlign.Center
-                            )
                         }
                     }
                 }
@@ -438,21 +415,21 @@ private fun TodaySuggestionCard(
                         strokeWidth = 2.dp
                     )
                 } else {
-                Text(
+                    Text(
                         text = "Get AI Suggestion",
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = themePrimary
-                )
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themePrimary
+                    )
                 }
             }
         }
     }
 }
 
-// MARK: - Style Selection Popup (comme iOS)
+// MARK: - Style Selection Popup (comme iOS avec grille 2x3)
 @Composable
 private fun StyleSelectionPopup(
     styles: List<String>,
@@ -462,83 +439,222 @@ private fun StyleSelectionPopup(
     onStyleSelected: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
+    // Définir les 6 styles avec icônes et descriptions
+    val styleData = listOf(
+        StyleItem("Casual", Icons.Filled.ShoppingBag, "Relaxed everyday style"),
+        StyleItem("Elegant", Icons.Filled.Favorite, "Sophisticated and refined"),
+        StyleItem("Sport", Icons.Filled.Check, "Active and athletic"),
+        StyleItem("Vintage", Icons.Filled.CalendarToday, "Classic retro vibes"),
+        StyleItem("Modern", Icons.Filled.Add, "Contemporary and sleek"),
+        StyleItem("Bohemian", Icons.Filled.Info, "Free-spirited and artistic")
+    )
+
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
             .padding(24.dp),
         verticalArrangement = Arrangement.spacedBy(24.dp)
     ) {
-        Text(
-            text = "Which style are you looking for today?",
-            style = MaterialTheme.typography.titleLarge.copy(
-                fontWeight = FontWeight.Bold
-            ),
-            textAlign = TextAlign.Center,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = 20.dp)
-        )
+        // MARK: - Header avec icône sparkles
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Filled.Favorite,
+                contentDescription = null,
+                tint = themePrimary,
+                modifier = Modifier.size(50.dp)
+            )
 
+            Text(
+                text = "Choose Your Style",
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                textAlign = TextAlign.Center
+            )
+
+            Text(
+                text = "Our AI will create the perfect outfit based on current weather and your style preference",
+                style = MaterialTheme.typography.bodyMedium,
+                color = DynamicThemeColors.secondaryText(),
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+        }
+
+        // MARK: - Grille 2x3 des styles
         Column(
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            styles.forEach { style ->
-                Button(
-                    onClick = { onStyleSelected(style) },
-                    enabled = !isLoading,
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color.Transparent
-                    ),
-                    contentPadding = PaddingValues(16.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(RoundedCornerShape(50.dp))
-                            .background(
-                                Brush.linearGradient(
-                                    colors = listOf(themePrimary, themeSecondary),
-                                    start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                                    end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, 0f)
-                                )
-                            )
-                            .padding(16.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        if (isLoading) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                color = Color.White,
-                                strokeWidth = 2.dp
-                            )
-                        } else {
-                        Text(
-                            text = style,
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold
-                            ),
-                            color = Color.White
-                        )
-                        }
-                    }
+            // Première ligne (2 items)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                styleData.take(2).forEach { item ->
+                    StyleCard(
+                        item = item,
+                        themePrimary = themePrimary,
+                        themeSecondary = themeSecondary,
+                        isLoading = isLoading,
+                        onStyleSelected = onStyleSelected,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Deuxième ligne (2 items)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                styleData.slice(2..3).forEach { item ->
+                    StyleCard(
+                        item = item,
+                        themePrimary = themePrimary,
+                        themeSecondary = themeSecondary,
+                        isLoading = isLoading,
+                        onStyleSelected = onStyleSelected,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Troisième ligne (2 items)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                styleData.slice(4..5).forEach { item ->
+                    StyleCard(
+                        item = item,
+                        themePrimary = themePrimary,
+                        themeSecondary = themeSecondary,
+                        isLoading = isLoading,
+                        onStyleSelected = onStyleSelected,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
 
-        Spacer(modifier = Modifier.size(8.dp))
-
+        // MARK: - Bouton Cancel
         TextButton(
             onClick = onDismiss,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 20.dp)
         ) {
-        Text(
+            Text(
                 text = "Cancel",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = FontWeight.Bold
                 ),
                 color = Color.Red
             )
+        }
+    }
+}
+
+// Data class pour les styles
+private data class StyleItem(
+    val name: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val description: String
+)
+
+// MARK: - Style Card Component
+@Composable
+private fun StyleCard(
+    item: StyleItem,
+    themePrimary: Color,
+    themeSecondary: Color,
+    isLoading: Boolean,
+    onStyleSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .aspectRatio(0.75f) // Plus fin qu'avant
+            .shadow(
+                elevation = 6.dp,
+                shape = RoundedCornerShape(24.dp),
+                spotColor = Color.Black.copy(alpha = 0.08f)
+            )
+            .clip(RoundedCornerShape(24.dp))
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        themePrimary.copy(alpha = 0.95f),
+                        themeSecondary.copy(alpha = 0.95f)
+                    )
+                )
+            )
+            .clickable(enabled = !isLoading) {
+                val backendStyle = item.name.lowercase()
+                onStyleSelected(backendStyle)
+            }
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                color = Color.White,
+                strokeWidth = 2.dp
+            )
+        } else {
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                // Icône dans un cercle plus petit
+                Box(
+                    modifier = Modifier
+                        .size(52.dp)
+                        .clip(CircleShape)
+                        .background(Color.White.copy(alpha = 0.25f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = item.icon,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(26.dp)
+                    )
+                }
+
+                // Texte
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(3.dp)
+                ) {
+                    Text(
+                        text = item.name,
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = Color.White
+                    )
+
+                    Text(
+                        text = item.description,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            fontSize = 12.sp
+                        ),
+                        color = Color.White.copy(alpha = 0.85f),
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        lineHeight = 14.sp,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+            }
         }
     }
 }
@@ -558,6 +674,8 @@ private fun TenueCard(
     isDeleting: Boolean = false, // ✨ NOUVEAU
     context: android.content.Context
 ) {
+    var showDeleteConfirmation by remember { mutableStateOf(false) }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -565,7 +683,14 @@ private fun TenueCard(
                 elevation = 12.dp,
                 shape = RoundedCornerShape(28.dp),
                 spotColor = Color.Black.copy(alpha = 0.08f)
-            ),
+            )
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onLongPress = {
+                        showDeleteConfirmation = true
+                    }
+                )
+            },
         shape = RoundedCornerShape(28.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSuggestion) themeCard.copy(alpha = 0.95f) else themeCard
@@ -585,7 +710,7 @@ private fun TenueCard(
             ) {
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
+                ) {
                     Text(
                         text = outfit.eventType ?: "Outfit",
                         style = MaterialTheme.typography.titleLarge.copy(
@@ -596,7 +721,7 @@ private fun TenueCard(
                     )
                     Text(
                         text = "${outfit.clothes.size} article${if (outfit.clothes.size > 1) "s" else ""}",
-                style = MaterialTheme.typography.bodyMedium.copy(
+                        style = MaterialTheme.typography.bodyMedium.copy(
                             fontSize = 14.sp
                         ),
                         color = themeSecondaryText
@@ -609,44 +734,19 @@ private fun TenueCard(
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Bouton favoris
-                IconButton(
-                    onClick = onToggleFavorite,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(themeCard.copy(alpha = 0.8f))
-                ) {
-                        Icon(
-                        imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
-                        contentDescription = "Favorite",
-                        tint = if (outfit.isFavorite) themePrimary else themeSecondary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    }
-                    
-                    // ✨ Bouton suppression (en dessous du cœur)
                     IconButton(
-                        onClick = onDelete,
-                        enabled = !isDeleting,
+                        onClick = onToggleFavorite,
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
                             .background(themeCard.copy(alpha = 0.8f))
                     ) {
-                        if (isDeleting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(20.dp),
-                                strokeWidth = 2.dp,
-                                color = Color.Red
-                            )
-                        } else {
-                            Icon(
-                                imageVector = Icons.Filled.Delete,
-                                contentDescription = "Delete",
-                                tint = Color.Red.copy(alpha = 0.7f),
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
+                        Icon(
+                            imageVector = if (outfit.isFavorite) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = "Favorite",
+                            tint = if (outfit.isFavorite) themePrimary else themeSecondary,
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
                 }
             }
@@ -656,13 +756,13 @@ private fun TenueCard(
                 horizontalArrangement = Arrangement.spacedBy(14.dp)
             ) {
                 outfit.clothes.take(3).forEach { cloth ->
-            AsyncImage(
-                model = ImageRequest.Builder(context)
-                    .data(cloth.imageUrl)
-                    .crossfade(true)
-                    .build(),
-                contentDescription = cloth.name,
-                modifier = Modifier
+                    AsyncImage(
+                        model = ImageRequest.Builder(context)
+                            .data(cloth.imageUrl)
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = cloth.name,
+                        modifier = Modifier
                             .size(56.dp)
                             .clip(RoundedCornerShape(16.dp)),
                         contentScale = ContentScale.Crop
@@ -670,13 +770,13 @@ private fun TenueCard(
                 }
                 // Placeholders si moins de 3
                 repeat(3 - outfit.clothes.take(3).size) {
-        Box(
-            modifier = Modifier
+                    Box(
+                        modifier = Modifier
                             .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
+                            .clip(RoundedCornerShape(16.dp))
                             .background(themeSecondary.copy(alpha = 0.2f)),
-            contentAlignment = Alignment.Center
-        ) {
+                        contentAlignment = Alignment.Center
+                    ) {
                         Icon(
                             imageVector = Icons.Filled.Add,
                             contentDescription = null,
@@ -692,15 +792,15 @@ private fun TenueCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                        Icon(
-                            imageVector = Icons.Filled.CalendarToday,
-                            contentDescription = null,
-                            tint = themeTeal.copy(alpha = 0.7f),
-                            modifier = Modifier.size(16.dp)
-                        )
-            Text(
+                Icon(
+                    imageVector = Icons.Filled.CalendarToday,
+                    contentDescription = null,
+                    tint = themeTeal.copy(alpha = 0.7f),
+                    modifier = Modifier.size(16.dp)
+                )
+                Text(
                     text = formatRelativeDate(outfit.createdAt),
-                style = MaterialTheme.typography.bodyMedium.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         fontSize = 14.sp
                     ),
                     color = themeTeal.copy(alpha = 0.7f)
@@ -709,6 +809,30 @@ private fun TenueCard(
 
             // Boutons Accept/Reject uniquement si suggestion (pas utilisé dans TenueCard normale)
         }
+    }
+
+    if (showDeleteConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirmation = false },
+            title = { Text("Delete Outfit") },
+            text = { Text("Are you sure you want to delete this outfit?") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteConfirmation = false
+                        onDelete()
+                    },
+                    colors = ButtonDefaults.textButtonColors(contentColor = Color.Red)
+                ) {
+                    Text("Yes")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirmation = false }) {
+                    Text("No")
+                }
+            }
+        )
     }
 }
 
@@ -730,7 +854,7 @@ private fun AISuggestionCard(
     val top = outfit.top
     val bottom = outfit.bottom
     val footwear = outfit.footwear
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1086,10 +1210,10 @@ fun FavoriteTab(
 ) {
     val outfits by viewModel.outfits.collectAsState()
     val favorites = remember(outfits) { outfits.filter { it.isFavorite } }
-    
+
     // Déterminer isMale
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
-    
+
     // Couleurs dynamiques
     val themePrimary = DynamicThemeColors.primary(isMale)
     val themeTeal = DynamicThemeColors.teal(isMale)
@@ -1201,17 +1325,30 @@ fun FavoriteTab(
     }
 }
 
-// MARK: - Recommendation Error Card (comme iOS, style UI intégré)
+// MARK: - Recommendation Error Card (comme iOS)
 @Composable
 private fun RecommendationErrorCard(
     message: String,
     themePrimary: Color,
     themeSecondary: Color,
+    themeTeal: Color,
     themeCard: Color,
     themeSecondaryText: Color,
     onDismiss: () -> Unit,
-    onNavigateToStore: () -> Unit // ✨ NOUVEAU: Callback pour naviguer vers le store
+    onNavigateToStore: () -> Unit,
+    onOpenPremiumDetails: () -> Unit
 ) {
+    val isQuotaError = message.lowercase().contains("limit") ||
+            message.lowercase().contains("quota") ||
+            message.lowercase().contains("upgrade") ||
+            message.lowercase().contains("premium") ||
+            message.lowercase().contains("monthly")
+
+    val isMissingClothesError = message.lowercase().contains("missing items") ||
+            message.lowercase().contains("add a top") ||
+            message.lowercase().contains("add a bottom") ||
+            message.lowercase().contains("add a pair of shoes")
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -1221,110 +1358,153 @@ private fun RecommendationErrorCard(
                 spotColor = Color.Black.copy(alpha = 0.1f)
             ),
         shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = themeCard // ✨ MODIFIÉ: Utiliser themeCard (rose/blanc) au lieu d'orange
-        )
+        colors = CardDefaults.cardColors(containerColor = themeCard)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp) // ✨ MODIFIÉ: Réduit de 16 à 12 pour un espacement plus serré
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // Header avec icône et bouton fermer
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Info,
-                        contentDescription = null,
-                        tint = themePrimary, // ✨ MODIFIÉ: Utiliser themePrimary (rose) au lieu d'orange
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Text(
-                        text = "Outfit Recommendation",
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = themePrimary
-                    )
-                }
-                // Bouton pour fermer
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Filled.Close,
-                        contentDescription = "Dismiss",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-            }
-            
-            // Message d'erreur (formaté de manière concise)
-            Text(
-                text = message,
-                style = MaterialTheme.typography.bodySmall.copy(
-                    fontSize = 13.sp, // ✨ MODIFIÉ: Réduit de 14 à 13 pour un texte plus fin
-                    lineHeight = 16.sp // ✨ MODIFIÉ: Réduit de 18 à 16 pour un texte plus compact
-                ),
-                color = themeSecondaryText, // ✨ MODIFIÉ: Utiliser themeSecondaryText au lieu d'orange
-                modifier = Modifier.fillMaxWidth()
-            )
-            
-            // ✨ NOUVEAU: Bouton pour naviguer vers le store
-            Button(
-                onClick = {
-                    onDismiss() // Fermer la carte d'erreur
-                    onNavigateToStore() // Naviguer vers le store
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp), // ✨ MODIFIÉ: Augmenté de 48 à 52 pour plus d'espace
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color.Transparent
-                ),
-                contentPadding = PaddingValues(0.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(50.dp))
-                        .background(
-                            Brush.linearGradient(
-                                colors = listOf(themeSecondary, themePrimary), // ✨ Dégradé rose/blanc comme la carte de suggestion
-                                start = androidx.compose.ui.geometry.Offset(0f, 0f),
-                                end = androidx.compose.ui.geometry.Offset(Float.POSITIVE_INFINITY, 0f)
-                            )
-                        )
-                        .padding(vertical = 14.dp, horizontal = 16.dp), // ✨ MODIFIÉ: Padding vertical augmenté pour éviter l'écrasement
-                    contentAlignment = Alignment.Center
-                ) {
+                verticalAlignment = Alignment.CenterVertically,
+                content = {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            imageVector = Icons.Filled.ShoppingBag, // ✨ NOUVEAU: Icône de shopping bag
+                            imageVector = if (isQuotaError) Icons.Filled.Star else Icons.Filled.Warning,
+                            contentDescription = null,
+                            tint = if (isQuotaError) Color.Yellow else Color(0xFFFFA500),
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                text = if (isQuotaError) "Upgrade Required" else "Unable to Generate",
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = themePrimary
+                            )
+                            if (isQuotaError) {
+                                Text(
+                                    text = "You've reached your monthly limit",
+                                    style = MaterialTheme.typography.bodySmall.copy(fontSize = 11.sp),
+                                    color = themeSecondaryText
+                                )
+                            }
+                        }
+                    }
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(28.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = "Dismiss",
+                            tint = themeSecondaryText,
+                            modifier = Modifier.size(12.dp)
+                        )
+                    }
+                }
+            )
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium.copy(fontSize = 14.sp),
+                color = themeSecondaryText
+            )
+            if (isQuotaError) {
+                Button(
+                    onClick = onOpenPremiumDetails,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = themePrimary),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Star,
                             contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
                         Text(
-                            text = "Go to Store",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.SemiBold,
-                                lineHeight = 20.sp // ✨ NOUVEAU: Ajout de lineHeight pour éviter l'écrasement
-                            ),
-                            color = Color.White
+                            text = "Upgrade to Premium",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
+            } else if (isMissingClothesError) {
+                Button(
+                    onClick = {
+                        onNavigateToStore()
+                        onDismiss()
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = themePrimary),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.AddCircle,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Add More Clothes",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                        )
+                    }
+                }
+            } else {
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(40.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = themeTeal.copy(alpha = 0.1f)),
+                    contentPadding = PaddingValues(horizontal = 16.dp)
+                ) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = null,
+                            tint = themeTeal,
+                            modifier = Modifier.size(20.dp)
+                        )
+                        Text(
+                            text = "Try Again",
+                            color = themeTeal,
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Medium
+                            )
                         )
                     }
                 }

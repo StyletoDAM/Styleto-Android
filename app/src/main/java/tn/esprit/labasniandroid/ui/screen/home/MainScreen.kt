@@ -102,9 +102,9 @@ fun MainScreen(
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
         val id = TokenManager.getUserId(context)
-        
+
         // Log pour déboguer
-        
+
         if (token.isNullOrEmpty() || id.isNullOrEmpty()) {
             tokenMissing = true
         } else {
@@ -117,7 +117,7 @@ fun MainScreen(
             tn.esprit.labasniandroid.utils.CartManager.updateUserId(id, context)
         }
     }
-    
+
     // Synchroniser automatiquement le thème quand l'utilisateur est chargé (comme iOS)
     LaunchedEffect(user) {
         user?.let {
@@ -183,6 +183,7 @@ fun MainScreen(
                             viewModel = tenuesViewModel,
                             onBack = { selectedTab = LabasniHomeTab.Dressing },
                             onOpenFavorites = { showFavorites = true },
+                            onNavigateToStore = { selectedTab = LabasniHomeTab.Store } // ✨ NOUVEAU: Naviguer vers le store
                         )
                     }
                 }
@@ -200,7 +201,7 @@ fun MainScreen(
                         when {
                             // ChatDetailView doit être vérifié en premier pour permettre la navigation depuis MessagingView
                             showChatDetail && chatOwnerId != null -> {
-                                
+
                                 ChatDetailView(
                                     token = authToken,
                                     userId = userId,
@@ -231,23 +232,23 @@ fun MainScreen(
                             showMessaging -> MessagingView(
                                 token = authToken,
                                 userId = userId,
-                                onNavigateBack = { 
-                                    showMessaging = false 
+                                onNavigateBack = {
+                                    showMessaging = false
                                 },
                                 onNavigateToChat = { ownerId, ownerName, ownerAvatar ->
-                                    
+
                                     // ⭐ CORRECTION : Mettre à jour les variables AVANT de changer les flags
                                     // Cela garantit que chatOwnerId est défini avant showChatDetail
                                     chatOwnerId = ownerId
                                     chatOwnerName = ownerName ?: "User"
                                     chatOwnerAvatar = ownerAvatar
                                     chatStoreItem = null
-                                    
+
                                     // ⭐ CORRECTION : Changer les flags dans le bon ordre
                                     // D'abord fermer MessagingView, puis ouvrir ChatDetailView
                                     showMessaging = false
                                     showChatDetail = true
-                                    
+
                                 }
                             )
                             else -> StoreTab(

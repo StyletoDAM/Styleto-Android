@@ -1,4 +1,4 @@
- package tn.esprit.labasniandroid.ui.components
+package tn.esprit.labasniandroid.ui.components
 
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -59,10 +59,10 @@ private fun mapBackendPlanToPlanType(backendPlan: String?): PlanType {
         android.util.Log.w("ViewPackages", "⚠️ Plan null, utilisation FREE par défaut")
         return PlanType.FREE
     }
-    
+
     val normalizedPlan = backendPlan.trim().uppercase()
     android.util.Log.d("ViewPackages", "🔄 Normalisation plan: '$backendPlan' -> '$normalizedPlan'")
-    
+
     return when (normalizedPlan) {
         "PREMIUM" -> {
             android.util.Log.d("ViewPackages", "✅ Plan mappé vers PREMIUM")
@@ -94,11 +94,11 @@ fun ViewPackages(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val subscriptionRepository = remember { SubscriptionRepository() }
-    
+
     var selectedPlan by remember { mutableStateOf(PlanType.FREE) }
     var currentUserPlan by remember { mutableStateOf<PlanType?>(null) }
     var isLoadingPlan by remember { mutableStateOf(true) }
-    
+
     // Récupérer le plan actuel de l'utilisateur
     LaunchedEffect(Unit) {
         val token = TokenManager.getToken(context)
@@ -140,7 +140,7 @@ fun ViewPackages(
             isLoadingPlan = false
         }
     }
-    
+
     // Couleurs dynamiques
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
     val themePrimary = DynamicThemeColors.primary(isMale)
@@ -149,7 +149,7 @@ fun ViewPackages(
     val themeBackground = DynamicThemeColors.background()
     val themeText = DynamicThemeColors.text(isMale)
     val themeSecondaryText = DynamicThemeColors.secondaryText()
-    
+
     // Plans de subscription (exactement comme iOS)
     val plans = remember {
         listOf(
@@ -178,7 +178,7 @@ fun ViewPackages(
                 price = "9.99 DT/month",
                 features = listOf(
                     "Unlimited clothing detection",
-                    "Unlimited outfit suggestions", 
+                    "Unlimited outfit suggestions",
                     "3 items for sale / month",
                     "Personalized 3D Avatar",
                     "Priority support"
@@ -240,7 +240,7 @@ fun ViewPackages(
                         tint = themePrimary
                     )
                 }
-                
+
                 Text(
                     text = "Choose Your Pack",
                     style = MaterialTheme.typography.headlineSmall.copy(
@@ -250,13 +250,13 @@ fun ViewPackages(
                     modifier = Modifier.weight(1f),
                     textAlign = TextAlign.Center
                 )
-                
+
                 // Spacer pour équilibrer le layout
                 Spacer(modifier = Modifier.width(48.dp))
             }
-            
+
             Spacer(modifier = Modifier.height(20.dp))
-            
+
             // Plans list
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(20.dp),
@@ -268,7 +268,7 @@ fun ViewPackages(
                         isSelected = selectedPlan == plan.type,
                         isCurrentPlan = currentUserPlan == plan.type,
                         isLoading = isLoadingPlan,
-                        onSelect = { 
+                        onSelect = {
                             // Ne pas ouvrir les détails si c'est le pack actuel
                             if (currentUserPlan != plan.type) {
                                 selectedPlan = plan.type
@@ -287,7 +287,7 @@ fun ViewPackages(
                         themeSecondaryText = themeSecondaryText
                     )
                 }
-                
+
                 // Tip (comme iOS)
                 item {
                     Card(
@@ -307,7 +307,7 @@ fun ViewPackages(
                                 text = "💡",
                                 style = MaterialTheme.typography.bodyLarge
                             )
-                            
+
                             Text(
                                 text = "Tip: Upgrade to Premium or Pro Seller anytime. Cancel whenever you want, no commitment.",
                                 style = MaterialTheme.typography.labelMedium,
@@ -316,7 +316,7 @@ fun ViewPackages(
                         }
                     }
                 }
-                
+
                 // Bottom padding
                 item {
                     Spacer(modifier = Modifier.height(20.dp))
@@ -345,9 +345,9 @@ private fun PlanCard(
         animationSpec = spring(dampingRatio = 0.75f),
         label = "card_scale"
     )
-    
-    // Structure exactement comme iOS
-    // Structure simplifiée comme iOS
+
+    val clickableEnabled = !isCurrentPlan && plan.type != PlanType.FREE
+
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -363,8 +363,8 @@ private fun PlanCard(
                 brush = plan.backgroundGradient!!,
                 shape = RoundedCornerShape(24.dp)
             )
-            .clickable(enabled = !isCurrentPlan) { 
-                if (!isCurrentPlan) {
+            .clickable(enabled = clickableEnabled) {
+                if (clickableEnabled) {
                     onSelect()
                 }
             }
@@ -381,7 +381,7 @@ private fun PlanCard(
                     )
             )
         }
-        
+
         // Contenu (comme iOS padding(20))
         Column(
             modifier = Modifier.padding(18.dp),
@@ -393,7 +393,7 @@ private fun PlanCard(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End
                 ) {
-                    // Badge "Most Popular" 
+                    // Badge "Most Popular"
                     plan.badge?.let { badge ->
                         Text(
                             text = badge,
@@ -410,12 +410,12 @@ private fun PlanCard(
                                 .padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                     }
-                    
+
                     // Espacement entre badges si les deux sont présents
                     if (plan.badge != null && isCurrentPlan) {
                         Spacer(modifier = Modifier.width(8.dp))
                     }
-                    
+
                     // Badge "Current Pack" (seulement si pas en chargement)
                     if (!isLoading && isCurrentPlan) {
                         Text(
@@ -435,7 +435,7 @@ private fun PlanCard(
                     }
                 }
             }
-            
+
             // Header (EXACTEMENT comme Free Pack - sans badge dans le Row)
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -457,9 +457,9 @@ private fun PlanCard(
                         color = plan.iconColor
                     )
                 }
-                
+
                 Spacer(modifier = Modifier.width(12.dp))
-                
+
                 // Plan info
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp)
@@ -482,7 +482,7 @@ private fun PlanCard(
                     )
                 }
             }
-            
+
             // Features
             Column(
                 verticalArrangement = Arrangement.spacedBy(6.dp)
@@ -498,7 +498,7 @@ private fun PlanCard(
                             tint = themePrimary,
                             modifier = Modifier.size(20.dp)
                         )
-                        
+
                         Text(
                             text = feature,
                             style = MaterialTheme.typography.bodyMedium.copy(fontSize = 15.sp),
@@ -508,7 +508,7 @@ private fun PlanCard(
                     }
                 }
             }
-            
+
             // Action button
             if (isCurrentPlan) {
                 // Pack actuel - Afficher message et désactiver
@@ -543,6 +543,28 @@ private fun PlanCard(
                         )
                     }
                 }
+            } else if (plan.type == PlanType.FREE) {
+                // Free quand non actuel - Message au lieu de bouton
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp)
+                        .background(
+                            Color.Gray.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(16.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "Cancel current pack to return to Free",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themeSecondaryText,
+                        textAlign = TextAlign.Center
+                    )
+                }
             } else {
                 // Pack non actuel - Bouton d'upgrade
                 Button(
@@ -564,9 +586,9 @@ private fun PlanCard(
                 ) {
                     Text(
                         text = when (plan.type) {
-                            PlanType.FREE -> "Select Free Pack"
                             PlanType.PREMIUM -> "Upgrade to Premium"
                             PlanType.PRO -> "Upgrade to Pro Seller"
+                            else -> ""
                         },
                         style = MaterialTheme.typography.bodyLarge.copy(
                             fontSize = 17.sp,
