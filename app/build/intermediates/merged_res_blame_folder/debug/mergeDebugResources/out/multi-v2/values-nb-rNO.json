@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-nb-rNO/values-nb-rNO.xml",
             "map": [
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/dc2ed0bb9625ddc19395502db007542c/transformed/stripe-3ds2-android-6.1.8/res/values-nb-rNO/values-nb-rNO.xml",
+                    "source": "/Users/aziz/.gradle/caches/8.13/transforms/dc2ed0bb9625ddc19395502db007542c/transformed/stripe-3ds2-android-6.1.8/res/values-nb-rNO/values-nb-rNO.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8",
                         "startColumns": "4,4,4,4,4,4,4",

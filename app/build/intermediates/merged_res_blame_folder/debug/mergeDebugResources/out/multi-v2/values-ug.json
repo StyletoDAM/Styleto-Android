@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-ug/values-ug.xml",
             "map": [
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/e785ed1b4fb001e7d42137c8ef9ef405/transformed/hcaptcha-20.49.0/res/values-ug/values-ug.xml",
+                    "source": "/Users/aziz/.gradle/caches/8.13/transforms/e785ed1b4fb001e7d42137c8ef9ef405/transformed/hcaptcha-20.49.0/res/values-ug/values-ug.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",

@@ -6,12 +6,14 @@ data class Cloth(
     val type: String,
     val colorHex: String,
     val imageUrl: String,
+    val processedImageUrl: String? = null,  // Ajout : URL de l'image traitée (transparente)
     val createdAt: String? = null,
-    val season: String? = null, // Spring, Summer, Fall, Winter, All
-    val style: String? = null, // Casual, Elegant, Sport, Vintage, Modern, Bohemian
-    val color: String? = null, // Color name (e.g., "Pink", "Blue")
+    val season: String? = null,
+    val style: String? = null,
+    val color: String? = null,
     val acceptedCount: Int? = null,
-    val rejectedCount: Int? = null
+    val rejectedCount: Int? = null,
+    val isProcessed: Boolean = false,       // Ajout : Flag si prêt pour VTO
+    val processingStatus: String? = "pending"  // Ajout : pending/processing/ready/failed
 )
-
 

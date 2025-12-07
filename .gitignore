@@ -251,3 +251,9 @@ dokka/
 # Build variants
 debug/
 release/
+/app
+/.gradle
+/app/build
+/app/build
+/.gradle
+/app/build

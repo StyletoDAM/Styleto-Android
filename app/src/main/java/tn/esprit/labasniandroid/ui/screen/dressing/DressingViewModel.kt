@@ -53,6 +53,16 @@ class DressingViewModel(
     private val _refreshEvent = MutableStateFlow<Unit>(Unit)
     val refreshEvent: SharedFlow<Unit> = _refreshEvent.asSharedFlow()
 
+    // États VTO ajoutés et rendus publics
+    private val _selectedCloth = MutableStateFlow<Cloth?>(null)
+    val selectedCloth: StateFlow<Cloth?> = _selectedCloth.asStateFlow()
+
+    val _vtoError = MutableStateFlow<String?>(null)
+    val vtoError: StateFlow<String?> = _vtoError.asStateFlow()  // Rendu public via asStateFlow()
+
+    private val _isVTOProcessing = MutableStateFlow(false)
+    val isVTOProcessing: StateFlow<Boolean> = _isVTOProcessing.asStateFlow()
+
     fun loadClothes(token: String) {
         if (_isLoading.value) return
         viewModelScope.launch {
@@ -96,12 +106,12 @@ class DressingViewModel(
      */
     fun detectCloth(bitmap: Bitmap) {
         if (_isDetecting.value) return
-        
+
         if (bitmap.isRecycled) {
             _errorMessage.value = "L'image n'est plus disponible"
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _isDetecting.value = true
@@ -114,7 +124,7 @@ class DressingViewModel(
                     },
                     onFailure = { error ->
                         val message = when (error) {
-                            is NetworkError.Transport -> 
+                            is NetworkError.Transport ->
                                 "Erreur réseau: ${error.error.localizedMessage ?: error.error.message}"
                             is NetworkError.ServerMessage -> error.serverMessage
                             else -> error.message ?: "Erreur inconnue"
@@ -143,18 +153,18 @@ class DressingViewModel(
         season: String
     ) {
         if (_isSaving.value) return
-        
+
         // Validation des données avant envoi
         if (imageURL.isBlank()) {
             _errorMessage.value = "URL d'image manquante"
             return
         }
-        
+
         if (category.isBlank()) {
             _errorMessage.value = "Catégorie manquante"
             return
         }
-        
+
         viewModelScope.launch {
             try {
                 _isSaving.value = true
@@ -172,26 +182,26 @@ class DressingViewModel(
                         // Ajouter à la liste
                         _clothes.value = (listOf(cloth) + _clothes.value)
                             .sortedByDescending { it.createdAt }
-                        
+
                         _successMessage.value = "Vêtement ajouté avec succès."
                         _detectionResult.value = null
-                        
+
                         // Émettre l'événement de refresh (comme NotificationCenter dans iOS)
                         _refreshEvent.emit(Unit)
                     },
                     onFailure = { error ->
                         val message = when (error) {
-                            is NetworkError.Transport -> 
+                            is NetworkError.Transport ->
                                 "Erreur réseau: ${error.error.localizedMessage ?: error.error.message}"
                             is NetworkError.ServerMessage -> error.serverMessage
                             else -> error.message ?: "Erreur inconnue"
                         }
-                        
+
                         // Vérifier si l'erreur est liée au quota
                         val errorMsg = message.lowercase()
-                        if (errorMsg.contains("limite") || 
-                            errorMsg.contains("quota") || 
-                            errorMsg.contains("limit") || 
+                        if (errorMsg.contains("limite") ||
+                            errorMsg.contains("quota") ||
+                            errorMsg.contains("limit") ||
                             errorMsg.contains("exceeded") ||
                             errorMsg.contains("premium") ||
                             errorMsg.contains("403")) {
@@ -233,10 +243,10 @@ class DressingViewModel(
                 onSuccess = { stats ->
                     val used = stats.clothesDetection.used
                     val limit = stats.clothesDetection.limit
-                    
+
                     // Si limit est "unlimited" (String) ou Int.MAX_VALUE, toujours autorisé
                     val isUnlimited = limit == "unlimited" || (limit is Int && limit == Int.MAX_VALUE)
-                    
+
                     if (isUnlimited) {
                         true
                     } else {
@@ -244,7 +254,7 @@ class DressingViewModel(
                         used < limitInt
                     }
                 },
-                onFailure = { 
+                onFailure = {
                     // En cas d'erreur, autoriser quand même (peut être temporaire)
                     true
                 }
@@ -253,5 +263,23 @@ class DressingViewModel(
             // En cas d'exception, autoriser quand même
             true
         }
+    }
+
+    fun loadVTOReadyClothes(token: String) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            dressingRepository.fetchVTOReadyClothes(token).fold(
+                onSuccess = { grouped ->
+                    val allClothes = grouped.flatMap { it.value }
+                    _clothes.value = allClothes.sortedByDescending { it.createdAt }
+                },
+                onFailure = { error -> _errorMessage.value = error.message }
+            )
+            _isLoading.value = false
+        }
+    }
+
+    fun selectCloth(cloth: Cloth) {
+        _selectedCloth.value = cloth
     }
 }

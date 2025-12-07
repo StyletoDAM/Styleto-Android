@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-hdpi-v4/values-hdpi-v4.xml",
             "map": [
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/40e9a617ce32188cbfcbf6589421dfed/transformed/appcompat-1.6.1/res/values-hdpi-v4/values-hdpi-v4.xml",
+                    "source": "/Users/aziz/.gradle/caches/8.13/transforms/40e9a617ce32188cbfcbf6589421dfed/transformed/appcompat-1.6.1/res/values-hdpi-v4/values-hdpi-v4.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
@@ -23,7 +23,7 @@
                     }
                 },
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/db91a3159cf01b3bbb5593e7d134f26b/transformed/payments-core-20.49.0/res/values-hdpi-v4/values-hdpi-v4.xml",
+                    "source": "/Users/aziz/.gradle/caches/8.13/transforms/db91a3159cf01b3bbb5593e7d134f26b/transformed/payments-core-20.49.0/res/values-hdpi-v4/values-hdpi-v4.xml",
                     "from": {
                         "startLines": "2",
                         "startColumns": "4",
