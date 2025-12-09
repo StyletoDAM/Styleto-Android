@@ -26,16 +26,20 @@ class VTOWebSocketManager(private val context: Context) {
         }
 
         try {
+            // ✅ FIX CRITIQUE 1 : Ajouter le namespace /vto
+            val socketUrl = "${APIConstants.BASE_URL}/vto"
+
             val options = IO.Options().apply {
                 forceNew = true
                 reconnection = true
                 reconnectionAttempts = 3
                 reconnectionDelay = 3000
                 timeout = 20000
+                // ✅ FIX CRITIQUE 2 : Token dans query params (comme iOS)
                 query = "token=$token"
             }
 
-            socket = IO.socket(URI.create(APIConstants.BASE_URL), options).apply {
+            socket = IO.socket(URI.create(socketUrl), options).apply {
                 on(Socket.EVENT_CONNECT) {
                     Log.d(tag, "✅ WebSocket VTO connecté")
                     onConnected?.invoke()
@@ -90,10 +94,21 @@ class VTOWebSocketManager(private val context: Context) {
                     Log.e(tag, "❌ Socket error: $error")
                     onError?.invoke(error)
                 }
+
+                // ✅ AJOUT : Écouter l'événement "connected"
+                on("connected") { args ->
+                    try {
+                        val data = args[0] as? JSONObject
+                        val message = data?.optString("message", "Connexion établie")
+                        Log.d(tag, "✅ Backend confirmé: $message")
+                    } catch (e: Exception) {
+                        Log.e(tag, "Erreur parsing connected event", e)
+                    }
+                }
             }
 
             socket?.connect()
-            Log.d(tag, "🔌 Connexion WS VTO initiée...")
+            Log.d(tag, "🔌 Connexion WS VTO initiée sur: $socketUrl")
         } catch (e: Exception) {
             Log.e(tag, "❌ Erreur init WS: ${e.message}", e)
             onError?.invoke("Erreur connexion: ${e.message}")
@@ -106,7 +121,7 @@ class VTOWebSocketManager(private val context: Context) {
             return
         }
 
-        // ✅ FIX CRITIQUE : Vérification null-safe
+        // ✅ FIX CRITIQUE 3 : Vérification null-safe AVANT d'utiliser socket
         val currentSocket = socket
         if (currentSocket == null) {
             Log.e(tag, "❌ Socket est null - connexion non établie")
@@ -121,11 +136,14 @@ class VTOWebSocketManager(private val context: Context) {
         }
 
         try {
+            // ✅ FIX CRITIQUE 4 : Structure EXACTE comme iOS
             val clothesArray = JSONArray().apply {
                 put(JSONObject().apply {
                     put("imageURL", selectedCloth.imageUrl)
+                    // ✅ Priorité à processedImageURL (comme iOS)
                     put("processedImageURL", selectedCloth.processedImageUrl ?: selectedCloth.imageUrl)
-                    put("category", selectedCloth.type)
+                    // ✅ FIX : Normaliser la catégorie en minuscules
+                    put("category", selectedCloth.type.lowercase())
                 })
             }
 
@@ -148,7 +166,6 @@ class VTOWebSocketManager(private val context: Context) {
         Log.d(tag, "🔌 WS VTO déconnecté")
     }
 
-    // ✅ AJOUT : Méthode pour vérifier l'état de connexion
     fun isConnected(): Boolean {
         return socket?.connected() == true
     }

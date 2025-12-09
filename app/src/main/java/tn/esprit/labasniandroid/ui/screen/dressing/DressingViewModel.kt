@@ -3,12 +3,14 @@ package tn.esprit.labasniandroid.ui.screen.dressing
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import tn.esprit.labasniandroid.models.DetectionResult
 import tn.esprit.labasniandroid.models.NetworkError
 import tn.esprit.labasniandroid.models.entities.Cloth
@@ -265,17 +267,31 @@ class DressingViewModel(
         }
     }
 
-    fun loadVTOReadyClothes(token: String) {
-        viewModelScope.launch {
+    suspend fun loadVTOReadyClothes(token: String) {
+        withContext(Dispatchers.Main) {
             _isLoading.value = true
-            dressingRepository.fetchVTOReadyClothes(token).fold(
-                onSuccess = { grouped ->
-                    val allClothes = grouped.flatMap { it.value }
-                    _clothes.value = allClothes.sortedByDescending { it.createdAt }
-                },
-                onFailure = { error -> _errorMessage.value = error.message }
-            )
+        }
+
+        val result = dressingRepository.fetchVTOReadyClothes(token)
+
+        withContext(Dispatchers.Main) {
             _isLoading.value = false
+
+            when {
+                result.isSuccess -> {
+                    val grouped = result.getOrNull() ?: emptyMap()
+                    // ✅ Aplatir toutes les catégories en une seule liste
+                    val allClothes = grouped.values.flatten()
+
+                    _clothes.value = allClothes
+                    android.util.Log.d("DressingViewModel", "✅ ${allClothes.size} vêtements VTO chargés")
+                }
+                result.isFailure -> {
+                    val error = result.exceptionOrNull()
+                    _errorMessage.value = error?.message ?: "Erreur chargement VTO"
+                    android.util.Log.e("DressingViewModel", "❌ Erreur VTO: ${error?.message}")
+                }
+            }
         }
     }
 

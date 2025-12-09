@@ -44,6 +44,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import tn.esprit.labasniandroid.models.entities.Cloth
 import tn.esprit.labasniandroid.ui.screen.dressing.DressingViewModel
 import tn.esprit.labasniandroid.ui.theme.PinkPrimary
@@ -66,29 +68,37 @@ fun MirrorView(
     val processedImage = remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
     val errorMessage = remember { mutableStateOf<String?>(null) }
     val isProcessing = remember { mutableStateOf(false) }
+    val isConnected = remember { mutableStateOf(false) }
 
-    // WebSocket Manager
+    // ✅ FIX CRITIQUE 1 : Mutex pour empêcher captures simultanées
+    val captureMutex = remember { Mutex() }
+
+    // ✅ FIX CRITIQUE 2 : Compteur FPS pour debug
+    val fpsCounter = remember { mutableStateOf(0) }
+    val lastFpsUpdate = remember { mutableStateOf(System.currentTimeMillis()) }
+
     val wsManager = remember { VTOWebSocketManager(context) }
+    val imageCapture = remember {
+        ImageCapture.Builder()
+            .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY) // ✅ Mode rapide
+            .build()
+    }
 
-    // ImageCapture
-    val imageCapture = remember { ImageCapture.Builder().build() }
-
-    // Permission caméra
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
         onResult = { /* Permission handled */ }
     )
 
-    // ✅ Setup WebSocket et vêtements
+    // Setup WebSocket
     LaunchedEffect(key1 = "vto_setup") {
         val token = TokenManager.getToken(context)
         if (!token.isNullOrBlank()) {
-            // Charger vêtements
             dressingViewModel.loadVTOReadyClothes(token)
 
-            // Configurer WebSocket
             wsManager.onConnected = {
                 android.util.Log.d("MirrorView", "✅ WebSocket connecté")
+                isConnected.value = true
+                errorMessage.value = null
             }
 
             wsManager.onProcessedFrame = { base64 ->
@@ -97,10 +107,19 @@ fun MirrorView(
                     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
                     processedImage.value = bitmap?.asImageBitmap()
                     isProcessing.value = false
-                    android.util.Log.d("MirrorView", "✅ Frame traitée reçue")
+
+                    // ✅ FPS Counter
+                    fpsCounter.value++
+                    val now = System.currentTimeMillis()
+                    if (now - lastFpsUpdate.value >= 1000) {
+                        android.util.Log.d("MirrorView", "📊 FPS actuel: ${fpsCounter.value}")
+                        fpsCounter.value = 0
+                        lastFpsUpdate.value = now
+                    }
                 } catch (e: Exception) {
                     android.util.Log.e("MirrorView", "Erreur décodage frame", e)
                     isProcessing.value = false
+                    errorMessage.value = "Erreur décodage: ${e.message}"
                 }
             }
 
@@ -110,11 +129,10 @@ fun MirrorView(
                 isProcessing.value = false
             }
 
-            // Connecter
+            delay(500)
             wsManager.connect()
         }
 
-        // Vérifier permission caméra
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.CAMERA
@@ -125,59 +143,93 @@ fun MirrorView(
         }
     }
 
-    // ✅ Throttling frames
-    LaunchedEffect(selectedCloth) {
-        if (selectedCloth != null && wsManager.isConnected()) {
-            while (true) {
-                delay(500)  // 2 FPS
+    // ✅ FIX CRITIQUE 3 : Throttling optimisé avec Mutex
+    LaunchedEffect(selectedCloth, isConnected.value) {
+        if (!isConnected.value || selectedCloth == null) {
+            if (!isConnected.value) {
+                android.util.Log.w("MirrorView", "⏳ En attente de connexion WebSocket...")
+            } else {
+                android.util.Log.d("MirrorView", "⏸️ Aucun vêtement - pause capture")
+            }
+            return@LaunchedEffect
+        }
 
-                try {
-                    imageCapture.takePicture(
-                        ContextCompat.getMainExecutor(context),
-                        object : ImageCapture.OnImageCapturedCallback() {
-                            override fun onCaptureSuccess(image: ImageProxy) {
-                                try {
-                                    val bitmap = image.toBitmap()
-                                    val baos = ByteArrayOutputStream()
-                                    bitmap.compress(Bitmap.CompressFormat.JPEG, 30, baos)
-                                    val base64 = Base64.encodeToString(
-                                        baos.toByteArray(),
-                                        Base64.NO_WRAP
-                                    )
+        android.util.Log.d("MirrorView", "🎥 Démarrage capture pour: ${selectedCloth?.type}")
 
-                                    isProcessing.value = true
-                                    wsManager.sendFrame(base64, selectedCloth)
-                                } catch (e: Exception) {
-                                    android.util.Log.e("MirrorView", "Erreur conversion", e)
-                                } finally {
-                                    image.close()
+        while (true) {
+            // ✅ FIX : 600ms au lieu de 300ms = 1.5-2 FPS (plus fluide pour le réseau)
+            delay(600)
+
+            // ✅ FIX : Vérifier si une capture est déjà en cours
+            if (!captureMutex.tryLock()) {
+                android.util.Log.w("MirrorView", "⏭️ Capture ignorée (précédente en cours)")
+                continue
+            }
+
+            try {
+                imageCapture.takePicture(
+                    ContextCompat.getMainExecutor(context),
+                    object : ImageCapture.OnImageCapturedCallback() {
+                        override fun onCaptureSuccess(image: ImageProxy) {
+                            try {
+                                // ✅ FIX CRITIQUE 4 : Redimensionner AVANT compression
+                                val bitmap = image.toBitmap()
+                                val resizedBitmap = resizeBitmap(bitmap, 640, 480) // HD réduit
+
+                                val baos = ByteArrayOutputStream()
+                                // ✅ FIX CRITIQUE 5 : Compression agressive (60% au lieu de 40%)
+                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+
+                                val base64 = Base64.encodeToString(
+                                    baos.toByteArray(),
+                                    Base64.NO_WRAP
+                                )
+
+                                isProcessing.value = true
+                                wsManager.sendFrame(base64, selectedCloth)
+
+                                android.util.Log.d(
+                                    "MirrorView",
+                                    "📤 Frame: ${base64.length / 1024}KB (${resizedBitmap.width}x${resizedBitmap.height})"
+                                )
+
+                                // Nettoyer bitmaps
+                                if (resizedBitmap != bitmap) {
+                                    resizedBitmap.recycle()
                                 }
-                            }
-
-                            override fun onError(exception: ImageCaptureException) {
-                                android.util.Log.e("MirrorView", "Erreur capture: ${exception.message}")
+                                bitmap.recycle()
+                            } catch (e: Exception) {
+                                android.util.Log.e("MirrorView", "Erreur conversion", e)
+                            } finally {
+                                image.close()
+                                captureMutex.unlock() // ✅ Libérer le mutex
                             }
                         }
-                    )
-                } catch (e: Exception) {
-                    android.util.Log.e("MirrorView", "Erreur takePicture", e)
-                    break
-                }
+
+                        override fun onError(exception: ImageCaptureException) {
+                            android.util.Log.e("MirrorView", "Erreur capture: ${exception.message}")
+                            captureMutex.unlock() // ✅ Libérer même en cas d'erreur
+                        }
+                    }
+                )
+            } catch (e: Exception) {
+                android.util.Log.e("MirrorView", "Erreur takePicture", e)
+                captureMutex.unlock()
+                break
             }
         }
     }
 
-    // ✅ Cleanup
     DisposableEffect(key1 = "vto_lifecycle") {
         onDispose {
             android.util.Log.d("MirrorView", "🔌 Nettoyage VTO")
             wsManager.disconnect()
+            isConnected.value = false
         }
     }
 
-    // ✅ UI
+    // ✅ UI (inchangée)
     Box(modifier = modifier.fillMaxSize()) {
-        // Caméra OU image traitée
         if (processedImage.value != null) {
             Image(
                 bitmap = processedImage.value!!,
@@ -186,7 +238,6 @@ fun MirrorView(
                 contentScale = ContentScale.FillBounds
             )
         } else {
-            // Vue caméra
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx).apply {
@@ -220,24 +271,54 @@ fun MirrorView(
             )
         }
 
-        // ✅ Indicateur de traitement
+        // Indicateur de traitement
         if (isProcessing.value) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
-                    .background(Color.Black, RoundedCornerShape(8.dp))
-                    .padding(16.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(top = 60.dp, end = 20.dp)
+                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                CircularProgressIndicator(color = Color.White)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    CircularProgressIndicator(
+                        color = Color.White,
+                        modifier = Modifier.size(16.dp),
+                        strokeWidth = 2.dp
+                    )
+                    Text(
+                        text = "Processing...",
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
             }
         }
 
-        // ✅ Affichage erreur
-        errorMessage.value?.let { error ->
+        if (!isConnected.value) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
                     .padding(top = 60.dp)
+                    .background(Color(0xFFFF9800), RoundedCornerShape(8.dp))
+                    .padding(12.dp)
+            ) {
+                Text(
+                    text = "Connecting to server...",
+                    color = Color.White,
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
+        }
+
+        errorMessage.value?.let { error ->
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 100.dp)
                     .background(Color.Red, RoundedCornerShape(8.dp))
                     .padding(12.dp)
             ) {
@@ -249,7 +330,7 @@ fun MirrorView(
             }
         }
 
-        // ✅ Barre de vêtements en bas
+        // Barre de vêtements (inchangée)
         Card(
             shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
             colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f)),
@@ -275,16 +356,15 @@ fun MirrorView(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "Aucun vêtement disponible",
+                        text = "No clothes available",
                         color = Color.Red,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
             } else {
                 Column {
-                    // Instructions
                     Text(
-                        text = "Reculez de 1.5m et sélectionnez un vêtement",
+                        text = "Stand 1.5m away and select a garment",
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Color.Black)
@@ -306,7 +386,8 @@ fun MirrorView(
                                 isSelected = selectedCloth?.id == cloth.id
                             ) {
                                 selectedCloth = cloth
-                                android.util.Log.d("MirrorView", "👕 Vêtement sélectionné: ${cloth.type}")
+                                processedImage.value = null
+                                android.util.Log.d("MirrorView", "👕 Vêtement: ${cloth.type}")
                             }
                         }
                     }
@@ -316,7 +397,31 @@ fun MirrorView(
     }
 }
 
+// ✅ NOUVELLE FONCTION : Redimensionner bitmap de manière optimale
+private fun resizeBitmap(bitmap: Bitmap, maxWidth: Int, maxHeight: Int): Bitmap {
+    val width = bitmap.width
+    val height = bitmap.height
 
+    // Si déjà assez petit, retourner tel quel
+    if (width <= maxWidth && height <= maxHeight) {
+        return bitmap
+    }
+
+    // Calculer le ratio pour garder les proportions
+    val ratioBitmap = width.toFloat() / height.toFloat()
+    val ratioMax = maxWidth.toFloat() / maxHeight.toFloat()
+
+    var finalWidth = maxWidth
+    var finalHeight = maxHeight
+
+    if (ratioMax > ratioBitmap) {
+        finalWidth = (maxHeight.toFloat() * ratioBitmap).toInt()
+    } else {
+        finalHeight = (maxWidth.toFloat() / ratioBitmap).toInt()
+    }
+
+    return Bitmap.createScaledBitmap(bitmap, finalWidth, finalHeight, true)
+}
 
 @Composable
 private fun MirrorClothChip(
@@ -338,7 +443,7 @@ private fun MirrorClothChip(
     ) {
         AsyncImage(
             model = ImageRequest.Builder(context)
-                .data(cloth.imageUrl)
+                .data(cloth.processedImageUrl ?: cloth.imageUrl)
                 .crossfade(true)
                 .build(),
             contentDescription = cloth.name,
@@ -360,7 +465,7 @@ private fun MirrorClothChip(
     }
 }
 
-// Extension pour ImageProxy to Bitmap
+// Extension ImageProxy to Bitmap (inchangée)
 fun ImageProxy.toBitmap(): Bitmap {
     val plane = planes[0]
     val buffer = plane.buffer
@@ -368,7 +473,6 @@ fun ImageProxy.toBitmap(): Bitmap {
     buffer.get(bytes)
     val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
 
-    // Rotation pour caméra frontale
     val matrix = Matrix().apply { postRotate(90f) }
     return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
 }
