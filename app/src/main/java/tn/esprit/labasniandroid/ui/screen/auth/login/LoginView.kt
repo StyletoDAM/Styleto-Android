@@ -93,14 +93,12 @@ fun LoginView(
     var passwordVisible by remember { mutableStateOf(false) }
 
     // Configuration Google Sign-In
-    // ✨ NOUVEAU : Client ID depuis BuildConfig (depuis local.properties)
-    // Ajoutez GOOGLE_CLIENT_ID dans local.properties avec votre Client ID Android
-    // Pour Android, vous devez créer un Client ID Android dans Google Cloud Console
-    // et ajouter le SHA-1 de votre clé de signature
-    val googleClientId = BuildConfig.GOOGLE_CLIENT_ID.ifBlank { 
-        // Fallback vers le Client ID iOS si non configuré (pour tests)
-        "654276245605-bj14tf7v33v9cucd6cgq99d9jcfr5mud.apps.googleusercontent.com"
-    }
+    // Client ID depuis BuildConfig (depuis local.properties) - Simple comme iOS
+    // Le GOOGLE_CLIENT_ID doit être configuré dans local.properties
+    val googleClientId = BuildConfig.GOOGLE_CLIENT_ID
+    
+    // Log pour debug
+    Log.d("GoogleSignIn", "Using Google Client ID: $googleClientId")
     
     val googleSignInOptions = remember {
         GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)

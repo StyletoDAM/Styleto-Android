@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-en-rSG/values-en-rSG.xml",
             "map": [
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/eb02e4d4e9af5338b5a53021da06821e/transformed/play-services-wallet-19.3.0/res/values-en-rSG/values.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/eb02e4d4e9af5338b5a53021da06821e/transformed/play-services-wallet-19.3.0/res/values-en-rSG/values.xml",
                     "from": {
                         "startLines": "4,5",
                         "startColumns": "0,0",

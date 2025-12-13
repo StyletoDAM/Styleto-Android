@@ -4,7 +4,7 @@
             "outputFile": "tn.esprit.labasniandroid.app-mergeDebugResources-88:/values-large-v4/values-large-v4.xml",
             "map": [
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/19fa1d52f7d1d6b223a180da2ca9edef/transformed/material-1.11.0/res/values-large-v4/values-large-v4.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/19fa1d52f7d1d6b223a180da2ca9edef/transformed/material-1.11.0/res/values-large-v4/values-large-v4.xml",
                     "from": {
                         "startLines": "2,3,4,5",
                         "startColumns": "4,4,4,4",
@@ -21,7 +21,7 @@
                     }
                 },
                 {
-                    "source": "/Users/salmamahjoub/.gradle/caches/8.13/transforms/40e9a617ce32188cbfcbf6589421dfed/transformed/appcompat-1.6.1/res/values-large-v4/values-large-v4.xml",
+                    "source": "/Users/mac/.gradle/caches/8.13/transforms/40e9a617ce32188cbfcbf6589421dfed/transformed/appcompat-1.6.1/res/values-large-v4/values-large-v4.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10",
                         "startColumns": "4,4,4,4,4,4,4,4,4",

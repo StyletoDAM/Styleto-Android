@@ -1,5 +1,7 @@
 # Built application files
 *.apk
+*.aar
+*.ap_
 *.aab
 
 # Files for the ART/Dalvik VM
@@ -12,12 +14,14 @@
 bin/
 gen/
 out/
-#  Uncomment the following line in case you need and you don't have the release build type files in your app
-# release/
+release/
 
 # Gradle files
 .gradle/
 build/
+!gradle/wrapper/gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -36,26 +40,156 @@ captures/
 
 # IntelliJ
 *.iml
+.idea/
 .idea/workspace.xml
 .idea/tasks.xml
 .idea/gradle.xml
 .idea/assetWizardSettings.xml
 .idea/dictionaries
 .idea/libraries
-# Android Studio 3 in .gitignore file.
+.idea/jarRepositories.xml
 .idea/caches
 .idea/modules.xml
-# Comment next line if keeping position of elements in Navigation Editor is relevant for you
+.idea/.name
+.idea/compiler.xml
+.idea/misc.xml
+.idea/vcs.xml
+.idea/shelf/
 .idea/navEditor.xml
 
 # Keystore files
-# Uncomment the following lines if you do not want to check your keystore files in.
-#*.jks
-#*.keystore
+*.jks
+*.keystore
+*.key
 
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 .cxx/
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Freeline
+freeline.py
+freeline/
+freeline_project_description.json
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/readme.md
+
+# Version control
+vcs.xml
+
+# lint
+lint/intermediates/
+lint/generated/
+lint/outputs/
+lint/tmp/
+*.lint
+
+# Android Profiling
+*.hprof
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+*~
+
+# Kotlin
+*.kt.swp
+*.kt.bak
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# NDK
+obj/
+.externalNativeBuild/
+
+# Signing files
+signing.properties
+
+# App Bundle
+*.aab
+
+# APK files
+*.apk
+*.apks
+*.ap_
+*.aab
+
+# Bundle files
+*.bundle
+
+# Android Studio
+*.iml
+.gradle
+local.properties
+.idea/
+*.swp
+*.swo
+*~
+
+# Build files
+build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+
+# NDK
+obj/
+
+# Generated files
+gen/
+out/
+bin/
+
+# Proguard
+proguard/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual machine crash logs
+hs_err_pid*
+
+# Android Studio 3 in .gitignore file.
+.idea/caches
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+.idea/dictionaries
+.idea/shelf/
 
 # Google Services (e.g. APIs or Firebase)
 # google-services.json
@@ -80,180 +214,193 @@ lint/intermediates/
 lint/generated/
 lint/outputs/
 lint/tmp/
-# lint/reports/
+*.lint
 
 # Android Profiling
 *.hprof
 
-# macOS specific files
+# macOS
 .DS_Store
-.DS_Store?
+.AppleDouble
+.LSOverride
+Icon
 ._*
+.DocumentRevisions-V100
+.fseventsd
 .Spotlight-V100
+.TemporaryItems
 .Trashes
-ehthumbs.db
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
 Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
 
-# Xcode (if you have any iOS components)
-*.xcodeproj
-*.xcworkspace
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
 
-# Android Studio
+# JetBrains IDEs
 .idea/
-*.iws
-/out/
-
-# Gradle Wrapper (uncomment if you want to ignore gradle wrapper)
-# gradle/wrapper/gradle-wrapper.jar
-# gradle/wrapper/gradle-wrapper.properties
-
-# NDK
-obj/
-
-# IntelliJ IDEA
-.idea/
-*.iws
 *.iml
+*.iws
 *.ipr
+out/
+
+# VS Code
+.vscode/
+*.code-workspace
 
 # Eclipse
 .classpath
 .project
-.metadata
+.settings/
 bin/
 tmp/
 *.tmp
 *.bak
 *.swp
 *~.nib
-.settings/
+local.properties
 .loadpath
-.externalToolBuilders/
-.cproject
-.autotools
+.recommenders
 
-# Maven
-target/
-pom.xml.tag
-pom.xml.releaseBackup
-pom.xml.versionsBackup
-pom.xml.next
-release.properties
-dependency-reduced-pom.xml
-buildNumber.properties
-.mvn/timing.properties
+# NetBeans
+nbproject/private/
+build/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
 
-# Avoid ignoring Maven wrapper jar file (.jar files are usually ignored)
-!/.mvn/wrapper/maven-wrapper.jar
-
-# Crashlytics configuations
-com_crashlytics_export_strings.xml
-crashlytics.properties
-crashlytics-build.properties
-fabric.properties
-
-# Signing files
-.signing/
-
-# User-specific configurations
-.idea/libraries/
-.idea/workspace.xml
-.idea/tasks.xml
-.idea/.name
-.idea/compiler.xml
-.idea/copyright/profiles_settings.xml
-.idea/encodings.xml
-.idea/misc.xml
-.idea/modules.xml
-.idea/scopes/scope_settings.xml
-.idea/vcs.xml
+# Android Studio
 *.iml
+.gradle
+local.properties
+.idea/
+*.swp
+*.swo
+*~
 
-# OS generated files
-.DS_Store
-.DS_Store?
-._*
-.Spotlight-V100
-.Trashes
-ehthumbs.db
-Thumbs.db
+# Build files
+build/
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
 
-# Android Profiling
-*.hprof
+# NDK
+obj/
 
-# ARCore
-app/libs/arcore*.aar
+# Generated files
+gen/
+out/
+bin/
 
-# Secrets and API keys (IMPORTANT for security)
-secrets.properties
-google-services.json
-app/google-services.json
-app/src/main/res/values/secrets.xml
-app/src/debug/res/values/secrets.xml
-app/src/release/res/values/secrets.xml
+# Proguard
+proguard/
 
-# Stripe keys (if using Stripe)
-stripe.properties
-
-# Firebase
-app/src/main/google-services.json
-app/src/debug/google-services.json
-app/src/release/google-services.json
-
-# Backup files
-*.backup
-*.bak
+# Logs
+*.log
+logs/
 
 # Temporary files
 *.tmp
 *.temp
+*.bak
+*.swp
+*.swo
 
-# Cache directories
-.cache/
-node_modules/
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Virtual machine crash logs
+hs_err_pid*
 
 # Kotlin
-*.kt~
+*.kt.swp
+*.kt.bak
 
-# R8/ProGuard
-app/proguard-rules.pro
-consumer-rules.pro
-mapping.txt
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
 
-# Kapt (Kotlin Annotation Processing)
-.kapt/
-kapt3/
+# NDK
+obj/
+.externalNativeBuild/
 
-# Dagger Hilt
-.hilt/
+# Signing files
+signing.properties
 
-# Room database schemas (uncomment if you want to version them)
-# app/schemas/
+# App Bundle
+*.aab
 
-# Test results
-test-results/
-androidTest-results/
+# APK files
+*.apk
+*.apks
+*.ap_
+*.aab
 
-# Coverage reports
+# Bundle files
+*.bundle
+
+# Firebase
+google-services.json
+google-services.json.bak
+
+# Crashlytics
+crashlytics.properties
+crashlytics-build.properties
+
+# Fabric
+fabric.properties
+
+# App signing
+keystore.properties
+*.keystore
+*.jks
+
+# ProGuard
+proguard-rules.pro.bak
+
+# Testing
+/android/app/src/androidTest/res/
+/android/app/src/test/res/
+
+# Coverage
 coverage/
-jacoco/
+*.coverage
+.nyc_output/
 
-# Detekt
-detekt-report.html
-detekt-report.xml
-
-# KtLint
-ktlint-report.txt
-
-# Dokka documentation
-dokka/
-
-# Build variants
-debug/
-release/
-/app
-/.gradle
-/app/build
-/app/build
-/.gradle
-/app/build
+# Misc
+*.orig
+*.rej
+*~
+.#*

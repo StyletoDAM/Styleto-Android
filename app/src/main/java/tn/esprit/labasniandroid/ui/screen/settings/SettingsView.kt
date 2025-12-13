@@ -1144,11 +1144,10 @@ fun OrderHistoryCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp)
             .shadow(
-                elevation = 8.dp,
+                elevation = 10.dp,
                 shape = RoundedCornerShape(20.dp),
-                spotColor = themePrimary.copy(alpha = 0.3f)
+                spotColor = Color.Black.copy(alpha = 0.05f)
             ),
         colors = CardDefaults.cardColors(containerColor = themeCard),
         shape = RoundedCornerShape(20.dp)
@@ -1157,33 +1156,26 @@ fun OrderHistoryCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onNavigateToOrders() }
-                .padding(20.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icône avec gradient
+                // Icône avec cercle (exactement comme iOS)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(
-                            brush = Brush.linearGradient(
-                                colors = listOf(
-                                    themePrimary.copy(alpha = 0.9f),
-                                    themePrimary.copy(alpha = 0.7f)
-                                )
-                            )
-                        ),
+                        .clip(CircleShape)
+                        .background(themePrimary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Filled.ShoppingBag,
                         contentDescription = "Order History",
-                        tint = Color.White,
-                        modifier = Modifier.size(28.dp)
+                        tint = themePrimary,
+                        modifier = Modifier.size(24.dp)
                     )
                 }
                 
@@ -1194,28 +1186,28 @@ fun OrderHistoryCard(
                 ) {
                     Text(
                         text = "Order History",
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.SemiBold
                         ),
                         color = themeText
                     )
                     
                     Text(
-                        text = "View all your past orders",
+                        text = "View your purchase history",
                         style = MaterialTheme.typography.bodyMedium.copy(
-                            fontSize = 14.sp
+                            fontSize = 13.sp
                         ),
                         color = themeSecondaryText
                     )
                 }
                 
-                // Chevron
+                // Chevron (exactement comme iOS: 14.sp)
                 Icon(
                     imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
                     contentDescription = "View orders",
                     tint = themePrimary,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(14.dp)
                 )
             }
         }

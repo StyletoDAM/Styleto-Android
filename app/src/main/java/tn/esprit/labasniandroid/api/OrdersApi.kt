@@ -10,6 +10,11 @@ interface OrdersApi {
         @Header("Authorization") token: String
     ): Response<List<OrderResponse>>
 
+    @GET("/orders/history")
+    suspend fun getUnifiedHistory(
+        @Header("Authorization") token: String
+    ): Response<List<HistoryItemResponse>>
+
     @POST("/orders")
     suspend fun createOrder(
         @Header("Authorization") token: String,
@@ -54,4 +59,21 @@ data class CreateOrderRequest(
     @SerializedName("clothesId") val clothesId: String,
     @SerializedName("price") val price: Double
 )
+
+// MARK: - History Models (exactement comme iOS)
+data class HistoryItemResponse(
+    @SerializedName("_id") val id: String,
+    @SerializedName("type") val type: String, // "Purchased" ou "Sold"
+    @SerializedName("clothesId") val clothesId: ClothInfo,
+    @SerializedName("price") val price: Double,
+    @SerializedName("date") val date: String, // ISO8601 date string
+    @SerializedName("createdAt") val createdAt: String?,
+    @SerializedName("size") val size: String?
+) {
+    val isPurchased: Boolean
+        get() = type == "Purchased"
+    
+    val isSold: Boolean
+        get() = type == "Sold"
+}
 

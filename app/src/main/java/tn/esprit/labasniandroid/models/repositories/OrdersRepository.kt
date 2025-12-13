@@ -53,5 +53,25 @@ class OrdersRepository(
             Result.failure(NetworkError.Transport(exception))
         }
     }
+    
+    // MARK: - Get Unified History (exactement comme iOS)
+    suspend fun getUnifiedHistory(token: String): Result<List<tn.esprit.labasniandroid.api.HistoryItemResponse>> {
+        return try {
+            val response = ordersApi.getUnifiedHistory("Bearer $token")
+            
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de récupérer l'historique."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
 }
 
