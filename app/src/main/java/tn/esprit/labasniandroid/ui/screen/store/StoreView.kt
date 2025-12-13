@@ -38,6 +38,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowDropUp
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
@@ -957,6 +960,50 @@ private fun ProductCard(
                     )
                 }
 
+                // Tag condition en haut à droite (étiquette moderne)
+                if (!storeItem.condition.isNullOrBlank()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(8.dp),
+                        contentAlignment = Alignment.TopEnd
+                    ) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier
+                                .background(
+                                    storeItem.getConditionColor().copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(50.dp)
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = storeItem.getConditionColor().copy(alpha = 0.4f),
+                                    shape = RoundedCornerShape(50.dp)
+                                )
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(5.dp)
+                                    .background(
+                                        storeItem.getConditionColor(),
+                                        shape = CircleShape
+                                    )
+                            )
+                            Text(
+                                text = storeItem.getConditionDisplayName(),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    fontSize = 9.sp,
+                                    color = storeItem.getConditionColor()
+                                ),
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
+
                 // Badge "SOLD" (comme iOS)
                 if (!isAvailable) {
                     Box(
@@ -1137,6 +1184,7 @@ private fun AddToStoreSheet(
     val selectedSize by viewModel.selectedSize.collectAsState()
     val shoeSizeInput by viewModel.shoeSizeInput.collectAsState()
     val isShoes by viewModel.isShoes.collectAsState()
+    val selectedCondition by viewModel.selectedCondition.collectAsState()
     
     val context = LocalContext.current
     val sheetState = androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -1241,6 +1289,17 @@ private fun AddToStoreSheet(
                 themeCard = themeCard,
                 themeText = themeText
             )
+            
+            // Condition Picker (seulement si un vêtement est sélectionné)
+            if (selectedClothe != null) {
+                ConditionPicker(
+                    selectedCondition = selectedCondition,
+                    onConditionSelected = { viewModel.setSelectedCondition(it) },
+                    themeText = themeText,
+                    themePrimary = themePrimary,
+                    themeCard = themeCard
+                )
+            }
 
             // Buttons
             Row(
@@ -1971,6 +2030,119 @@ private fun StoreTabButton(
                     color = textColor
                 )
             )
+        }
+    }
+}
+
+// Condition Dropdown (comme iOS - Menu simple)
+@Composable
+private fun ConditionPicker(
+    selectedCondition: String,
+    onConditionSelected: (String) -> Unit,
+    themeText: Color,
+    themePrimary: Color,
+    themeCard: Color
+) {
+    var expanded by remember { mutableStateOf(false) }
+    
+    val conditions = listOf("new", "used", "damaged")
+    val displayNames = mapOf(
+        "new" to "New",
+        "used" to "Used",
+        "damaged" to "Damaged"
+    )
+    
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        Text(
+            text = "Product Condition",
+            style = MaterialTheme.typography.titleMedium.copy(
+                color = themeText,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+        
+        // Menu comme iOS - Box clickable simple
+        Box(modifier = Modifier.fillMaxWidth()) {
+            // Champ clickable
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp)
+                    .clickable { expanded = true }
+                    .background(
+                        Color.Transparent,
+                        RoundedCornerShape(16.dp)
+                    )
+                    .border(
+                        width = 1.dp,
+                        color = themeText.copy(alpha = 0.3f),
+                        shape = RoundedCornerShape(16.dp)
+                    )
+                    .padding(horizontal = 16.dp),
+                contentAlignment = Alignment.CenterStart
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = displayNames[selectedCondition] ?: "New",
+                        style = MaterialTheme.typography.bodyMedium.copy(
+                            color = themeText
+                        )
+                    )
+                    Icon(
+                        imageVector = Icons.Filled.ArrowDropDown,
+                        contentDescription = null,
+                        tint = themeText
+                    )
+                }
+            }
+            
+            // DropdownMenu
+            androidx.compose.material3.DropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(themeCard, RoundedCornerShape(12.dp))
+            ) {
+                conditions.forEach { condition ->
+                    androidx.compose.material3.DropdownMenuItem(
+                        text = {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = displayNames[condition] ?: condition,
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                                if (selectedCondition == condition) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Check,
+                                        contentDescription = null,
+                                        tint = themePrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            onConditionSelected(condition)
+                            expanded = false
+                        },
+                        colors = androidx.compose.material3.MenuDefaults.itemColors(
+                            textColor = themeText
+                        )
+                    )
+                }
+            }
         }
     }
 }

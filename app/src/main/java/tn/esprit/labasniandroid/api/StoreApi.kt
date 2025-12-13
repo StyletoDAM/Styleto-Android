@@ -62,6 +62,7 @@ data class StoreItemResponse(
     @SerializedName("price") val price: Double,
     @SerializedName("size") val size: String?,
     @SerializedName("status") val status: String?,
+    @SerializedName("condition") val condition: String?,
     @SerializedName("createdAt") val createdAt: String?,
     @SerializedName("updatedAt") val updatedAt: String?
 )
@@ -69,7 +70,8 @@ data class StoreItemResponse(
 data class CreateStoreItemRequest(
     @SerializedName("clothesId") val clothesId: String,
     @SerializedName("price") val price: Double,
-    @SerializedName("size") val size: String
+    @SerializedName("size") val size: String,
+    @SerializedName("condition") val condition: String
 )
 
 data class CreatePaymentIntentRequest(

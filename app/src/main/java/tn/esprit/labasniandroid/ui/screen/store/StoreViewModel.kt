@@ -74,6 +74,9 @@ class StoreViewModel(
     
     private val _isShoes = MutableStateFlow(false)
     val isShoes: StateFlow<Boolean> = _isShoes.asStateFlow()
+    
+    private val _selectedCondition = MutableStateFlow("new")
+    val selectedCondition: StateFlow<String> = _selectedCondition.asStateFlow()
 
     private val _showToast = MutableStateFlow(false)
     val showToast: StateFlow<Boolean> = _showToast.asStateFlow()
@@ -266,7 +269,8 @@ class StoreViewModel(
                 token = token,
                 clothesId = selectedCloth.id,
                 price = price,
-                size = size
+                size = size,
+                condition = _selectedCondition.value
             ).fold(
                 onSuccess = {
                     // Nettoyer le formulaire
@@ -594,6 +598,10 @@ class StoreViewModel(
         _shoeSizeInput.value = size
     }
     
+    fun setSelectedCondition(condition: String) {
+        _selectedCondition.value = condition
+    }
+    
     fun setSelectedClothe(clothe: Cloth?) {
         _selectedClothe.value = clothe
         // Détection automatique chaussures
@@ -620,6 +628,7 @@ class StoreViewModel(
         _selectedSize.value = "M"
         _shoeSizeInput.value = ""
         _isShoes.value = false
+        _selectedCondition.value = "new"
     }
     
     // ✨ Cacher la suggestion (appelé quand on change d'onglet)

@@ -59,12 +59,14 @@ class StoreRepository(
         token: String,
         clothesId: String,
         price: Double,
-        size: String
+        size: String,
+        condition: String = "new"
     ): Result<StoreItem> {
         val request = CreateStoreItemRequest(
             clothesId = clothesId,
             price = price,
-            size = size
+            size = size,
+            condition = condition
         )
 
         return try {
@@ -312,6 +314,7 @@ private fun StoreItemResponse.toEntity(): StoreItem {
         price = price,
         size = size,
         status = status,
+        condition = condition,
         createdAt = createdAt,
         updatedAt = updatedAt,
         ownerId = ownerId,
