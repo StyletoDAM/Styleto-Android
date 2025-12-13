@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.RadioButtonChecked
 import androidx.compose.material.icons.filled.RadioButtonUnchecked
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -58,8 +59,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
@@ -334,44 +338,18 @@ fun CartView(
         }
     }
     
+    // ✨ Dialog de succès moderne (comme iOS)
     if (showSuccessDialog) {
-        AlertDialog(
-            onDismissRequest = {
+        PaymentSuccessDialog(
+            onDismiss = {
                 showSuccessDialog = false
                 paymentViewModel.resetAfterSuccess()
                 viewModel.resetPaymentState()
+                onNavigateBack()
             },
-            title = {
-                Text(
-                    text = "Purchase Successful! 🎉",
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = Color.Green
-                    )
-                )
-            },
-            text = {
-                Text(
-                    text = "Your items have been purchased successfully!",
-                    style = MaterialTheme.typography.bodyMedium
-                )
-            },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        showSuccessDialog = false
-                        paymentViewModel.resetAfterSuccess()
-                        viewModel.resetPaymentState()
-                        onNavigateBack()
-                    }
-                ) {
-                    Text(
-                        text = "OK",
-                        fontWeight = FontWeight.Bold,
-                        color = themePrimary
-                    )
-                }
-            }
+            themePrimary = themePrimary,
+            themeCard = themeCard,
+            themeText = themeText
         )
     }
 
@@ -857,6 +835,106 @@ private fun OrderSummary(
                     ),
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+        }
+    }
+}
+
+// MARK: - Payment Success Dialog (comme iOS)
+@Composable
+private fun PaymentSuccessDialog(
+    onDismiss: () -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(
+            dismissOnBackPress = true,
+            dismissOnClickOutside = true,
+            usePlatformDefaultWidth = false
+        )
+    ) {
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp)
+                .shadow(
+                    elevation = 16.dp,
+                    shape = RoundedCornerShape(28.dp)
+                ),
+            colors = CardDefaults.cardColors(containerColor = themeCard),
+            shape = RoundedCornerShape(28.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(32.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                // ✨ Icône de succès (checkmark dans un cercle vert)
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .background(
+                            color = Color(0xFF4CAF50).copy(alpha = 0.15f),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.CheckCircle,
+                        contentDescription = null,
+                        tint = Color(0xFF4CAF50),
+                        modifier = Modifier.size(48.dp)
+                    )
+                }
+                
+                // Titre
+                Text(
+                    text = "Purchase Successful! 🎉",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 22.sp
+                    ),
+                    color = themeText,
+                    textAlign = TextAlign.Center
+                )
+                
+                // Message
+                Text(
+                    text = "Your items have been purchased successfully!",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 16.sp
+                    ),
+                    color = themeText.copy(alpha = 0.7f),
+                    textAlign = TextAlign.Center
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Bouton OK
+                Button(
+                    onClick = onDismiss,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = themePrimary
+                    ),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(
+                        text = "OK",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        ),
+                        color = Color.White
+                    )
+                }
             }
         }
     }
