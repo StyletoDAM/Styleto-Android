@@ -363,12 +363,12 @@ private fun HistoryItemCard(
                         modifier = Modifier.size(12.dp)
                     )
                     Text(
-                        text = "${String.format("%.2f", item.price)} TND",
+                        text = "${String.format("%.2f", kotlin.math.abs(item.price))} TND",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.Bold,
                             fontSize = 16.sp
                         ),
-                        color = arrowColor
+                        color = arrowColor // Rouge pour Purchased, Vert pour Sold
                     )
                 }
             }
@@ -547,17 +547,19 @@ private fun OrderCard(
             }
             
             // Prix
+            // ✨ OrderCard affiche uniquement les achats (OrderResponse n'a pas de type)
+            // Donc le prix est toujours négatif (rouge) car c'est une dépense
             Column(
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.Center
             ) {
                 Text(
-                    text = "${String.format("%.2f", order.price)} DT",
+                    text = "${String.format("%.2f", kotlin.math.abs(order.price))} DT",
                     style = MaterialTheme.typography.titleLarge.copy(
                         fontWeight = FontWeight.Bold,
                         fontSize = 18.sp
                     ),
-                    color = themeTeal
+                    color = Color(0xFFE53935) // Rouge pour les achats (OrderCard = toujours Purchased)
                 )
             }
         }
