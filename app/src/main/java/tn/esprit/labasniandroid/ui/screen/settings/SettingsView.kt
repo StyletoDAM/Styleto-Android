@@ -763,11 +763,12 @@ fun SettingsView(
     }
     
     if (showAboutDialog) {
-        AboutDialog(
+        AboutSheet(
             onDismiss = { showAboutDialog = false },
             themePrimary = themePrimary,
             themeCard = themeCard,
-            themeText = themeText
+            themeText = themeText,
+            themeBackground = themeBackground
         )
     }
     
@@ -782,11 +783,12 @@ fun SettingsView(
     }
     
     if (showAboutDialog) {
-        AboutDialog(
+        AboutSheet(
             onDismiss = { showAboutDialog = false },
             themePrimary = themePrimary,
             themeCard = themeCard,
-            themeText = themeText
+            themeText = themeText,
+            themeBackground = themeBackground
         )
     }
     

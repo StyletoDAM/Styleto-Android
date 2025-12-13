@@ -24,7 +24,9 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -1052,7 +1054,89 @@ fun ContactUsDialog(
     }
 }
 
-// MARK: - About Dialog
+// MARK: - About Sheet (comme iOS)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun AboutSheet(
+    onDismiss: () -> Unit,
+    themePrimary: Color,
+    themeCard: Color,
+    themeText: Color,
+    themeBackground: Color
+) {
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scrollState = rememberScrollState()
+    
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        containerColor = themeBackground,
+        modifier = Modifier.fillMaxSize(),
+        dragHandle = null
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(scrollState)
+                .padding(horizontal = 24.dp)
+                .padding(top = 20.dp)
+                .padding(bottom = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(24.dp)
+        ) {
+            // Header avec titre et bouton Close (comme iOS)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "About",
+                    style = MaterialTheme.typography.headlineSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp
+                    ),
+                    color = themePrimary
+                )
+                
+                TextButton(onClick = onDismiss) {
+                    Text(
+                        text = "Close",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = themePrimary
+                    )
+                }
+            }
+            
+            // Contenu (comme iOS)
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Text(
+                    text = """
+                        Styleto is an innovative fashion app that lets you discover, share, and sell your clothes.
+                        Create your virtual wardrobe in seconds, get personalized outfit suggestions every day, explore the latest trends, and connect with thousands of women who love fashion just like you.
+                        Whether you want to refresh your style, make some extra money by selling pieces you no longer wear, or simply find daily inspiration — Styleto is made for you.
+                        Join a caring, creative, and passionate community.
+                        Because every woman deserves to feel beautiful and confident every single day.
+                        Thank you for being part of the Styleto adventure
+                        Version 1.0.0 • 2025
+                    """.trimIndent(),
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontSize = 16.sp,
+                        lineHeight = 24.sp
+                    ),
+                    color = themeText,
+                    lineHeight = 24.sp
+                )
+            }
+        }
+    }
+}
+
+// MARK: - About Dialog (ancienne version - gardée pour compatibilité)
 @Composable
 fun AboutDialog(
     onDismiss: () -> Unit,
