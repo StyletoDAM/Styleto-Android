@@ -6,6 +6,7 @@ public final class ChatDetailViewKt {
     /**
      * Fonction utilitaire pour normaliser et comparer les IDs
      * Gère les différents formats possibles (MongoDB ObjectId, UUID, etc.)
+     * ✨ Utilise JWTDecoder.normalizeId pour être cohérent avec iOS
      */
     private static final java.lang.String normalizeId(java.lang.String id) {
         return null;

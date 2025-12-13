@@ -28,6 +28,7 @@ class ChatRepository(
 ) {
     private var socket: Socket? = null
     private var currentConversationId: String? = null
+    private var configuredToken: String? = null // ✨ Stocker le token utilisé lors de la configuration (comme iOS)
     private val _messages = MutableStateFlow<List<Message>>(emptyList())
     val messages: StateFlow<List<Message>> = _messages.asStateFlow()
 
@@ -52,15 +53,27 @@ class ChatRepository(
 
     fun connectSocket(token: String, userId: String): Result<Unit> {
         return try {
-            // Si le socket est déjà connecté, ne pas créer une nouvelle connexion
+            // ✨ CRITIQUE : Vérifier si le token a changé (comme iOS)
+            // Si le token actuel est différent de celui utilisé pour configurer le socket, reconfigurer
+            val cleanToken = token.replace("Bearer ", "").trim()
+            
             if (socket?.connected() == true) {
-                // Si on a un conversationId, s'assurer qu'on est dans la room
-                currentConversationId?.let { convId ->
-                    socket?.emit("join-conversation", JSONObject().apply {
-                        put("conversationId", convId)
-                    })
+                // Si le token a changé, déconnecter et reconnecter avec le nouveau token
+                if (configuredToken != null && configuredToken != cleanToken) {
+                    android.util.Log.d("ChatRepository", "🔄 Token a changé !")
+                    android.util.Log.d("ChatRepository", "   - Ancien token (user): '${tn.esprit.labasniandroid.utils.JWTDecoder.extractUserId(configuredToken ?: "")}'")
+                    android.util.Log.d("ChatRepository", "   - Nouveau token (user): '${tn.esprit.labasniandroid.utils.JWTDecoder.extractUserId(cleanToken)}'")
+                    android.util.Log.d("ChatRepository", "   - Reconnexion avec le nouveau token...")
+                    disconnectSocket()
+                } else {
+                    // Token identique, juste s'assurer qu'on est dans la room
+                    currentConversationId?.let { convId ->
+                        socket?.emit("join-conversation", JSONObject().apply {
+                            put("conversationId", convId)
+                        })
+                    }
+                    return Result.success(Unit)
                 }
-                return Result.success(Unit)
             }
             
             // Si le socket existe mais n'est pas connecté, le déconnecter d'abord
@@ -70,11 +83,14 @@ class ChatRepository(
             val socketUrl = "${APIConstants.BASE_URL}/chat"
             
             val options = IO.Options().apply {
-                auth = mapOf("token" to token.replace("Bearer ", ""))
+                auth = mapOf("token" to cleanToken)
                 reconnection = true
                 reconnectionAttempts = 5
                 reconnectionDelay = 1000
             }
+            
+            // ✨ CRITIQUE : Stocker le token utilisé pour la configuration (comme iOS)
+            configuredToken = cleanToken
             
             socket = IO.socket(socketUrl, options)
             
@@ -202,6 +218,7 @@ class ChatRepository(
         socket?.disconnect()
         socket?.off()
         socket = null
+        configuredToken = null // ✨ Réinitialiser le token stocké (comme iOS)
         _isConnected.value = false
         _messages.value = emptyList()
     }
@@ -220,7 +237,7 @@ class ChatRepository(
         }
     }
 
-    fun sendMessage(conversationId: String, content: String, senderId: String, senderName: String? = null, senderAvatar: String? = null) {
+    fun sendMessage(conversationId: String, content: String, senderId: String, senderName: String? = null, senderAvatar: String? = null, token: String? = null) {
         // Créer un message optimiste (temporaire) pour l'affichage immédiat
         // Utiliser un timestamp précis pour le tri (format ISO 8601 avec timezone UTC)
         val now = java.util.Date()
@@ -244,10 +261,22 @@ class ChatRepository(
             it.createdAt ?: "0000-00-00T00:00:00.000Z" // Utiliser une date minimale si createdAt est null
         })
         
+        // ✨ CRITIQUE : Inclure le token actuel dans le payload pour que le backend puisse le re-vérifier (comme iOS)
+        val currentToken = token ?: configuredToken
+        val cleanToken = currentToken?.replace("Bearer ", "")?.trim()
+        
+        if (cleanToken != null) {
+            val userIdFromToken = tn.esprit.labasniandroid.utils.JWTDecoder.extractUserId(cleanToken)
+            android.util.Log.d("ChatRepository", "📤 Envoi avec token actuel (user: '${userIdFromToken ?: "nil"}')")
+        }
+        
         // Envoyer via socket
         socket?.emit("send-message", JSONObject().apply {
             put("conversationId", conversationId)
             put("content", content)
+            if (cleanToken != null) {
+                put("token", cleanToken) // ✨ NOUVEAU : Inclure le token actuel (comme iOS)
+            }
         })
     }
 

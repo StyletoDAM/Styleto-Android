@@ -162,7 +162,8 @@ class ChatDetailViewModel(
             // ⭐ CORRECTION : Envoyer soit via socket, soit via REST (comme iOS ligne 139-145), mais pas les deux !
             if (_isConnected.value) {
                 // Socket connecté → envoyer via socket uniquement
-                chatRepository.sendMessage(convId, content, userId, senderName, senderAvatar)
+                // ✨ CRITIQUE : Passer le token actuel pour que le backend puisse le re-vérifier (comme iOS)
+                chatRepository.sendMessage(convId, content, userId, senderName, senderAvatar, currentToken)
             } else {
                 // Socket déconnecté → envoyer via REST uniquement (fallback)
                 chatRepository.sendMessageViaRest(token, convId, content).fold(

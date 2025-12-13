@@ -67,10 +67,10 @@ import tn.esprit.labasniandroid.ui.theme.ThemeVariant
 /**
  * Fonction utilitaire pour normaliser et comparer les IDs
  * Gère les différents formats possibles (MongoDB ObjectId, UUID, etc.)
+ * ✨ Utilise JWTDecoder.normalizeId pour être cohérent avec iOS
  */
 private fun normalizeId(id: String?): String {
-    if (id.isNullOrBlank()) return ""
-    return id.trim().lowercase()
+    return tn.esprit.labasniandroid.utils.JWTDecoder.normalizeId(id)
 }
 
 @Composable

@@ -18,6 +18,15 @@ object TokenManager {
         getSharedPreferences(context).edit()
             .putString(KEY_ACCESS_TOKEN, token)
             .apply()
+        
+        // ✨ CRITIQUE : Extraire et sauvegarder le userId du JWT automatiquement (comme iOS)
+        val userId = JWTDecoder.extractUserId(token)
+        if (userId != null) {
+            saveUserId(context, userId)
+            android.util.Log.d("TokenManager", "✅ Token et userId sauvegardés: '$userId'")
+        } else {
+            android.util.Log.w("TokenManager", "⚠️ Impossible d'extraire userId du token")
+        }
     }
 
     fun getToken(context: Context): String? {
@@ -50,7 +59,31 @@ object TokenManager {
     }
 
     fun getUserId(context: Context): String? {
-        return getSharedPreferences(context).getString(KEY_USER_ID, null)
+        val storedId = getSharedPreferences(context).getString(KEY_USER_ID, null)
+        
+        // Fallback : si pas stocké, essayer d'extraire du token actuel (comme iOS)
+        if (storedId == null) {
+            val token = getToken(context)
+            if (token != null) {
+                val extractedId = JWTDecoder.extractUserId(token)
+                if (extractedId != null) {
+                    saveUserId(context, extractedId)
+                    android.util.Log.d("TokenManager", "✅ UserId récupéré du token actuel: '$extractedId'")
+                    return extractedId
+                }
+            }
+        }
+        
+        return storedId
+    }
+    
+    /**
+     * Récupère l'ID utilisateur de manière normalisée (trim + lowercase)
+     * ⚠️ UTILISER CETTE MÉTHODE POUR TOUTES LES COMPARAISONS
+     */
+    fun getNormalizedUserId(context: Context): String? {
+        val userId = getUserId(context) ?: return null
+        return JWTDecoder.normalizeId(userId)
     }
 
     fun saveGender(context: Context, gender: String) {
