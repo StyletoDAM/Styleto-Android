@@ -217,6 +217,7 @@ fun EditProfileSectionCard(
                                 onValueChange = {},
                                 placeholder = "Email",
                                 enabled = false,
+                                singleLine = true,
                                 themeBackground = themeBackground,
                                 themeTeal = themeTeal,
                                 themePrimary = themePrimary,
@@ -344,7 +345,7 @@ fun EditProfileSectionCard(
                             shape = RoundedCornerShape(14.dp)
                         ) {
                             Text(
-                                text = "Save changes",
+                                text = "Save",
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     fontSize = 16.sp,
                                     fontWeight = FontWeight.SemiBold
@@ -665,6 +666,7 @@ private fun CustomTextField(
     placeholder: String,
     enabled: Boolean = true,
     keyboardType: KeyboardType = KeyboardType.Text,
+    singleLine: Boolean = false,
     themeBackground: Color,
     themeTeal: Color,
     themePrimary: Color,
@@ -677,6 +679,8 @@ private fun CustomTextField(
         placeholder = { Text(placeholder, color = themeSecondaryText.copy(alpha = 0.7f)) },
         enabled = enabled,
         readOnly = !enabled,
+        singleLine = singleLine,
+        maxLines = if (singleLine) 1 else Int.MAX_VALUE,
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
