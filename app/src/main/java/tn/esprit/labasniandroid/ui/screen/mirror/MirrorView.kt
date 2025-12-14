@@ -216,9 +216,9 @@ fun MirrorView(
                 android.util.Log.d("MirrorView", "🖼️ Image traitée disponible: ${currentProcessedImage.width}x${currentProcessedImage.height}")
             } else {
                 android.util.Log.d("MirrorView", "🖼️ Aucune image traitée (affichage caméra)")
-            }
         }
-        
+    }
+
         // ✅ Afficher l'image traitée si disponible (comme iOS)
         if (currentProcessedImage != null) {
             // ✅ Convertir le bitmap en ImageBitmap une seule fois
@@ -342,30 +342,30 @@ fun MirrorView(
         // Boutons en haut (comme iOS)
         if (isCameraActive) {
             Row(
-                modifier = Modifier
+            modifier = Modifier
                     .align(Alignment.TopStart)
                     .padding(top = 50.dp, start = 20.dp, end = 20.dp)
                     .fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
-            ) {
+        ) {
                 // Bouton fermer (comme iOS)
                 IconButton(
                     onClick = { avatarViewModel.stopCamera() }
                 ) {
-                    Box(
-                        modifier = Modifier
+                Box(
+                    modifier = Modifier
                             .size(44.dp)
                             .clip(CircleShape)
                             .background(Color.Black.copy(alpha = 0.5f)),
-                        contentAlignment = Alignment.Center
-                    ) {
+                    contentAlignment = Alignment.Center
+                ) {
                         androidx.compose.material3.Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Fermer",
                             tint = Color.White,
                             modifier = Modifier.size(20.dp)
                         )
-                    }
+                }
                 }
             }
         }
@@ -378,27 +378,27 @@ fun MirrorView(
                     .fillMaxWidth()
             ) {
                 if (clothes.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
                             .background(
                                 androidx.compose.ui.graphics.Brush.verticalGradient(
                                     colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
                                 )
                             )
                             .padding(bottom = 40.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
                             text = "Aucun vêtement disponible",
                             color = Color.White,
                             style = MaterialTheme.typography.bodyMedium,
                             modifier = Modifier
                                 .background(Color.Red.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
                                 .padding(12.dp)
-                        )
-                    }
-                } else {
+                    )
+                }
+            } else {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -414,22 +414,22 @@ fun MirrorView(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(horizontal = 20.dp, vertical = 8.dp),
-                            color = Color.White,
-                            style = MaterialTheme.typography.bodySmall,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
+                        color = Color.White,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                    )
 
-                        LazyRow(
-                            modifier = Modifier
-                                .fillMaxWidth()
+                    LazyRow(
+                        modifier = Modifier
+                            .fillMaxWidth()
                                 .padding(horizontal = 16.dp, vertical = 12.dp),
                             horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(clothes, key = { it.id }) { cloth ->
-                                MirrorClothChip(
-                                    cloth = cloth,
-                                    isSelected = selectedCloth?.id == cloth.id
-                                ) {
+                    ) {
+                        items(clothes, key = { it.id }) { cloth ->
+                            MirrorClothChip(
+                                cloth = cloth,
+                                isSelected = selectedCloth?.id == cloth.id
+                            ) {
                                     avatarViewModel.selectCloth(cloth)
                                 }
                             }

@@ -283,7 +283,7 @@ fun PackProfileCard(
                         ProgressRow(
                             icon = "👕",
                             title = "Clothing scans",
-                            current = clothesDetectionUsed,
+                            current = if (clothesDetectionLimit == Int.MAX_VALUE) clothesDetectionUsed else minOf(clothesDetectionUsed, clothesDetectionLimit),
                             max = if (clothesDetectionLimit == Int.MAX_VALUE) "∞" else clothesDetectionLimit.toString(),
                             isUnlimited = clothesDetectionLimit == Int.MAX_VALUE,
                             themeTeal = themeTeal,
@@ -294,7 +294,7 @@ fun PackProfileCard(
                         ProgressRow(
                             icon = "✨",
                             title = "Outfit suggestions",
-                            current = outfitSuggestionsUsed,
+                            current = if (outfitSuggestionsLimit == Int.MAX_VALUE) outfitSuggestionsUsed else minOf(outfitSuggestionsUsed, outfitSuggestionsLimit),
                             max = if (outfitSuggestionsLimit == Int.MAX_VALUE) "∞" else outfitSuggestionsLimit.toString(),
                             isUnlimited = outfitSuggestionsLimit == Int.MAX_VALUE,
                             themeTeal = themeTeal,
@@ -305,7 +305,7 @@ fun PackProfileCard(
                         ProgressRow(
                             icon = "🛍️",
                             title = "Items for sale",
-                            current = itemsSoldUsed,
+                            current = if (itemsSoldLimit == Int.MAX_VALUE) itemsSoldUsed else minOf(itemsSoldUsed, itemsSoldLimit),
                             max = if (itemsSoldLimit == Int.MAX_VALUE) "∞" else itemsSoldLimit.toString(),
                             isUnlimited = itemsSoldLimit == Int.MAX_VALUE,
                             themeTeal = themeTeal,
@@ -659,21 +659,21 @@ fun ManageSubscription(
                     UsageRow(
                         icon = Icons.Rounded.CameraAlt,
                         title = "Clothing Scans",
-                        used = clothesDetectionUsed,
+                        used = if (clothesDetectionLimit == Int.MAX_VALUE) clothesDetectionUsed else minOf(clothesDetectionUsed, clothesDetectionLimit),
                         isUnlimited = clothesDetectionLimit == Int.MAX_VALUE
                     )
 
                     UsageRow(
                         icon = Icons.Rounded.AutoAwesome,
                         title = "Outfit Suggestions",
-                        used = outfitSuggestionsUsed,
+                        used = if (outfitSuggestionsLimit == Int.MAX_VALUE) outfitSuggestionsUsed else minOf(outfitSuggestionsUsed, outfitSuggestionsLimit),
                         isUnlimited = outfitSuggestionsLimit == Int.MAX_VALUE
                     )
 
                     UsageRow(
                         icon = Icons.Rounded.Store,
                         title = "Items for Sale",
-                        used = itemsSoldUsed,
+                        used = if (itemsSoldLimit == Int.MAX_VALUE) itemsSoldUsed else minOf(itemsSoldUsed, itemsSoldLimit),
                         isUnlimited = itemsSoldLimit == Int.MAX_VALUE
                     )
                 }

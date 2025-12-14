@@ -67,7 +67,7 @@ class VTOWebSocketManager(private val context: Context) {
                             Log.e(tag, "❌ frame_processed: args[0] est null")
                             return@on
                         }
-                        
+
                         Log.d(tag, "📥 args[0] type: ${rawData.javaClass.name}")
                         
                         // ✅ Extraire directement depuis Map ou JSONObject (comme iOS dict["frame"])
@@ -99,7 +99,7 @@ class VTOWebSocketManager(private val context: Context) {
                             Log.e(tag, "❌ rawData: ${rawData.toString().take(200)}")
                             return@on
                         }
-                        
+
                         // ✅ Extraire processingTime et fps (comme iOS)
                         val processingTime = when {
                             rawData is Map<*, *> -> {
