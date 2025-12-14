@@ -245,23 +245,14 @@ class DressingViewModel(
 
     /**
      * Vérifie le quota de détection avant de permettre la détection
+     * ✅ Utilise l'endpoint API dédié (comme iOS) qui calcule correctement le quota selon le plan actuel
      */
     suspend fun checkDetectionQuota(token: String): Boolean {
         return try {
-            subscriptionRepository.getMyStats(token).fold(
-                onSuccess = { stats ->
-                    val used = stats.clothesDetection.used
-                    val limit = stats.clothesDetection.limit
-
-                    // Si limit est "unlimited" (String) ou Int.MAX_VALUE, toujours autorisé
-                    val isUnlimited = limit == "unlimited" || (limit is Int && limit == Int.MAX_VALUE)
-
-                    if (isUnlimited) {
-                        true
-                    } else {
-                        val limitInt = if (limit is Int) limit else 0
-                        used < limitInt
-                    }
+            subscriptionRepository.checkClothesDetectionQuota(token).fold(
+                onSuccess = { quota ->
+                    // ✅ Le backend calcule déjà le quota en tenant compte du plan actuel
+                    quota.allowed
                 },
                 onFailure = {
                     // En cas d'erreur, autoriser quand même (peut être temporaire)

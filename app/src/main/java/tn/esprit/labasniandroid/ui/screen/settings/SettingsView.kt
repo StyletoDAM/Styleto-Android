@@ -176,6 +176,11 @@ fun SettingsView(
     val accountDeleted by viewModel.accountDeleted.collectAsState()
     val isPhotoUpdating by viewModel.isPhotoUpdating.collectAsState()
     
+    // ✅ États de chargement progressif
+    val isLoadingImage by viewModel.isLoadingImage.collectAsState()
+    val isLoadingName by viewModel.isLoadingName.collectAsState()
+    val isLoadingBalance by viewModel.isLoadingBalance.collectAsState()
+    
     val activeUser = viewModelUser ?: user
     
     // Déterminer isMale depuis ThemeVariant (BLUE = MALE, PINK = FEMALE)
@@ -484,14 +489,28 @@ fun SettingsView(
                                 color = Color.White.copy(alpha = 0.9f)
                             )
                             
-                            Text(
-                                text = "${String.format("%.2f", activeUser?.balance ?: 0.0)} TND",
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = Color.White
-                            )
+                            // ✅ Afficher le balance avec indicateur de chargement
+                            if (isLoadingBalance && (activeUser?.balance == null || activeUser?.balance == 0.0)) {
+                                Box(
+                                    modifier = Modifier.size(120.dp, 32.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(20.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = "${String.format("%.2f", activeUser?.balance ?: 0.0)} TND",
+                                    style = MaterialTheme.typography.headlineMedium.copy(
+                                        fontSize = 28.sp,
+                                        fontWeight = FontWeight.Bold
+                                    ),
+                                    color = Color.White
+                                )
+                            }
                             
                             Text(
                                 text = "Disponible pour retrait",
@@ -540,7 +559,7 @@ fun SettingsView(
                     contentAlignment = Alignment.Center
                 ) {
                     when {
-                        isPhotoUpdating -> {
+                        isPhotoUpdating || isLoadingImage -> {
                             CircularProgressIndicator(
                                 color = themePrimary,
                                 modifier = Modifier.size(40.dp)
@@ -591,14 +610,28 @@ fun SettingsView(
                     }
                 }
                 
-                Text(
-                    text = fullName,
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = themeText
-                )
+                // ✅ Afficher le nom avec indicateur de chargement
+                if (isLoadingName && fullName.isBlank()) {
+                    Box(
+                        modifier = Modifier.size(120.dp, 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = themePrimary,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                } else {
+                    Text(
+                        text = fullName.ifBlank { "Loading..." },
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themeText
+                    )
+                }
             }
             
             // Sections

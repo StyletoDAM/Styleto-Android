@@ -140,6 +140,50 @@ class SubscriptionRepository(
     }
 
     /**
+     * Vérifie si l'utilisateur peut détecter des vêtements (quota)
+     */
+    suspend fun checkClothesDetectionQuota(token: String): Result<tn.esprit.labasniandroid.api.QuotaCheckResponse> {
+        return try {
+            val response = subscriptionApi.checkClothesDetectionQuota("Bearer $token")
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de vérifier le quota."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    /**
+     * Vérifie si l'utilisateur peut générer des suggestions d'outfits (quota)
+     */
+    suspend fun checkOutfitGenerationQuota(token: String): Result<tn.esprit.labasniandroid.api.QuotaCheckResponse> {
+        return try {
+            val response = subscriptionApi.checkOutfitGenerationQuota("Bearer $token")
+
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                val errorBody = response.errorBody()?.string()
+                val message = when (response.code()) {
+                    401 -> "Session expirée. Veuillez vous reconnecter."
+                    else -> errorBody ?: "Impossible de vérifier le quota."
+                }
+                Result.failure(NetworkError.ServerMessage(message))
+            }
+        } catch (exception: Exception) {
+            Result.failure(NetworkError.Transport(exception))
+        }
+    }
+
+    /**
      * Vérifie si l'utilisateur peut vendre des articles (quota)
      */
     suspend fun checkStoreSellingQuota(token: String): Result<tn.esprit.labasniandroid.api.QuotaCheckResponse> {

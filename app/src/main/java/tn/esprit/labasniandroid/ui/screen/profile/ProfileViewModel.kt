@@ -36,6 +36,16 @@ class ProfileViewModel(
     private val _isPhotoUpdating = MutableStateFlow(false)
     val isPhotoUpdating: StateFlow<Boolean> = _isPhotoUpdating.asStateFlow()
 
+    // ✅ États de chargement progressif pour optimiser l'affichage
+    private val _isLoadingImage = MutableStateFlow(false)
+    val isLoadingImage: StateFlow<Boolean> = _isLoadingImage.asStateFlow()
+    
+    private val _isLoadingName = MutableStateFlow(false)
+    val isLoadingName: StateFlow<Boolean> = _isLoadingName.asStateFlow()
+    
+    private val _isLoadingBalance = MutableStateFlow(false)
+    val isLoadingBalance: StateFlow<Boolean> = _isLoadingBalance.asStateFlow()
+
     // Stripe Payment states
     private val _clientSecret = MutableStateFlow<String?>(null)
     val clientSecret: StateFlow<String?> = _clientSecret.asStateFlow()
@@ -46,6 +56,12 @@ class ProfileViewModel(
     private val _isProcessingPayment = MutableStateFlow(false)
     val isProcessingPayment: StateFlow<Boolean> = _isProcessingPayment.asStateFlow()
 
+    /**
+     * Charge le profil avec un ordre optimisé :
+     * 1. Image (priorité haute) - affichée immédiatement
+     * 2. Nom (priorité moyenne) - affiché après l'image
+     * 3. Balance et autres données (priorité basse) - affichées en dernier
+     */
     fun loadProfile(token: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -53,10 +69,41 @@ class ProfileViewModel(
 
             profileRepository.getProfile(token).fold(
                 onSuccess = { user ->
-                    _user.value = user
+                    // ✅ Étape 1 : Charger l'image en premier (priorité haute)
+                    _isLoadingImage.value = true
+                    // Mettre à jour l'image immédiatement si on a déjà un user, sinon attendre
+                    val currentUser = _user.value
+                    if (currentUser != null) {
+                        _user.value = currentUser.copy(profilePicture = user.profilePicture)
+                    }
+                    _isLoadingImage.value = false
+                    
+                    // ✅ Étape 2 : Charger le nom (priorité moyenne)
+                    _isLoadingName.value = true
+                    kotlinx.coroutines.delay(100) // Petit délai pour laisser l'image s'afficher
+                    if (currentUser != null) {
+                        _user.value = currentUser.copy(
+                            profilePicture = user.profilePicture,
+                            fullName = user.fullName,
+                            email = user.email
+                        )
+                    } else {
+                        // Si pas de user existant, créer avec nom et email
+                        _user.value = user.copy(balance = 0.0)
+                    }
+                    _isLoadingName.value = false
+                    
+                    // ✅ Étape 3 : Charger le balance et autres données (priorité basse)
+                    _isLoadingBalance.value = true
+                    kotlinx.coroutines.delay(100) // Petit délai pour laisser le nom s'afficher
+                    _user.value = user // Mettre à jour toutes les données restantes
+                    _isLoadingBalance.value = false
                 },
                 onFailure = { error ->
                     _errorMessage.value = error.message
+                    _isLoadingImage.value = false
+                    _isLoadingName.value = false
+                    _isLoadingBalance.value = false
                 }
             )
 

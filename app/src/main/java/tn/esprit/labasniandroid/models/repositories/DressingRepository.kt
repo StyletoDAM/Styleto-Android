@@ -451,12 +451,32 @@ class DressingRepository(
     }
 
     private fun extractColorName(color: String): String {
-        // Si c'est un hex, convertir en nom
+        if (color.isBlank()) return "Unknown"
+        
+        // Si c'est un hex, convertir en nom en utilisant ColorNameConverter
         if (color.startsWith("#")) {
-            return hexToColorName(color) ?: "Unknown"
+            return try {
+                tn.esprit.labasniandroid.utils.ColorNameConverter.hexToColorName(color)
+            } catch (e: Exception) {
+                // Si la conversion échoue, essayer avec la fonction locale en fallback
+                hexToColorName(color) ?: "Unknown"
+            }
         }
-        // Sinon, utiliser directement le nom
-        return color.capitalize()
+        
+        // Vérifier si c'est un hex sans le # (ex: "466F4B")
+        val hexPattern = Regex("^[A-Fa-f0-9]{6}$")
+        if (hexPattern.matches(color.trim())) {
+            return try {
+                tn.esprit.labasniandroid.utils.ColorNameConverter.hexToColorName("#$color")
+            } catch (e: Exception) {
+                hexToColorName("#$color") ?: "Unknown"
+            }
+        }
+        
+        // Sinon, utiliser directement le nom (capitaliser la première lettre)
+        return color.trim().replaceFirstChar { 
+            if (it.isLowerCase()) it.titlecase() else it.toString() 
+        }
     }
 
     private fun normalizeStyle(style: String): String {

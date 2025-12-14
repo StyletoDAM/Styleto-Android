@@ -15,6 +15,16 @@ interface SubscriptionApi {
         @Header("Authorization") token: String
     ): Response<UsageStatsResponse>
 
+    @GET("/subscriptions/quota/clothes-detection")
+    suspend fun checkClothesDetectionQuota(
+        @Header("Authorization") token: String
+    ): Response<QuotaCheckResponse>
+
+    @GET("/subscriptions/quota/outfit-generation")
+    suspend fun checkOutfitGenerationQuota(
+        @Header("Authorization") token: String
+    ): Response<QuotaCheckResponse>
+
     @GET("/subscriptions/quota/store-selling")
     suspend fun checkStoreSellingQuota(
         @Header("Authorization") token: String
