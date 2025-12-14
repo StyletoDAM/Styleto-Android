@@ -26,16 +26,20 @@ class VTOWebSocketManager(private val context: Context) {
         }
 
         try {
-            // ✅ FIX CRITIQUE 1 : Ajouter le namespace /vto
-            val socketUrl = "${APIConstants.BASE_URL}/vto"
+            // ✅ FIX : URL de base SANS /vto (comme iOS utilise baseURL puis socket(forNamespace: "/vto"))
+            // Socket.IO Android nécessite l'URL complète avec namespace
+            val baseUrl = APIConstants.BASE_URL
+            val socketUrl = "$baseUrl/vto"
+            
+            Log.d(tag, "🔌 Connexion WS VTO sur: $socketUrl")
 
             val options = IO.Options().apply {
                 forceNew = true
                 reconnection = true
-                reconnectionAttempts = 3
-                reconnectionDelay = 3000
+                reconnectionAttempts = 5  // ✅ Comme iOS reconnectAttempts(5)
+                reconnectionDelay = 2000  // ✅ Comme iOS reconnectWait(2)
                 timeout = 20000
-                // ✅ FIX CRITIQUE 2 : Token dans query params (comme iOS)
+                // ✅ FIX : Token dans query params (comme iOS connectParams(["token": token]))
                 query = "token=$token"
             }
 
@@ -47,22 +51,94 @@ class VTOWebSocketManager(private val context: Context) {
 
                 on("frame_processed") { args ->
                     try {
-                        val data = args[0] as? JSONObject
-                        if (data == null) {
-                            Log.e(tag, "❌ frame_processed: data null")
+                        Log.d(tag, "📥 ========== frame_processed EVENT RECEIVED ==========")
+                        Log.d(tag, "📥 args count: ${args.size}")
+                        
+                        if (args.isEmpty()) {
+                            Log.e(tag, "❌ frame_processed: args vide")
                             return@on
                         }
-
-                        val frame = data.optString("frame", null)
+                        
+                        // ✅ Parser EXACTEMENT comme iOS: data[0] as? [String: Any]
+                        // Dans iOS: guard let dict = data[0] as? [String: Any]
+                        val rawData = args[0]
+                        
+                        if (rawData == null) {
+                            Log.e(tag, "❌ frame_processed: args[0] est null")
+                            return@on
+                        }
+                        
+                        Log.d(tag, "📥 args[0] type: ${rawData.javaClass.name}")
+                        
+                        // ✅ Extraire directement depuis Map ou JSONObject (comme iOS dict["frame"])
+                        val frame = when {
+                            rawData is Map<*, *> -> {
+                                // ✅ C'est un Map, extraire directement comme iOS dict["frame"]
+                                @Suppress("UNCHECKED_CAST")
+                                val map = rawData as Map<String, Any>
+                                map["frame"] as? String
+                            }
+                            rawData is JSONObject -> {
+                                // ✅ C'est un JSONObject, utiliser optString
+                                rawData.optString("frame", null)
+                            }
+                            else -> {
+                                // ✅ Dernière tentative: convertir en JSONObject
+                                try {
+                                    val jsonString = rawData.toString()
+                                    JSONObject(jsonString).optString("frame", null)
+                                } catch (e: Exception) {
+                                    Log.e(tag, "❌ Type inattendu et échec conversion: ${rawData.javaClass.name}")
+                                    null
+                                }
+                            }
+                        }
+                        
                         if (frame.isNullOrBlank()) {
-                            Log.e(tag, "❌ frame_processed: frame vide")
+                            Log.e(tag, "❌ frame_processed: frame vide ou null")
+                            Log.e(tag, "❌ rawData: ${rawData.toString().take(200)}")
                             return@on
                         }
-
-                        Log.d(tag, "✅ Frame traitée reçue (${frame.length / 1024}KB)")
-                        onProcessedFrame?.invoke(frame)
+                        
+                        // ✅ Extraire processingTime et fps (comme iOS)
+                        val processingTime = when {
+                            rawData is Map<*, *> -> {
+                                @Suppress("UNCHECKED_CAST")
+                                val map = rawData as Map<String, Any>
+                                (map["processingTime"] as? Number)?.toLong() ?: 0L
+                            }
+                            rawData is JSONObject -> {
+                                rawData.optLong("processingTime", 0)
+                            }
+                            else -> 0L
+                        }
+                        
+                        val fps = when {
+                            rawData is Map<*, *> -> {
+                                @Suppress("UNCHECKED_CAST")
+                                val map = rawData as Map<String, Any>
+                                (map["fps"] as? Number)?.toInt() ?: 0
+                            }
+                            rawData is JSONObject -> {
+                                rawData.optInt("fps", 0)
+                            }
+                            else -> 0
+                        }
+                        
+                        Log.d(tag, "✅ Frame traitée reçue (${frame.length / 1024}KB, ${processingTime}ms, ${fps}fps)")
+                        Log.d(tag, "✅ Appel onProcessedFrame callback")
+                        
+                        // ✅ FIX : Capturer la référence pour éviter le smart cast error
+                        val callback = onProcessedFrame
+                        if (callback == null) {
+                            Log.e(tag, "❌ CRITIQUE: onProcessedFrame callback est NULL!")
+                        } else {
+                            callback.invoke(frame)
+                            Log.d(tag, "✅ Callback onProcessedFrame exécuté avec succès")
+                        }
                     } catch (e: Exception) {
                         Log.e(tag, "❌ Erreur parsing frame_processed", e)
+                        e.printStackTrace()
                         onError?.invoke("Erreur parsing: ${e.message}")
                     }
                 }
@@ -108,7 +184,7 @@ class VTOWebSocketManager(private val context: Context) {
             }
 
             socket?.connect()
-            Log.d(tag, "🔌 Connexion WS VTO initiée sur: $socketUrl")
+            Log.d(tag, "🔌 Connexion WS VTO initiée sur: $socketUrl (comme iOS)")
         } catch (e: Exception) {
             Log.e(tag, "❌ Erreur init WS: ${e.message}", e)
             onError?.invoke("Erreur connexion: ${e.message}")

@@ -21,14 +21,24 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.*
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.border
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -55,29 +65,33 @@ import java.io.ByteArrayOutputStream
 
 @Composable
 fun MirrorView(
-    modifier: Modifier = Modifier,
-    dressingViewModel: DressingViewModel = viewModel()
+    modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val avatarViewModel = remember { AvatarViewModel() }
+    
+    // Initialiser le ViewModel avec le Context
+    LaunchedEffect(Unit) {
+        avatarViewModel.initialize(context)
+    }
     val lifecycleOwner = LocalLifecycleOwner.current
 
-    // États
-    val clothes by dressingViewModel.clothes.collectAsState()
-    val isLoading by dressingViewModel.isLoading.collectAsState()
-    var selectedCloth by remember { mutableStateOf<Cloth?>(null) }
-    val processedImage = remember { mutableStateOf<androidx.compose.ui.graphics.ImageBitmap?>(null) }
-    val errorMessage = remember { mutableStateOf<String?>(null) }
-    val isProcessing = remember { mutableStateOf(false) }
-    val isConnected = remember { mutableStateOf(false) }
+    // États depuis AvatarViewModel (comme iOS)
+    val clothes by avatarViewModel.clothes.collectAsState()
+    val selectedCloth by avatarViewModel.selectedCloth.collectAsState()
+    val processedImage by avatarViewModel.processedImage.collectAsState()
+    val isProcessing by avatarViewModel.isProcessing.collectAsState()
+    val errorMessage by avatarViewModel.errorMessage.collectAsState()
+    val isConnected by avatarViewModel.isConnected.collectAsState()
+    val isCameraActive by avatarViewModel.isCameraActive.collectAsState()
+    
+    // ✅ Log pour vérifier les changements d'état
+    LaunchedEffect(processedImage) {
+        android.util.Log.d("MirrorView", "🔄 processedImage StateFlow changé: ${processedImage != null}")
+    }
 
     // ✅ FIX CRITIQUE 1 : Mutex pour empêcher captures simultanées
     val captureMutex = remember { Mutex() }
-
-    // ✅ FIX CRITIQUE 2 : Compteur FPS pour debug
-    val fpsCounter = remember { mutableStateOf(0) }
-    val lastFpsUpdate = remember { mutableStateOf(System.currentTimeMillis()) }
-
-    val wsManager = remember { VTOWebSocketManager(context) }
     val imageCapture = remember {
         ImageCapture.Builder()
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY) // ✅ Mode rapide
@@ -86,67 +100,40 @@ fun MirrorView(
 
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
-        onResult = { /* Permission handled */ }
+        onResult = { granted ->
+            if (granted) {
+                avatarViewModel.startCamera()
+            }
+        }
     )
 
-    // Setup WebSocket
-    LaunchedEffect(key1 = "vto_setup") {
-        val token = TokenManager.getToken(context)
-        if (!token.isNullOrBlank()) {
-            dressingViewModel.loadVTOReadyClothes(token)
-
-            wsManager.onConnected = {
-                android.util.Log.d("MirrorView", "✅ WebSocket connecté")
-                isConnected.value = true
-                errorMessage.value = null
-            }
-
-            wsManager.onProcessedFrame = { base64 ->
-                try {
-                    val bytes = Base64.decode(base64, Base64.DEFAULT)
-                    val bitmap = BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-                    processedImage.value = bitmap?.asImageBitmap()
-                    isProcessing.value = false
-
-                    // ✅ FPS Counter
-                    fpsCounter.value++
-                    val now = System.currentTimeMillis()
-                    if (now - lastFpsUpdate.value >= 1000) {
-                        android.util.Log.d("MirrorView", "📊 FPS actuel: ${fpsCounter.value}")
-                        fpsCounter.value = 0
-                        lastFpsUpdate.value = now
-                    }
-                } catch (e: Exception) {
-                    android.util.Log.e("MirrorView", "Erreur décodage frame", e)
-                    isProcessing.value = false
-                    errorMessage.value = "Erreur décodage: ${e.message}"
-                }
-            }
-
-            wsManager.onError = { error ->
-                android.util.Log.e("MirrorView", "❌ Erreur VTO: $error")
-                errorMessage.value = error
-                isProcessing.value = false
-            }
-
-            delay(500)
-            wsManager.connect()
-        }
-
+    // Démarrage de la caméra (comme iOS onAppear)
+    LaunchedEffect(Unit) {
         val granted = ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.CAMERA
         ) == PackageManager.PERMISSION_GRANTED
 
-        if (!granted) {
+        if (granted) {
+            avatarViewModel.startCamera()
+        } else {
             permissionLauncher.launch(Manifest.permission.CAMERA)
         }
     }
 
-    // ✅ FIX CRITIQUE 3 : Throttling optimisé avec Mutex
-    LaunchedEffect(selectedCloth, isConnected.value) {
-        if (!isConnected.value || selectedCloth == null) {
-            if (!isConnected.value) {
+    // Arrêt de la caméra (comme iOS onDisappear)
+    DisposableEffect(Unit) {
+        onDispose {
+            avatarViewModel.stopCamera()
+        }
+    }
+
+    // ✅ FIX CRITIQUE 3 : Throttling optimisé avec Mutex (comme iOS throttleInterval = 0.25s = 4 FPS)
+    LaunchedEffect(selectedCloth, isConnected, isCameraActive) {
+        if (!isCameraActive || !isConnected || selectedCloth == null) {
+            if (!isCameraActive) {
+                android.util.Log.w("MirrorView", "⏸️ Caméra inactive")
+            } else if (!isConnected) {
                 android.util.Log.w("MirrorView", "⏳ En attente de connexion WebSocket...")
             } else {
                 android.util.Log.d("MirrorView", "⏸️ Aucun vêtement - pause capture")
@@ -156,11 +143,11 @@ fun MirrorView(
 
         android.util.Log.d("MirrorView", "🎥 Démarrage capture pour: ${selectedCloth?.type}")
 
-        while (true) {
-            // ✅ FIX : 600ms au lieu de 300ms = 1.5-2 FPS (plus fluide pour le réseau)
-            delay(600)
+        while (isCameraActive && isConnected && selectedCloth != null) {
+            // ✅ 250ms = 4 FPS (comme iOS throttleInterval)
+            delay(250)
 
-            // ✅ FIX : Vérifier si une capture est déjà en cours
+            // ✅ Vérifier si une capture est déjà en cours
             if (!captureMutex.tryLock()) {
                 android.util.Log.w("MirrorView", "⏭️ Capture ignorée (précédente en cours)")
                 continue
@@ -172,21 +159,21 @@ fun MirrorView(
                     object : ImageCapture.OnImageCapturedCallback() {
                         override fun onCaptureSuccess(image: ImageProxy) {
                             try {
-                                // ✅ FIX CRITIQUE 4 : Redimensionner AVANT compression
+                                // ✅ Redimensionner AVANT compression (comme iOS maxWidth: 480)
                                 val bitmap = image.toBitmap()
-                                val resizedBitmap = resizeBitmap(bitmap, 640, 480) // HD réduit
+                                val resizedBitmap = resizeBitmap(bitmap, 480, 640) // Portrait
 
                                 val baos = ByteArrayOutputStream()
-                                // ✅ FIX CRITIQUE 5 : Compression agressive (60% au lieu de 40%)
-                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 60, baos)
+                                // ✅ Compression adaptative (40% comme iOS currentQuality = 0.4)
+                                resizedBitmap.compress(Bitmap.CompressFormat.JPEG, 40, baos)
 
                                 val base64 = Base64.encodeToString(
                                     baos.toByteArray(),
                                     Base64.NO_WRAP
                                 )
 
-                                isProcessing.value = true
-                                wsManager.sendFrame(base64, selectedCloth)
+                                // Envoyer via ViewModel (comme iOS sendFrameToServer)
+                                avatarViewModel.sendFrame(base64)
 
                                 android.util.Log.d(
                                     "MirrorView",
@@ -202,13 +189,13 @@ fun MirrorView(
                                 android.util.Log.e("MirrorView", "Erreur conversion", e)
                             } finally {
                                 image.close()
-                                captureMutex.unlock() // ✅ Libérer le mutex
+                                captureMutex.unlock()
                             }
                         }
 
                         override fun onError(exception: ImageCaptureException) {
                             android.util.Log.e("MirrorView", "Erreur capture: ${exception.message}")
-                            captureMutex.unlock() // ✅ Libérer même en cas d'erreur
+                            captureMutex.unlock()
                         }
                     }
                 )
@@ -220,24 +207,39 @@ fun MirrorView(
         }
     }
 
-    DisposableEffect(key1 = "vto_lifecycle") {
-        onDispose {
-            android.util.Log.d("MirrorView", "🔌 Nettoyage VTO")
-            wsManager.disconnect()
-            isConnected.value = false
-        }
-    }
-
-    // ✅ UI (inchangée)
+    // ✅ UI améliorée (comme iOS CameraOverlayView)
     Box(modifier = modifier.fillMaxSize()) {
-        if (processedImage.value != null) {
+        // Afficher l'image traitée OU la caméra brute (comme iOS)
+        val currentProcessedImage = processedImage
+        LaunchedEffect(currentProcessedImage) {
+            if (currentProcessedImage != null) {
+                android.util.Log.d("MirrorView", "🖼️ Image traitée disponible: ${currentProcessedImage.width}x${currentProcessedImage.height}")
+            } else {
+                android.util.Log.d("MirrorView", "🖼️ Aucune image traitée (affichage caméra)")
+            }
+        }
+        
+        // ✅ Afficher l'image traitée si disponible (comme iOS)
+        if (currentProcessedImage != null) {
+            // ✅ Convertir le bitmap en ImageBitmap une seule fois
+            val imageBitmap = remember(currentProcessedImage) { 
+                android.util.Log.d("MirrorView", "🎨 Conversion bitmap en ImageBitmap: ${currentProcessedImage.width}x${currentProcessedImage.height}")
+                currentProcessedImage.asImageBitmap() 
+            }
+            
             Image(
-                bitmap = processedImage.value!!,
+                bitmap = imageBitmap,
                 contentDescription = "VTO Overlay",
                 modifier = Modifier.fillMaxSize(),
                 contentScale = ContentScale.FillBounds
             )
-        } else {
+            
+            // ✅ Log pour confirmer l'affichage
+            LaunchedEffect(imageBitmap) {
+                android.util.Log.d("MirrorView", "✅ Image traitée affichée dans le composable")
+            }
+        } else if (isCameraActive) {
+            // ✅ Afficher la caméra seulement si pas d'image traitée
             AndroidView(
                 factory = { ctx ->
                     val previewView = PreviewView(ctx).apply {
@@ -271,8 +273,15 @@ fun MirrorView(
             )
         }
 
+        // ✨ Badge Experimental (comme iOS)
+        ExperimentalBadge(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 60.dp)
+        )
+
         // Indicateur de traitement
-        if (isProcessing.value) {
+        if (isProcessing) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopEnd)
@@ -298,7 +307,7 @@ fun MirrorView(
             }
         }
 
-        if (!isConnected.value) {
+        if (!isConnected) {
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -314,7 +323,7 @@ fun MirrorView(
             }
         }
 
-        errorMessage.value?.let { error ->
+        errorMessage?.let { error ->
             Box(
                 modifier = Modifier
                     .align(Alignment.TopCenter)
@@ -330,68 +339,133 @@ fun MirrorView(
             }
         }
 
-        // Barre de vêtements (inchangée)
-        Card(
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.92f)),
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        ) {
-            if (isLoading) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp),
-                    contentAlignment = Alignment.Center
+        // Boutons en haut (comme iOS)
+        if (isCameraActive) {
+            Row(
+                modifier = Modifier
+                    .align(Alignment.TopStart)
+                    .padding(top = 50.dp, start = 20.dp, end = 20.dp)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // Bouton fermer (comme iOS)
+                IconButton(
+                    onClick = { avatarViewModel.stopCamera() }
                 ) {
-                    CircularProgressIndicator(color = PinkPrimary)
-                }
-            } else if (clothes.isEmpty()) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(110.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "No clothes available",
-                        color = Color.Red,
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                }
-            } else {
-                Column {
-                    Text(
-                        text = "Stand 1.5m away and select a garment",
+                    Box(
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.Black)
-                            .padding(vertical = 8.dp, horizontal = 16.dp),
-                        color = Color.White,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                    )
-
-                    LazyRow(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 10.dp, horizontal = 12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(14.dp)
+                            .size(44.dp)
+                            .clip(CircleShape)
+                            .background(Color.Black.copy(alpha = 0.5f)),
+                        contentAlignment = Alignment.Center
                     ) {
-                        items(clothes, key = { it.id }) { cloth ->
-                            MirrorClothChip(
-                                cloth = cloth,
-                                isSelected = selectedCloth?.id == cloth.id
-                            ) {
-                                selectedCloth = cloth
-                                processedImage.value = null
-                                android.util.Log.d("MirrorView", "👕 Vêtement: ${cloth.type}")
+                        androidx.compose.material3.Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Fermer",
+                            tint = Color.White,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Barre de vêtements en bas (comme iOS CameraOverlayView)
+        if (isCameraActive) {
+            Column(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+            ) {
+                if (clothes.isEmpty()) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                )
+                            )
+                            .padding(bottom = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "Aucun vêtement disponible",
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier
+                                .background(Color.Red.copy(alpha = 0.7f), RoundedCornerShape(8.dp))
+                                .padding(12.dp)
+                        )
+                    }
+                } else {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(
+                                androidx.compose.ui.graphics.Brush.verticalGradient(
+                                    colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f))
+                                )
+                            )
+                    ) {
+                        // Instructions (comme iOS)
+                        Text(
+                            text = "Reculez de 1.5m et sélectionnez un vêtement",
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 20.dp, vertical = 8.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.bodySmall,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        )
+
+                        LazyRow(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            items(clothes, key = { it.id }) { cloth ->
+                                MirrorClothChip(
+                                    cloth = cloth,
+                                    isSelected = selectedCloth?.id == cloth.id
+                                ) {
+                                    avatarViewModel.selectCloth(cloth)
+                                }
                             }
                         }
                     }
                 }
+            }
+        } else {
+            // Écran de démarrage (comme iOS AvatarView quand !isCameraActive)
+            Column(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(30.dp)
+            ) {
+                androidx.compose.material3.Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = null,
+                    modifier = Modifier.size(80.dp),
+                    tint = PinkPrimary.copy(alpha = 0.6f)
+                )
+                Text(
+                    text = "Real Time Try-On",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    ),
+                    color = androidx.compose.ui.graphics.Color(0xFF4D5F8F) // Teal
+                )
+                Text(
+                    text = "Press the central button to start",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 40.dp)
+                )
             }
         }
     }
@@ -462,6 +536,84 @@ private fun MirrorClothChip(
             color = if (isSelected) PinkPrimary else Color.Black,
             maxLines = 1
         )
+    }
+}
+
+// ✨ Badge Experimental (comme iOS CameraOverlayView)
+@Composable
+fun ExperimentalBadge(modifier: Modifier = Modifier) {
+    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
+    val alpha by infiniteTransition.animateFloat(
+        initialValue = 0.6f,
+        targetValue = 1.0f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "pulse_alpha"
+    )
+
+    Row(
+        modifier = modifier
+            .background(
+                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.Black.copy(alpha = 0.4f),
+                        Color.Black.copy(alpha = 0.3f)
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .border(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
+                    colors = listOf(
+                        Color.White.copy(alpha = 0.3f),
+                        Color(0xFFFF6B9D).copy(alpha = 0.3f) // PinkPrimary
+                    )
+                ),
+                shape = RoundedCornerShape(20.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Icône flask animée
+        Text(
+            text = "⚗️",
+            style = MaterialTheme.typography.bodySmall,
+            modifier = Modifier
+                .alpha(alpha)
+        )
+
+        // Texte EXPERIMENTAL
+        Text(
+            text = "EXPERIMENTAL",
+            style = MaterialTheme.typography.labelSmall.copy(
+                fontWeight = FontWeight.SemiBold,
+                letterSpacing = 1.2.sp
+            ),
+            color = Color.White
+        )
+
+        // Badge BETA
+        Box(
+            modifier = Modifier
+                .background(
+                    color = Color(0xFFFF6B9D).copy(alpha = 0.8f), // PinkPrimary
+                    shape = RoundedCornerShape(12.dp)
+                )
+                .padding(horizontal = 6.dp, vertical = 2.dp)
+        ) {
+            Text(
+                text = "BETA",
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 8.sp
+                ),
+                color = Color.White
+            )
+        }
     }
 }
 
