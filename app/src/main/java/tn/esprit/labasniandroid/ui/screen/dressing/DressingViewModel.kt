@@ -106,11 +106,16 @@ class DressingViewModel(
     /**
      * Détecte un vêtement à partir d'une image
      */
-    fun detectCloth(bitmap: Bitmap) {
+    fun detectCloth(bitmap: Bitmap, token: String) {
         if (_isDetecting.value) return
 
         if (bitmap.isRecycled) {
             _errorMessage.value = "L'image n'est plus disponible"
+            return
+        }
+
+        if (token.isBlank()) {
+            _errorMessage.value = "Token d'authentification manquant"
             return
         }
 
@@ -120,7 +125,7 @@ class DressingViewModel(
                 _errorMessage.value = null
                 _detectionResult.value = null
 
-                dressingRepository.detectCloth(bitmap).fold(
+                dressingRepository.detectCloth(bitmap, token).fold(
                     onSuccess = { (result, imageUrl) ->
                         _detectionResult.value = Pair(result, imageUrl)
                     },
@@ -144,7 +149,7 @@ class DressingViewModel(
     }
 
     /**
-     * Sauvegarde un vêtement détecté
+     * Sauvegarde un vêtement détecté (avec originalDetection comme iOS)
      */
     fun saveDetectedCloth(
         token: String,
@@ -152,7 +157,8 @@ class DressingViewModel(
         category: String,
         color: String,
         style: String,
-        season: String
+        season: String,
+        originalDetection: Map<String, String>? = null
     ) {
         if (_isSaving.value) return
 
@@ -178,7 +184,8 @@ class DressingViewModel(
                     category = category,
                     color = color,
                     style = style,
-                    season = season
+                    season = season,
+                    originalDetection = originalDetection
                 ).fold(
                     onSuccess = { cloth ->
                         // Ajouter à la liste

@@ -181,8 +181,16 @@ fun DressingTab(
                             capturedBitmap = copy
                             showImageSourceDialog = false
                             showLoadingScreen = true
-                            // Démarrer la détection
-                            viewModel.detectCloth(copy)
+                            // Démarrer la détection avec le token
+                            val token = TokenManager.getToken(context)
+                            if (token != null) {
+                                viewModel.detectCloth(copy, token)
+                            } else {
+                                scope.launch {
+                                    snackbarHostState.showSnackbar("Session expirée. Veuillez vous reconnecter.")
+                                }
+                                showLoadingScreen = false
+                            }
                         } else {
                             snackbarHostState.showSnackbar("Impossible de décoder l'image ou image invalide")
                         }
@@ -251,7 +259,14 @@ fun DressingTab(
                                 capturedBitmap = copy
                                 showImageSourceDialog = false
                                 showLoadingScreen = true
-                                viewModel.detectCloth(copy)
+                                // Démarrer la détection avec le token
+                                val token = TokenManager.getToken(context)
+                                if (token != null) {
+                                    viewModel.detectCloth(copy, token)
+                                } else {
+                                    snackbarHostState.showSnackbar("Session expirée. Veuillez vous reconnecter.")
+                                    showLoadingScreen = false
+                                }
                             } else {
                                 snackbarHostState.showSnackbar("Impossible de décoder l'image")
                             }
@@ -700,7 +715,7 @@ fun DressingTab(
                         detectedImageURL = null
                         viewModel.clearDetectionResult()
                     },
-                    onSave = { imgURL, category, color, style, season ->
+                    onSave = { imgURL, category, color, style, season, originalDetection ->
                         val token = authToken
                         if (token != null) {
                             viewModel.saveDetectedCloth(
@@ -709,7 +724,8 @@ fun DressingTab(
                                 category = category,
                                 color = color,
                                 style = style,
-                                season = season
+                                season = season,
+                                originalDetection = originalDetection
                             )
                             showDetectionResult = false
                             detectedImageURL = null

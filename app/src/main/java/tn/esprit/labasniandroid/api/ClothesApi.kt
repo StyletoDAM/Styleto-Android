@@ -87,13 +87,37 @@ data class CreateClothRequest(
     @SerializedName("category") val category: String,
     @SerializedName("color") val color: String,
     @SerializedName("style") val style: String,
+    @SerializedName("season") val season: String,
+    @SerializedName("originalDetection") val originalDetection: Map<String, String>? = null
+)
+
+// ✅ NOUVEAU FORMAT BACKEND (comme iOS)
+// {
+//   "detection": { type, color, style, season },
+//   "confidence": { detection, style, season },
+//   "image_url": "https://..."
+// }
+data class DetectionApiResponse(
+    @SerializedName("detection") val detection: DetectionData,
+    @SerializedName("confidence") val confidence: ConfidenceData?,
+    @SerializedName("image_url") val imageUrl: String,
+    @SerializedName("cloudinary") val cloudinary: CloudinaryData?
+)
+
+data class DetectionData(
+    @SerializedName("type") val type: String,
+    @SerializedName("color") val color: String,
+    @SerializedName("style") val style: String,
     @SerializedName("season") val season: String
 )
 
-data class DetectionApiResponse(
-    @SerializedName("success") val success: Boolean,
-    @SerializedName("image_url") val imageUrl: String,
-    @SerializedName("public_id") val publicId: String?,
-    @SerializedName("detection_result") val detectionResult: String
+data class ConfidenceData(
+    @SerializedName("detection") val detection: Double?,
+    @SerializedName("style") val style: Double?,
+    @SerializedName("season") val season: Double?
+)
+
+data class CloudinaryData(
+    @SerializedName("public_id") val publicId: String?
 )
 

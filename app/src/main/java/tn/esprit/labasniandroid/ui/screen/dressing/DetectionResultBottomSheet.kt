@@ -63,7 +63,7 @@ fun DetectionResultBottomSheet(
     isShowing: Boolean,
     isSaving: Boolean,
     onDismiss: () -> Unit,
-    onSave: (String, String, String, String, String) -> Unit, // imageURL, category, color, style, season
+    onSave: (String, String, String, String, String, Map<String, String>?) -> Unit, // imageURL, category, color, style, season, originalDetection
     themePrimary: Color,
     themeSecondary: Color,
     themeTeal: Color,
@@ -238,7 +238,14 @@ fun DetectionResultBottomSheet(
             Button(
                 onClick = {
                     if (!isSaving) {
-                        onSave(imageURL, selectedCategory, selectedColor, selectedStyle, selectedSeason)
+                        // ✅ Construire originalDetection comme iOS
+                        val originalDetection = mapOf(
+                            "type" to (detectionResult.originalType ?: detectionResult.type),
+                            "color" to (detectionResult.originalColor ?: detectionResult.colorHex),
+                            "style" to (detectionResult.originalStyle ?: detectionResult.style),
+                            "season" to (detectionResult.originalSeason ?: detectionResult.season).lowercase()
+                        )
+                        onSave(imageURL, selectedCategory, selectedColor, selectedStyle, selectedSeason, originalDetection)
                     }
                 },
                 enabled = !isSaving,

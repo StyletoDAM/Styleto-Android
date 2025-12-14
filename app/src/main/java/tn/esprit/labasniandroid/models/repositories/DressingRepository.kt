@@ -20,7 +20,6 @@ import tn.esprit.labasniandroid.models.entities.Cloth
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import tn.esprit.labasniandroid.utils.APIConstants
-import tn.esprit.labasniandroid.utils.DetectionResultParser
 
 class DressingRepository(
     private val clothesApi: ClothesApi = RetrofitClient.clothesApi
@@ -67,9 +66,10 @@ class DressingRepository(
      * Détecte un vêtement à partir d'une image
      * Envoie directement le bitmap en multipart (comme iOS) - PAS de fichier local
      * @param bitmap Image à analyser
+     * @param token Token JWT pour l'authentification
      * @return Result avec DetectionResult et imageUrl
      */
-    suspend fun detectCloth(bitmap: Bitmap): Result<Pair<DetectionResult, String>> {
+    suspend fun detectCloth(bitmap: Bitmap, token: String): Result<Pair<DetectionResult, String>> {
         return try {
             if (bitmap.isRecycled) {
                 return Result.failure(NetworkError.ServerMessage("L'image a été recyclée"))
@@ -161,7 +161,10 @@ class DressingRepository(
             val request = Request.Builder()
                 .url(url)
                 .post(multipartBody) // Ne pas ajouter Content-Type manuellement - MultipartBody le gère automatiquement avec le boundary
+                .header("Authorization", "Bearer $token") // ✅ AJOUT : Header d'authentification (comme iOS)
                 .build()
+            
+            android.util.Log.d("DressingRepository", "Token ajouté dans Authorization header")
 
             val client = OkHttpClient.Builder()
                 .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -209,17 +212,26 @@ class DressingRepository(
                     if (apiResponse.imageUrl.isBlank()) {
                         return Result.failure(NetworkError.ServerMessage("URL d'image manquante dans la réponse"))
                     }
-                    if (apiResponse.detectionResult.isBlank()) {
-                        return Result.failure(NetworkError.ServerMessage("Résultat de détection vide"))
+                    if (apiResponse.detection == null) {
+                        return Result.failure(NetworkError.ServerMessage("Données de détection manquantes"))
                     }
 
-                    // Parser le résultat avec gestion d'erreur
-                    val detectionResult = try {
-                        DetectionResultParser.parse(apiResponse.detectionResult)
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                        return Result.failure(NetworkError.ServerMessage("Erreur lors du parsing: ${e.message}"))
-                    }
+                    // ✅ NOUVEAU : Parser directement depuis le JSON (comme iOS)
+                    val detection = apiResponse.detection
+                    val detectionResult = DetectionResult(
+                        type = normalizeCategory(detection.type),
+                        colorHex = normalizeColorHex(detection.color),
+                        colorName = extractColorName(detection.color),
+                        style = normalizeStyle(detection.style),
+                        season = normalizeSeason(detection.season),
+                        // ✅ Stocker les valeurs originales brutes pour originalDetection
+                        originalType = detection.type,
+                        originalColor = detection.color,
+                        originalStyle = detection.style,
+                        originalSeason = detection.season
+                    )
+
+                    android.util.Log.d("DressingRepository", "✅ Détection parsée: ${detectionResult.type} | ${detectionResult.colorHex}")
 
                     Result.success(Pair(detectionResult, apiResponse.imageUrl))
                 } catch (e: Exception) {
@@ -247,7 +259,7 @@ class DressingRepository(
     }
 
     /**
-     * Ajoute un vêtement au dressing
+     * Ajoute un vêtement au dressing (avec originalDetection comme iOS)
      */
     suspend fun addCloth(
         token: String,
@@ -255,7 +267,8 @@ class DressingRepository(
         category: String,
         color: String,
         style: String,
-        season: String
+        season: String,
+        originalDetection: Map<String, String>? = null
     ): Result<Cloth> {
         return try {
             val request = CreateClothRequest(
@@ -263,7 +276,8 @@ class DressingRepository(
                 category = category,
                 color = color,
                 style = style,
-                season = season
+                season = season,
+                originalDetection = originalDetection
             )
             val response = clothesApi.createCloth("Bearer $token", request)
             if (response.isSuccessful && response.body() != null) {
@@ -400,5 +414,108 @@ class DressingRepository(
     private fun buildPlaceholder(colorHex: String): String {
         val sanitized = colorHex.removePrefix("#")
         return "https://singlecolorimage.com/get/${sanitized.uppercase()}/400x400"
+    }
+
+    // ✅ NOUVEAU : Fonctions de normalisation pour parser le JSON (comme iOS)
+    private fun normalizeCategory(type: String): String {
+        val v = type.lowercase()
+        return when {
+            v.contains("footwear") || v.contains("shoe") || v.contains("chaussure") -> "Shoes"
+            v.contains("tshirt") || v.contains("shirt") || v.contains("haut") || v.contains("top") -> "Tshirt"
+            v.contains("pant") || v.contains("jean") || v.contains("pantalon") || v.contains("bottom") -> "Pants"
+            v.contains("dress") || v.contains("robe") -> "Dress"
+            v.contains("jacket") || v.contains("veste") || v.contains("outerwear") -> "Jacket"
+            v.contains("accessory") || v.contains("accessoire") -> "Accessory"
+            else -> "Other"
+        }
+    }
+
+    private fun normalizeColorHex(color: String): String {
+        val defaultColor = "#808080"
+        if (color.isBlank()) return defaultColor
+        
+        // Si c'est déjà un hex (commence par #)
+        if (color.startsWith("#")) {
+            val withoutHash = color.removePrefix("#")
+            val hex = when (withoutHash.length) {
+                3 -> withoutHash.flatMap { listOf(it, it) }.joinToString(separator = "")
+                6 -> withoutHash
+                8 -> withoutHash.substring(2) // ignore alpha if present
+                else -> return defaultColor
+            }
+            return "#${hex.uppercase()}"
+        }
+        
+        // Sinon, essayer de convertir le nom de couleur en hex
+        return colorNameToHex(color) ?: defaultColor
+    }
+
+    private fun extractColorName(color: String): String {
+        // Si c'est un hex, convertir en nom
+        if (color.startsWith("#")) {
+            return hexToColorName(color) ?: "Unknown"
+        }
+        // Sinon, utiliser directement le nom
+        return color.capitalize()
+    }
+
+    private fun normalizeStyle(style: String): String {
+        val v = style.lowercase()
+        return when {
+            v.contains("casual") -> "casual"
+            v.contains("formal") || v.contains("elegant") || v.contains("chic") -> "formal"
+            v.contains("sport") -> "sport"
+            v.contains("vintage") -> "vintage"
+            v.contains("modern") -> "modern"
+            v.contains("boho") || v.contains("bohemian") -> "bohemian"
+            else -> "casual"
+        }
+    }
+
+    private fun normalizeSeason(season: String): String {
+        val v = season.lowercase()
+        return when {
+            v.contains("summer") || v.contains("été") -> "summer"
+            v.contains("winter") || v.contains("hiver") -> "winter"
+            v.contains("fall") || v.contains("autumn") || v.contains("automne") -> "fall"
+            v.contains("spring") || v.contains("printemps") -> "spring"
+            else -> "all"
+        }
+    }
+
+    private fun colorNameToHex(colorName: String): String? {
+        val name = colorName.lowercase()
+        return when {
+            name.contains("pink") -> "#FFC0CB"
+            name.contains("red") -> "#FF0000"
+            name.contains("blue") -> "#0000FF"
+            name.contains("black") -> "#000000"
+            name.contains("white") -> "#FFFFFF"
+            name.contains("green") -> "#008000"
+            name.contains("yellow") -> "#FFFF00"
+            name.contains("purple") -> "#800080"
+            name.contains("orange") -> "#FFA500"
+            name.contains("brown") -> "#A52A2A"
+            name.contains("gray") || name.contains("grey") -> "#808080"
+            else -> null
+        }
+    }
+
+    private fun hexToColorName(hex: String): String? {
+        val normalized = hex.uppercase()
+        return when (normalized) {
+            "#FFC0CB", "#FFB6C1" -> "Pink"
+            "#FF0000", "#DC143C" -> "Red"
+            "#0000FF", "#4169E1" -> "Blue"
+            "#000000" -> "Black"
+            "#FFFFFF" -> "White"
+            "#008000", "#00FF00" -> "Green"
+            "#FFFF00", "#FFD700" -> "Yellow"
+            "#800080", "#9370DB" -> "Purple"
+            "#FFA500" -> "Orange"
+            "#A52A2A", "#8B4513" -> "Brown"
+            "#808080", "#A9A9A9" -> "Gray"
+            else -> null
+        }
     }
 }
