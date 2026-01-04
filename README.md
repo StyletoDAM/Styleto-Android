@@ -224,9 +224,39 @@ GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 ### Configuration Details
 
 #### Backend URL
-- **Development**: `http://10.0.2.2:3000` (Android Emulator)
-- **Physical Device**: `http://<your-computer-ip>:3000`
-- **Production**: `https://api.styleto.com`
+L'application utilise une logique intelligente pour déterminer quelle URL utiliser :
+
+**Priorité :**
+1. **URL configurée dans `local.properties`** (via `labasni.baseUrl`) → **priorité absolue**
+   - Si HTTPS (production/déployé) : utilisée pour **tous** les appareils (émulateur et physique)
+   - Si HTTP (développement local) : utilisée selon le contexte
+2. **Détection automatique** : Si pas d'URL configurée
+   - Émulateur → `http://10.0.2.2:3000`
+   - Appareil physique → `http://10.0.2.2:3000`
+
+**Exemples de configuration :**
+
+```properties
+# Backend déployé (Render, Heroku, etc.) - Fonctionne partout
+labasni.baseUrl=https://labasni-backend-mh3j.onrender.com
+
+# Backend local sur Mac - Appareil physique uniquement
+labasni.baseUrl=http://192.168.1.100:3000
+
+# Utiliser automatiquement 10.0.2.2 pour l'émulateur (commenter ou laisser vide)
+# labasni.baseUrl=
+```
+
+**Pour trouver l'IP locale de votre Mac (pour backend local) :**
+```bash
+# Terminal
+ifconfig | grep "inet " | grep -v 127.0.0.1
+
+# Ou via l'interface graphique :
+# Préférences Système > Réseau > Wi-Fi > Détails > TCP/IP > Adresse IPv4
+```
+
+> **Note** : Si vous configurez une URL HTTPS (backend déployé), elle sera utilisée pour **tous** les appareils, même l'émulateur. C'est la configuration recommandée pour la production !
 
 #### Stripe
 - Get your publishable key from [Stripe Dashboard](https://dashboard.stripe.com/apikeys)

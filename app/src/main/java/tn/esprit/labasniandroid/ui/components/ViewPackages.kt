@@ -12,7 +12,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material.icons.rounded.CheckCircle
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -45,7 +50,7 @@ data class SubscriptionPlan(
     val type: PlanType,
     val price: String,
     val features: List<String>,
-    val icon: String,
+    val icon: ImageVector,
     val iconColor: Color,
     val badge: String? = null,
     val backgroundGradient: Brush? = null
@@ -162,7 +167,7 @@ fun ViewPackages(
                     "3 items for sale / month",
                     "Basic wardrobe access"
                 ),
-                icon = "⭐",
+                icon = Icons.Filled.Star,
                 iconColor = themePrimary.copy(alpha = 0.8f),
                 backgroundGradient = Brush.linearGradient(
                     colors = listOf(
@@ -183,7 +188,7 @@ fun ViewPackages(
                     "Personalized 3D Avatar",
                     "Priority support"
                 ),
-                icon = "👑",
+                icon = Icons.Filled.Verified,
                 iconColor = Color.White,
                 badge = "Most Popular",
                 backgroundGradient = Brush.verticalGradient(
@@ -204,7 +209,7 @@ fun ViewPackages(
                     "Professional seller badge",
                     "VIP priority support"
                 ),
-                icon = "🛍️",
+                icon = Icons.Filled.ShoppingBag,
                 iconColor = Color.White,
                 backgroundGradient = Brush.linearGradient(
                     colors = listOf(
@@ -301,11 +306,14 @@ fun ViewPackages(
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(
-                                text = "💡",
-                                style = MaterialTheme.typography.bodyLarge
+                            Icon(
+                                imageVector = Icons.Filled.Lightbulb,
+                                contentDescription = "Tip",
+                                tint = Color(0xFFFF9800), // Orange comme iOS
+                                modifier = Modifier.size(24.dp)
                             )
 
                             Text(
@@ -441,7 +449,7 @@ private fun PlanCard(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Icon (comme iOS)
+                // Icon (comme iOS - utilisant ImageVector au lieu d'emoji)
                 Box(
                     modifier = Modifier
                         .size(56.dp)
@@ -451,10 +459,11 @@ private fun PlanCard(
                         ),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text(
-                        text = plan.icon,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontSize = 28.sp),
-                        color = plan.iconColor
+                    Icon(
+                        imageVector = plan.icon,
+                        contentDescription = plan.type.displayName,
+                        tint = plan.iconColor,
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 

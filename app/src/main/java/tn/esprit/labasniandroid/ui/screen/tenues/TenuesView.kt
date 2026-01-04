@@ -1186,9 +1186,11 @@ private fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "👕",
-            fontSize = 50.sp
+        Icon(
+            imageVector = Icons.Filled.ShoppingBag,
+            contentDescription = "Empty",
+            tint = themeSecondaryText.copy(alpha = 0.5f),
+            modifier = Modifier.size(50.dp)
         )
         Text(
             text = "No outfits at the moment",

@@ -109,10 +109,19 @@ fun ChatDetailView(
         messagingViewModel.initialize(token, userId)
     }
     
+    val conversationId by viewModel.conversationId.collectAsState()
+    
     LaunchedEffect(ownerId) {
         if (ownerId.isNotBlank()) {
             // Log détaillé pour vérifier le userId utilisé
             viewModel.initializeChat(token, userId, ownerId)
+        }
+    }
+    
+    // Marquer la conversation comme lue quand on l'ouvre (dès qu'on a le conversationId)
+    LaunchedEffect(conversationId) {
+        conversationId?.let { convId ->
+            messagingViewModel.markConversationAsRead(convId, userId)
         }
     }
 

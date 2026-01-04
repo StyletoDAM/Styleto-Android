@@ -23,8 +23,10 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +81,7 @@ fun MessagingView(
     onNavigateBack: () -> Unit,
     onNavigateToChat: (String, String?, String?) -> Unit = { _, _, _ -> }
 ) {
+    val conversations by viewModel.conversations.collectAsState()
     val isMale = ThemeController.themeVariant.collectAsState().value == ThemeVariant.BLUE
     val themePrimary = DynamicThemeColors.primary(isMale)
     val themeBackground = DynamicThemeColors.background()
@@ -87,7 +90,6 @@ fun MessagingView(
     val themeAqua = DynamicThemeColors.aqua(isMale)
     val themeSecondary = DynamicThemeColors.secondary(isMale)
 
-    val conversations by viewModel.conversations.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     
     var searchText by remember { mutableStateOf("") }
@@ -464,9 +466,11 @@ private fun EmptyStateView(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = if (searchText.isEmpty()) "💬" else "🔍",
-            fontSize = 50.sp
+        Icon(
+            imageVector = if (searchText.isEmpty()) Icons.AutoMirrored.Filled.Message else Icons.Outlined.Search,
+            contentDescription = "Empty",
+            tint = themePrimary.copy(alpha = 0.5f),
+            modifier = Modifier.size(50.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
@@ -554,6 +558,12 @@ private fun ModernConversationCard(
     val lastMessage = conversation.lastMessage
     val messageText = lastMessage?.content ?: "Start the conversation"
     val messageTime = lastMessage?.createdAt?.let { formatRelativeTime(it) } ?: "New"
+    
+    // Déterminer si la conversation a des messages non lus (dernier message n'est pas de l'utilisateur)
+    val hasUnreadMessages = lastMessage?.let { message ->
+        val senderIdNormalized = message.senderId.trim().lowercase()
+        senderIdNormalized != userIdNormalized && senderIdNormalized.isNotEmpty()
+    } ?: false
 
     // 💬 Carte très arrondie avec dégradé rose → blanc
     Row(
@@ -643,7 +653,7 @@ private fun ModernConversationCard(
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontSize = 15.sp,
                     color = Color(0xFF6B7280), // Gris foncé
-                    fontWeight = FontWeight.Medium
+                    fontWeight = if (hasUnreadMessages) FontWeight.Bold else FontWeight.Medium
                 ),
                 maxLines = 1
             )

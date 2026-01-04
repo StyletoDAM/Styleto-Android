@@ -5,7 +5,12 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AllInclusive
+import androidx.compose.material.icons.filled.CameraAlt
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.rounded.ShoppingBag
+import androidx.compose.material3.Icon
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -116,19 +121,19 @@ fun UpgradeToProDialog(
                     horizontalAlignment = Alignment.Start
                 ) {
                     FeatureRow(
-                        emoji = "♾️",
+                        icon = Icons.Filled.AllInclusive,
                         text = "Unlimited sales on Styleto Store",
                         themeTeal = themeTeal,
                         themeText = themeText
                     )
                     FeatureRow(
-                        emoji = "📸",
+                        icon = Icons.Filled.CameraAlt,
                         text = "Unlimited clothes detection",
                         themeTeal = themeTeal,
                         themeText = themeText
                     )
                     FeatureRow(
-                        emoji = "✨",
+                        icon = Icons.Filled.AutoAwesome,
                         text = "Unlimited outfit suggestions",
                         themeTeal = themeTeal,
                         themeText = themeText
@@ -186,7 +191,7 @@ fun UpgradeToProDialog(
 
 @Composable
 private fun FeatureRow(
-    emoji: String,
+    icon: ImageVector,
     text: String,
     themeTeal: Color,
     themeText: Color
@@ -196,10 +201,11 @@ private fun FeatureRow(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = emoji,
-            fontSize = 28.sp,
-            color = themeTeal
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = themeTeal,
+            modifier = Modifier.size(28.dp)
         )
 
         Text(

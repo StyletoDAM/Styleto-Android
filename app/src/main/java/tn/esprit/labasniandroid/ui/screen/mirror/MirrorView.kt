@@ -273,12 +273,6 @@ fun MirrorView(
             )
         }
 
-        // ✨ Badge Experimental (comme iOS)
-        ExperimentalBadge(
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(top = 60.dp)
-        )
 
         // Indicateur de traitement
         if (isProcessing) {
@@ -539,83 +533,6 @@ private fun MirrorClothChip(
     }
 }
 
-// ✨ Badge Experimental (comme iOS CameraOverlayView)
-@Composable
-fun ExperimentalBadge(modifier: Modifier = Modifier) {
-    val infiniteTransition = rememberInfiniteTransition(label = "pulse")
-    val alpha by infiniteTransition.animateFloat(
-        initialValue = 0.6f,
-        targetValue = 1.0f,
-        animationSpec = infiniteRepeatable(
-            animation = tween(durationMillis = 2000, easing = FastOutSlowInEasing),
-            repeatMode = RepeatMode.Reverse
-        ),
-        label = "pulse_alpha"
-    )
-
-    Row(
-        modifier = modifier
-            .background(
-                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.Black.copy(alpha = 0.4f),
-                        Color.Black.copy(alpha = 0.3f)
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .border(
-                width = 1.dp,
-                brush = androidx.compose.ui.graphics.Brush.horizontalGradient(
-                    colors = listOf(
-                        Color.White.copy(alpha = 0.3f),
-                        Color(0xFFFF6B9D).copy(alpha = 0.3f) // PinkPrimary
-                    )
-                ),
-                shape = RoundedCornerShape(20.dp)
-            )
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Icône flask animée
-        Text(
-            text = "⚗️",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier
-                .alpha(alpha)
-        )
-
-        // Texte EXPERIMENTAL
-        Text(
-            text = "EXPERIMENTAL",
-            style = MaterialTheme.typography.labelSmall.copy(
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = 1.2.sp
-            ),
-            color = Color.White
-        )
-
-        // Badge BETA
-        Box(
-            modifier = Modifier
-                .background(
-                    color = Color(0xFFFF6B9D).copy(alpha = 0.8f), // PinkPrimary
-                    shape = RoundedCornerShape(12.dp)
-                )
-                .padding(horizontal = 6.dp, vertical = 2.dp)
-        ) {
-            Text(
-                text = "BETA",
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 8.sp
-                ),
-                color = Color.White
-            )
-        }
-    }
-}
 
 // Extension ImageProxy to Bitmap (inchangée)
 fun ImageProxy.toBitmap(): Bitmap {

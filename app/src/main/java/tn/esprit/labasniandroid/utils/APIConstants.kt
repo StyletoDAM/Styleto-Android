@@ -1,17 +1,78 @@
 package tn.esprit.labasniandroid.utils
 
+import android.os.Build
 import tn.esprit.labasniandroid.BuildConfig
 
 object APIConstants {
+    private const val EMULATOR_BASE_URL = "http://10.0.2.2:3000"
     private const val DEFAULT_BASE_URL = "http://10.0.2.2:3000"
+
+    /**
+     * Détecte si l'application s'exécute sur un émulateur Android.
+     */
+    private fun isEmulator(): Boolean {
+        return (Build.FINGERPRINT.startsWith("google/sdk_gphone")
+                || Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk" == Build.PRODUCT
+                || Build.HARDWARE.contains("goldfish")
+                || Build.HARDWARE.contains("ranchu"))
+    }
 
     /**
      * URL du backend.
      *
-     * - Émulateur officiel : laissez `labasni.baseUrl` vide pour utiliser 10.0.2.2.
-     * - Téléphone réel : dans `local.properties`, ajoutez `labasni.baseUrl=http://<ip_de_votre_mac>:3000`.
+     * Priorité de sélection :
+     * 1. Si une URL est configurée dans `local.properties` (via `labasni.baseUrl`) → l'utiliser
+     *    - URL HTTPS (production) : utilisée pour tous les appareils (émulateur et physique)
+     *    - URL HTTP (développement local) : utilisée uniquement pour les appareils physiques
+     * 2. Si émulateur et pas d'URL configurée → utilise `http://10.0.2.2:3000`
+     * 3. Si appareil physique et pas d'URL configurée → utilise `http://10.0.2.2:3000`
+     *
+     * Configuration dans `local.properties` :
+     * - Backend déployé (Render, etc.) : `labasni.baseUrl=https://labasni-backend-mh3j.onrender.com`
+     * - Backend local (appareil physique) : `labasni.baseUrl=http://192.168.1.100:3000`
+     * - Backend local (émulateur) : laissez vide ou commentez pour utiliser automatiquement `10.0.2.2:3000`
+     * 
+     * Pour trouver l'IP locale de votre Mac :
+     * - Terminal : `ifconfig | grep "inet " | grep -v 127.0.0.1`
+     * - Ou : Préférences Système > Réseau > Wi-Fi > Détails > TCP/IP > Adresse IPv4
      */
-    val BASE_URL: String = BuildConfig.BASE_URL.ifBlank { DEFAULT_BASE_URL }
+    val BASE_URL: String
+        get() {
+            val configuredUrl = BuildConfig.BASE_URL.trim()
+            
+            // Si une URL est configurée, l'utiliser (priorité absolue)
+            if (configuredUrl.isNotBlank()) {
+                // Si c'est une URL HTTPS (production), l'utiliser pour tous les appareils
+                if (configuredUrl.startsWith("https://")) {
+                    return configuredUrl
+                }
+                // Si c'est une URL HTTP (local) et qu'on est sur un appareil physique, l'utiliser
+                if (!isEmulator() && configuredUrl.startsWith("http://")) {
+                    return configuredUrl
+                }
+                // Si on est sur un émulateur avec une URL HTTP configurée, utiliser quand même
+                // (au cas où l'utilisateur veuille forcer une IP locale sur l'émulateur)
+                if (isEmulator() && configuredUrl.startsWith("http://")) {
+                    return configuredUrl
+                }
+            }
+            
+            // Pas d'URL configurée : utiliser la détection automatique
+            if (isEmulator()) {
+                return EMULATOR_BASE_URL
+            }
+            
+            // Appareil physique sans configuration : essayer quand même l'URL de l'émulateur
+            // (au cas où l'appareil serait sur le même réseau)
+            return DEFAULT_BASE_URL
+        }
     
     const val SIGNUP_PATH = "/auth/signup"
     const val SIGNIN_PATH = "/auth/signin"

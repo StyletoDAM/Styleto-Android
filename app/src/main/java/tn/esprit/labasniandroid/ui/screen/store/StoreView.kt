@@ -28,6 +28,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -45,6 +46,8 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
+import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -105,6 +108,7 @@ import tn.esprit.labasniandroid.utils.CartManager
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.animateColorAsState
+import tn.esprit.labasniandroid.ui.screen.store.messaging.MessagingViewModel
 
 private val STANDARD_SIZES = listOf("XS", "S", "M", "L", "XL", "XXL", "XXXL")
 
@@ -115,6 +119,7 @@ fun StoreTab(
     userId: String,
     modifier: Modifier = Modifier,
     viewModel: StoreViewModel = viewModel(),
+    messagingViewModel: MessagingViewModel = viewModel(),
     onNavigateToCart: () -> Unit = {},
     onNavigateToMessaging: () -> Unit = {},
     onContactOwner: (StoreItem) -> Unit = {}
@@ -163,6 +168,16 @@ fun StoreTab(
 
     // Observer le nombre d'articles dans le panier (comme iOS CartManager.shared.itemCount)
     val cartItemCount by CartManager.itemCount.collectAsState(initial = 0)
+    
+    // Observer le nombre de messages non lus
+    val unreadMessageCount by messagingViewModel.unreadCount.collectAsState(initial = 0)
+    
+    // Initialiser le MessagingViewModel pour charger les conversations et calculer les messages non lus
+    LaunchedEffect(token, userId) {
+        if (token.isNotBlank() && userId.isNotBlank()) {
+            messagingViewModel.initialize(token, userId)
+        }
+    }
 
     var showEditDialog by remember { mutableStateOf<StoreItem?>(null) }
     var showDeleteConfirmation by remember { mutableStateOf<StoreItem?>(null) }
@@ -250,25 +265,69 @@ fun StoreTab(
                         horizontalArrangement = Arrangement.spacedBy(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Bouton Messages
-                        IconButton(
-                            onClick = { onNavigateToMessaging() },
-                            modifier = Modifier
-                                .size(48.dp)
-                                .clip(CircleShape)
-                                .background(themePrimary)
-                                .shadow(
-                                    elevation = 8.dp,
-                                    shape = CircleShape,
-                                    spotColor = Color.Black.copy(alpha = 0.2f)
-                                )
+                        // Bouton Messages avec badge rouge (comme le panier)
+                        Box(
+                            modifier = Modifier.size(48.dp)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Message,
-                                contentDescription = "Messages",
-                                tint = Color.White,
-                                modifier = Modifier.size(20.dp)
-                            )
+                            IconButton(
+                                onClick = { onNavigateToMessaging() },
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(CircleShape)
+                                    .background(themePrimary)
+                                    .shadow(
+                                        elevation = 8.dp,
+                                        shape = CircleShape,
+                                        spotColor = Color.Black.copy(alpha = 0.2f)
+                                    )
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.Message,
+                                    contentDescription = "Messages",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            
+                            // Badge rouge – apparaît uniquement si > 0 (comme iOS et comme le panier)
+                            if (unreadMessageCount > 0) {
+                                val scale by animateFloatAsState(
+                                    targetValue = 1f,
+                                    animationSpec = spring(
+                                        dampingRatio = androidx.compose.animation.core.Spring.DampingRatioMediumBouncy,
+                                        stiffness = androidx.compose.animation.core.Spring.StiffnessMedium
+                                    ),
+                                    label = "message_badge_scale"
+                                )
+
+                                // Badge avec taille minimale adaptative pour éviter l'écrasement
+                                val badgeSize = if (unreadMessageCount > 9) 22.dp else 20.dp
+                                val minWidth = if (unreadMessageCount > 9) 22.dp else 20.dp
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .scale(scale)
+                                        .widthIn(min = minWidth)
+                                        .height(badgeSize)
+                                        .background(
+                                            Color.Red,
+                                            shape = CircleShape
+                                        )
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = if (unreadMessageCount > 9) "9+" else "$unreadMessageCount",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 10.sp,
+                                            color = Color.White
+                                        ),
+                                        maxLines = 1
+                                    )
+                                }
+                            }
                         }
                         
                         // Bouton Panier avec badge rouge (comme iOS - ZStack avec badge)
@@ -437,9 +496,11 @@ fun StoreTab(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Text(
-                                        text = "👕",
-                                        fontSize = 48.sp
+                                    Icon(
+                                        imageVector = Icons.Filled.ShoppingBag,
+                                        contentDescription = "Empty",
+                                        tint = DynamicThemeColors.secondaryText().copy(alpha = 0.5f),
+                                        modifier = Modifier.size(48.dp)
                                     )
                                     Text(
                                         text = "No items for sale",
@@ -486,9 +547,11 @@ fun StoreTab(
                                     horizontalAlignment = Alignment.CenterHorizontally,
                                     verticalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Text(
-                                        text = "🔍",
-                                        fontSize = 48.sp
+                                    Icon(
+                                        imageVector = Icons.Outlined.Search,
+                                        contentDescription = "Empty",
+                                        tint = DynamicThemeColors.secondaryText().copy(alpha = 0.5f),
+                                        modifier = Modifier.size(48.dp)
                                     )
                                     Text(
                                         text = "No items to discover",
@@ -1364,9 +1427,11 @@ private fun EmptyStateClothes(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
-        Text(
-            text = "👕",
-            fontSize = 48.sp
+        Icon(
+            imageVector = Icons.Filled.ShoppingBag,
+            contentDescription = "Empty",
+            tint = themeSecondaryText.copy(alpha = 0.5f),
+            modifier = Modifier.size(48.dp)
         )
         Text(
             text = "No clothes available",

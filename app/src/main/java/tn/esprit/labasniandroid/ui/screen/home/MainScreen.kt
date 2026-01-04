@@ -187,7 +187,31 @@ fun MainScreen(
                         )
                     }
                 }
-                LabasniHomeTab.Avatar -> tn.esprit.labasniandroid.ui.screen.mirror.MirrorView()
+                LabasniHomeTab.Avatar -> {
+                    var showExperimentalDialog by remember { mutableStateOf(true) }
+                    var hasAcceptedExperimental by remember { mutableStateOf(false) }
+                    
+                    Box(modifier = Modifier.fillMaxSize()) {
+                        // Afficher le dialogue seulement si l'utilisateur n'a pas encore accepté
+                        if (showExperimentalDialog && !hasAcceptedExperimental) {
+                            tn.esprit.labasniandroid.ui.screen.mirror.ExperimentalModeDialog(
+                                onDismiss = { 
+                                    // Revenir à l'onglet précédent si l'utilisateur annule
+                                    showExperimentalDialog = false
+                                    selectedTab = LabasniHomeTab.Dressing
+                                },
+                                onConfirm = {
+                                    // Accepter et ouvrir la caméra
+                                    hasAcceptedExperimental = true
+                                    showExperimentalDialog = false
+                                }
+                            )
+                        } else if (hasAcceptedExperimental) {
+                            // Afficher la vue caméra si l'utilisateur a accepté
+                            tn.esprit.labasniandroid.ui.screen.mirror.MirrorView()
+                        }
+                    }
+                }
                 LabasniHomeTab.Store -> {
                     val storeViewModel: StoreViewModel = viewModel()
                     if (authToken.isBlank() || userId.isBlank()) {
