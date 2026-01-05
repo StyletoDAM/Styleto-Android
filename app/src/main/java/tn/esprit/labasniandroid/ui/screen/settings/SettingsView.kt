@@ -446,6 +446,98 @@ fun SettingsView(
                     .padding(top = 12.dp)
             )
             
+            // Profile Photo (comme iOS)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(80.dp)
+                        .clip(CircleShape)
+                        .background(themePrimary.copy(alpha = 0.15f))
+                        .clickable { showImageSourcePicker = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    when {
+                        isPhotoUpdating || isLoadingImage -> {
+                            CircularProgressIndicator(
+                                color = themePrimary,
+                                modifier = Modifier.size(40.dp)
+                            )
+                        }
+                        !activeUser?.profilePicture.isNullOrBlank() -> {
+                            AsyncImage(
+                                model = ImageRequest.Builder(context)
+                                    .data(activeUser?.profilePicture)
+                                    .crossfade(true)
+                                    .build(),
+                                contentDescription = "Profile Photo",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                        else -> {
+                            Text(
+                                text = initials(activeUser?.fullName ?: "User"),
+                                style = MaterialTheme.typography.headlineMedium.copy(
+                                    fontSize = 28.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = themePrimary
+                            )
+                        }
+                    }
+                    
+                    // Camera icon overlay (comme iOS)
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.BottomEnd
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(28.dp)
+                                .clip(CircleShape)
+                                .background(themePrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Rounded.CameraAlt,
+                                contentDescription = "Edit Photo",
+                                tint = Color.White,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+                
+                // ✅ Afficher le nom avec indicateur de chargement
+                if (isLoadingName && fullName.isBlank()) {
+                    Box(
+                        modifier = Modifier.size(120.dp, 20.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = themePrimary,
+                            modifier = Modifier.size(16.dp),
+                            strokeWidth = 2.dp
+                        )
+                    }
+                } else {
+                    Text(
+                        text = fullName.ifBlank { "Loading..." },
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        color = themeText
+                    )
+                }
+            }
+            
             // Balance Card - Innovative and Beautiful
             Card(
                 modifier = Modifier
@@ -539,98 +631,6 @@ fun SettingsView(
                             )
                         }
                     }
-                }
-            }
-            
-            // Profile Photo (comme iOS)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(80.dp)
-                        .clip(CircleShape)
-                        .background(themePrimary.copy(alpha = 0.15f))
-                        .clickable { showImageSourcePicker = true },
-                    contentAlignment = Alignment.Center
-                ) {
-                    when {
-                        isPhotoUpdating || isLoadingImage -> {
-                            CircularProgressIndicator(
-                                color = themePrimary,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
-                        !activeUser?.profilePicture.isNullOrBlank() -> {
-                            AsyncImage(
-                                model = ImageRequest.Builder(context)
-                                    .data(activeUser?.profilePicture)
-                                    .crossfade(true)
-                                    .build(),
-                                contentDescription = "Profile Photo",
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.Crop
-                            )
-                        }
-                        else -> {
-                            Text(
-                                text = initials(activeUser?.fullName ?: "User"),
-                                style = MaterialTheme.typography.headlineMedium.copy(
-                                    fontSize = 28.sp,
-                                    fontWeight = FontWeight.Bold
-                                ),
-                                color = themePrimary
-                            )
-                        }
-                    }
-                    
-                    // Camera icon overlay (comme iOS)
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.BottomEnd
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(28.dp)
-                                .clip(CircleShape)
-                                .background(themePrimary),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Rounded.CameraAlt,
-                                contentDescription = "Edit Photo",
-                                tint = Color.White,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
-                    }
-                }
-                
-                // ✅ Afficher le nom avec indicateur de chargement
-                if (isLoadingName && fullName.isBlank()) {
-                    Box(
-                        modifier = Modifier.size(120.dp, 20.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = themePrimary,
-                            modifier = Modifier.size(16.dp),
-                            strokeWidth = 2.dp
-                        )
-                    }
-                } else {
-                    Text(
-                        text = fullName.ifBlank { "Loading..." },
-                        style = MaterialTheme.typography.titleMedium.copy(
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.SemiBold
-                        ),
-                        color = themeText
-                    )
                 }
             }
             
